@@ -1,0 +1,22 @@
+.navbar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4%;
+}
+
+.logo {
+  height: 45px;
+  width: auto;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.profile {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid #e5e5e5;
+}

@@ -1,0 +1,111 @@
+.footer-section {
+  background: #edeceec6;
+  border-top: 1px solid #ccc;
+  padding: 14px 0;
+  font-size: 14px;
+ 
+}
+
+/* LOGO */
+.footer-logo {
+  height: 70px;
+  width: 135px;
+  border-radius: 18px;
+  cursor: pointer;
+  opacity: 0.9;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  background-color: #000;
+}
+
+.footer-logo:hover {
+  opacity: 1;
+  transform: scale(1.03);
+}
+
+/* TEXT */
+.company-description {
+  color: #555;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.footer-section h6 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* LINKS */
+.footer-links li {
+  margin-bottom: 6px;
+  cursor: pointer;
+  color: #333;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.footer-links li:hover {
+  color: #007bff;
+  transform: translateX(4px);
+}
+
+/* CONTACT */
+.contact-info p {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.contact-info i {
+  color: #007bff;
+  width: 20px;
+}
+
+/* SOCIAL */
+.social-icons {
+  margin-top: 12px;
+}
+
+.social-icons a {
+  margin-right: 14px;
+  font-size: 20px;
+  color: #333;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.social-icons a:hover {
+  color: #007bff;
+  transform: translateY(-3px);
+}
+
+/* FOOTER BOTTOM */
+.footer-bottom {
+  width: 100%;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* RESPONSIVE */
+@media (max-width: 992px) {
+  .company-info,
+  .contact-info {
+    text-align: center;
+  }
+
+  .social-icons {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .company-description {
+    font-size: 13px;
+  }
+
+  .footer-links li {
+    justify-content: center;
+  }
+}

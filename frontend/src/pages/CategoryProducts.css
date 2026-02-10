@@ -1,0 +1,151 @@
+
+.product-card {
+  border-radius: 14px;
+  background: #ffffff;
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
+}
+
+.product-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.08);
+}
+
+/* =============================
+   PHOTO BADGE
+============================= */
+.photo-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* =============================
+   CARD BODY
+============================= */
+.card-body {
+  padding: 16px;
+}
+
+/* =============================
+   PRODUCT TEXT
+============================= */
+.product-title-category {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.product-price-category {
+  font-size: 16px;
+  font-weight: 700;
+  color: #198754; /* Bootstrap success green */
+  margin-bottom: 4px;
+}
+
+.product-sku-category {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 6px;
+}
+
+.product-description-category {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+
+/* =============================
+   ACTION BUTTONS
+============================= */
+.product-actions-category {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.product-actions-category .btn {
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.product-actions-category .btn-success:hover {
+  background-color: #157347;
+  transform: translateY(-2px);
+}
+
+.product-actions-category .btn-outline-primary:hover {
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* =============================
+   EMPTY STATE
+============================= */
+.no-products {
+  font-size: 18px;
+  font-weight: 500;
+  color: #6c757d;
+}
+@media (max-width: 576px) {
+  .product-actions-category {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .product-actions-category .btn {
+    width: 100%;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .product-actions-category .btn + .btn {
+    margin-left: 0 !important;
+  }
+}
+
+/* =============================
+   RESPONSIVE
+============================= */
+@media (max-width: 576px) {
+  .product-image {
+    height: 200px;
+  }
+
+  .product-title-category {
+    font-size: 14px;
+  }
+
+  .product-price-category {
+    font-size: 15px;
+  }
+}

@@ -1,0 +1,262 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+
+.hero-slide {
+  height: 100vh !important;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+
+.carousel-fade .carousel-item {
+  opacity: 0;
+  transition: opacity 1.6s ease-in-out;
+}
+
+.carousel-fade .carousel-item.active {
+  opacity: 1;
+}
+
+.carousel-fade .carousel-item-next.carousel-item-start,
+.carousel-fade .carousel-item-prev.carousel-item-end {
+  opacity: 1;
+}
+
+.carousel-fade .carousel-item-next,
+.carousel-fade .carousel-item-prev,
+.carousel-fade .carousel-item.active.carousel-item-start,
+.carousel-fade .carousel-item.active.carousel-item-end {
+  opacity: 0;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+
+
+.hero-center-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+}
+
+/* New Title Size (smaller & sharper) */
+.hero-title {
+  font-size: 2.4rem;   /* reduced from 3rem */
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Subtitle Reduced & Soft tone */
+.hero-subtitle {
+  font-size: 1.05rem;  /* reduced from 1.3rem */
+  margin-top: 8px;
+  opacity: 0.9;
+}
+
+/* CTA button refined */
+.hero-btn {
+  margin-top: 18px;
+  padding: 10px 26px;  /* slightly slimmer */
+  background: #ffb400;
+  border: none;
+  color: #000;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.hero-btn:hover {
+  background: #d79200;
+}
+
+/* Smooth Background Zoom Animation */
+@keyframes heroZoom {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.13);
+  }
+}
+
+.carousel-item.hero-slide {
+  background-size: cover;
+  background-position: center;
+  height: 80vh;
+  animation: heroZoom 9s ease-in-out forwards;
+}
+/* HOME PAGE NAVBAR OVERRIDES*/
+
+.home-navbar .navbar-custom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 999;
+  background: transparent !important;
+}
+
+/* Remove dark background */
+.home-navbar .navbar {
+  background-color: transparent !important;
+}
+
+/* White nav links on hero */
+.home-navbar .nav-link {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+
+/* Hover color */
+.home-navbar .nav-link:hover {
+  color: #ffca28 !important;
+}
+
+/* Dropdown menu stays dark */
+.home-navbar .dropdown-menu {
+  background-color: #111 !important;
+}
+
+/* Navbar toggler visible on hero */
+.home-navbar .navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.home-navbar .navbar-toggler-icon {
+  filter: invert(1);
+}
+
+/* Logo glow looks better on hero */
+.home-navbar .logo {
+  box-shadow: 0px 6px 22px rgba(255, 202, 40, 0.35);
+}
+
+/* ===============================
+   RESPONSIVE STYLES
+   =============================== */
+
+/* Extra Large Screens (Desktops 1400px+) */
+@media (min-width: 1400px) {
+  .hero-title {
+    font-size: 2.8rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.15rem;
+  }
+
+  .carousel-item.hero-slide {
+    height: 90vh;
+  }
+}
+
+/* Large Screens (Laptops & Desktops) */
+@media (max-width: 1200px) {
+  .hero-title {
+    font-size: 2.3rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.05rem;
+  }
+}
+
+/* Medium Devices (Tablets Landscape) */
+@media (max-width: 992px) {
+  .hero-slide {
+    height: 85vh;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-btn {
+    padding: 9px 22px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Tablets Portrait */
+@media (max-width: 768px) {
+  .hero-slide {
+    height: 75vh;
+  }
+
+  .hero-center-content {
+    width: 90%;
+    padding: 0 12px;
+  }
+
+  .hero-title {
+    font-size: 1.8rem;
+    line-height: 1.3;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-btn {
+    margin-top: 14px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Mobile Devices */
+@media (max-width: 576px) {
+  .hero-slide {
+    height: 70vh;
+  }
+
+  .hero-center-content {
+    width: 95%;
+  }
+
+  .hero-title {
+    font-size: 1.55rem;
+    font-weight: 600;
+  }
+
+  .hero-subtitle {
+    font-size: 0.9rem;
+    margin-top: 6px;
+  }
+
+  .hero-btn {
+    padding: 7px 18px;
+    font-size: 0.85rem;
+    border-radius: 5px;
+  }
+}
+
+/* Small Mobile Devices */
+@media (max-width: 400px) {
+  .hero-title {
+    font-size: 1.4rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .hero-btn {
+    font-size: 0.8rem;
+    padding: 6px 16px;
+  }
+}

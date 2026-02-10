@@ -1,0 +1,134 @@
+.connect-wrapper {
+  width: 97%;
+  margin: 60px auto;
+  background: linear-gradient(135deg, #ffffff 20%, #fff7e0 100%);
+  border-radius: 20px;
+  padding: 45px;
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  border: 1px solid rgba(255, 180, 0, 0.25);
+}
+
+/* LEFT */
+.connect-left {
+  flex: 1;
+}
+.connect-left h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #222;
+}
+.connect-left p {
+  font-size: 1.15rem;
+  margin: 14px 0 24px;
+  line-height: 1.5;
+  color: #444;
+}
+
+/* Trust Icons Row */
+.trust-icons {
+  display: flex;
+  gap: 32px;
+}
+.trust-icons div {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+.trust-icons span,
+.trust-icons i {
+  font-size: 2.2rem;
+  color: #ffb400;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* CENTER FEATURES */
+.connect-center {
+  flex: 1.5;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+  padding: 25px;
+}
+
+.feature-box {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  padding: 22px 10px;
+  text-align: center;
+  border: 1px solid rgba(255, 180, 0, 0.45);
+  transition: 0.3s;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+}
+.feature-box:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+}
+
+.feature-box i,
+.feature-box span {
+  font-size: 2.3rem;
+  color: #0C3B75;
+  margin-bottom: 10px;
+}
+.feature-box p {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #222;
+}
+
+/* RIGHT FORM */
+.connect-right {
+  flex: 1;
+  text-align: center;
+}
+.connect-right h3 {
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #222;
+}
+.connect-right input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  margin-bottom: 14px;
+  font-size: 1rem;
+  background: #fff;
+  transition: 0.3s;
+}
+.connect-right input:focus {
+  border-color: #ffb400;
+  outline: none;
+  box-shadow: 0 0 10px rgba(255,180,0,0.3);
+}
+
+.connect-right button {
+  width: 100%;
+  background: #ffb400;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 1.15rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s;
+}
+.connect-right button:hover {
+  background: #e29a00;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .connect-wrapper {
+    flex-direction: column;
+    padding: 35px;
+  }
+}
