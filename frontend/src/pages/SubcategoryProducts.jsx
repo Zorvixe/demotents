@@ -114,48 +114,16 @@ const SubcategoryProducts = () => {
   const displayParentCategoryName = parentCategoryName || "Category";
 
   return (
-    <div className="container py-5 category-products-container">
-      {/* Breadcrumb */}
-      <nav aria-label="breadcrumb">
-        <ol className="breadcrumb">
-          <li className="breadcrumb-item">
-            <button 
-              className="btn btn-link p-0" 
-              onClick={() => navigate("/categories")}
-            >
-              Categories
-            </button>
-          </li>
+    <div className="container py-5 category-products-container" style={{marginTop: "50px"}}>
+      {/* Category Banner */}
+      <div className="category-banner mb-5">
+        <div className="banner-overlay">
+          <h2>{displaySubcategoryName}</h2>
           {parentCategoryName && (
-            <li className="breadcrumb-item">
-              <button 
-                className="btn btn-link p-0" 
-                onClick={() => navigate(`/category/${generatePath(parentCategoryName)}`, {
-                  state: { categoryId: parentCategoryId, categoryName: parentCategoryName }
-                })}
-              >
-                {parentCategoryName}
-              </button>
-            </li>
+            <p className="section-subtext mt-2">
+              Under: {parentCategoryName}
+            </p>
           )}
-          <li className="breadcrumb-item active" aria-current="page">
-            {displaySubcategoryName}
-          </li>
-        </ol>
-      </nav>
-
-      {/* Header */}
-      <div className="text-center mb-5">
-        <h3 className="section-title-main">
-          <span>{displaySubcategoryName}</span>
-        </h3>
-        <p className="section-subtext">
-          {parentCategoryName && (
-            <span className="text-muted">Under: {parentCategoryName}</span>
-          )}
-        </p>
-        <div className="products-count">
-          {products.length} {products.length === 1 ? 'Product' : 'Products'} Available
         </div>
       </div>
 
@@ -163,7 +131,7 @@ const SubcategoryProducts = () => {
       <div className="row g-4">
         {products.length > 0 ? (
           products.map((product) => (
-            <div key={product.id} className="col-lg-3 col-md-4 col-sm-6">
+            <div key={product.id} className="col-lg-3 col-md-4 col-6">
               <div className="card product-card border-0 shadow-sm">
                 <div
                   className="image-container"
@@ -190,12 +158,12 @@ const SubcategoryProducts = () => {
 
                 <div className="card-body text-center d-flex flex-column justify-content-between">
                   <div>
-                    <h6 className="product-title">{product.name}</h6>
-                    <p className="product-price">₹ {product.price?.toLocaleString() || 'Price on request'}</p>
-                    <p className="product-sku">SKU: {product.sku || 'N/A'}</p>
+                    <h6 className="product-title-category">{product.name}</h6>
+                    <p className="product-price-category">₹ {product.price?.toLocaleString() || 'Price on request'}</p>
+                    <p className="product-sku-category">SKU: {product.sku || 'N/A'}</p>
                     
                     {product.description && (
-                      <p className="product-description">
+                      <p className="product-description-category">
                         {product.description.length > 60 
                           ? `${product.description.substring(0, 60)}...` 
                           : product.description}
@@ -203,7 +171,7 @@ const SubcategoryProducts = () => {
                     )}
                   </div>
 
-                  <div className="product-actions mt-3">
+                  <div className="product-actions-category mt-3">
                     <button 
                       className="btn btn-success btn-sm px-3 me-2"
                       onClick={() => openModal(product)}
