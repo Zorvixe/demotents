@@ -122,6 +122,8 @@ const initDatabase = async () => {
 };
 
 
+// ... (your existing code above)
+
 // Update storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -136,8 +138,31 @@ const storage = multer.diskStorage({
   }
 });
 
+// ADD THIS SECTION HERE:
+// Initialize multer middleware
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 11 // 1 main image + 10 sub-images
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
+    }
+  }
+});
+
 // Update static file serving
 app.use('/uploads', express.static(uploadsDir));
+
+// ... (your existing code continues)
 
 // Helper function to delete files
 const deleteFiles = (filePaths) => {
