@@ -960,6 +960,7 @@ app.post('/api/products', upload.fields([
 });
 
 // 12. Get All Products
+// 12. Get All Products
 app.get('/api/products', async (req, res) => {
   try {
     const {
@@ -973,7 +974,32 @@ app.get('/api/products', async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    let query = `
+    // Build query with proper parameter handling
+    let whereClauses = ['p.is_active = $1'];
+    const values = [is_active === 'true'];
+    let paramIndex = 2;
+
+    if (category_id) {
+      whereClauses.push(`p.category_id = $${paramIndex}`);
+      values.push(parseInt(category_id));
+      paramIndex++;
+    }
+
+    if (sub_category_id) {
+      whereClauses.push(`p.sub_category_id = $${paramIndex}`);
+      values.push(parseInt(sub_category_id));
+      paramIndex++;
+    }
+
+    if (is_featured !== undefined) {
+      whereClauses.push(`p.is_featured = $${paramIndex}`);
+      values.push(is_featured === 'true');
+      paramIndex++;
+    }
+
+    const whereQuery = whereClauses.join(' AND ');
+    
+    const query = `
       SELECT p.*, 
         c.name as category_name,
         sc.name as sub_category_name,
@@ -981,50 +1007,24 @@ app.get('/api/products', async (req, res) => {
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
-      WHERE p.is_active = $1
+      WHERE ${whereQuery}
+      ORDER BY p.created_at DESC 
+      LIMIT $${paramIndex} 
+      OFFSET $${paramIndex + 1}
     `;
 
-    const values = [is_active === 'true'];
-    let paramIndex = 2;
-
-    if (category_id) {
-      query += ` AND p.category_id = $${paramIndex}`;
-      values.push(category_id);
-      paramIndex++;
-    }
-
-    if (sub_category_id) {
-      query += ` AND p.sub_category_id = $${paramIndex}`;
-      values.push(sub_category_id);
-      paramIndex++;
-    }
-
-    if (is_featured !== undefined) {
-      query += ` AND p.is_featured = $${paramIndex}`;
-      values.push(is_featured === 'true');
-      paramIndex++;
-    }
-
-    query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     values.push(parseInt(limit), offset);
 
     const result = await pool.query(query, values);
 
     // Get total count for pagination
     const countQuery = `
-      SELECT COUNT(*) FROM products p 
-      WHERE p.is_active = $1
-      ${category_id ? ' AND p.category_id = $2' : ''}
-      ${sub_category_id ? ' AND p.sub_category_id = $3' : ''}
-      ${is_featured !== undefined ? ' AND p.is_featured = $4' : ''}
+      SELECT COUNT(*) 
+      FROM products p 
+      WHERE ${whereQuery}
     `;
 
-    const countValues = [is_active === 'true'];
-    if (category_id) countValues.push(category_id);
-    if (sub_category_id) countValues.push(sub_category_id);
-    if (is_featured !== undefined) countValues.push(is_featured === 'true');
-
-    const countResult = await pool.query(countQuery, countValues);
+    const countResult = await pool.query(countQuery, values.slice(0, -2)); // Remove limit and offset values
     const total = parseInt(countResult.rows[0].count);
 
     res.json({
