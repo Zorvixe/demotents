@@ -8,7 +8,7 @@ const CategoriesScroller = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = "https://demotents-backend.onrender.com/api/categories";
+  const API_URL = "http://localhost:5004/api/categories";
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -66,10 +66,10 @@ const CategoriesScroller = () => {
       }
       // If it starts with /uploads, add the base URL
       if (category.preview_image.startsWith('/uploads/')) {
-        return `https://demotents-backend.onrender.com${category.preview_image}`;
+        return `const API_URL = "http://localhost:5004/api";${category.preview_image}`;
       }
       // If it's just a filename, construct the full URL
-      return `https://demotents-backend.onrender.com/uploads/${category.preview_image}`;
+      return `const API_URL = "http://localhost:5004/api";/uploads/${category.preview_image}`;
     }
     
     // If no preview image, use default based on category name

@@ -243,3 +243,35 @@
     font-size: 0.85rem;
   }
 }
+
+.category-item {
+  position: relative;
+  padding: 10px;
+  cursor: pointer;
+}
+
+/* DROPDOWN */
+.subcategory-dropdown {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background: white;
+  list-style: none;
+  padding: 10px;
+  display: none;
+  min-width: 180px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.category-item:hover .subcategory-dropdown {
+  display: block;
+}
+
+.subcategory-dropdown li {
+  padding: 8px;
+}
+
+.subcategory-dropdown li:hover {
+  background: #f2f2f2;
+}

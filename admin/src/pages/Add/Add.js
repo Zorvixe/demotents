@@ -35,7 +35,7 @@ const Add = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('https://demotents-backend.onrender.com/api/categories');
+            const response = await fetch('http://localhost:5004/api/categories');
             const result = await response.json();
             
             if (result.success) {
@@ -49,7 +49,7 @@ const Add = () => {
 
     const fetchSubCategories = async (categoryId) => {
         try {
-            const response = await fetch(`https://demotents-backend.onrender.com/api/categories/${categoryId}/sub-categories`);
+            const response = await fetch(`http://localhost:5004/api/categories/${categoryId}/sub-categories`);
             const result = await response.json();
             
             if (result.success) {
@@ -153,7 +153,7 @@ const Add = () => {
         });
 
         try {
-            const response = await fetch('https://demotents-backend.onrender.com/api/products', {
+            const response = await fetch('http://localhost:5004/api/products', {
                 method: 'POST',
                 body: formData,
             });

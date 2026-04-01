@@ -13,7 +13,7 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('https://demotents-backend.onrender.com/api/orders');
+      const response = await fetch('http://localhost:5004/api/orders');
       const data = await response.json();
       if (data.success) {
         setOrders(data.orders);
@@ -28,7 +28,7 @@ const Orders = () => {
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`https://demotents-backend.onrender.com/api/orders/${orderId}/status`, {
+      const response = await fetch(`http://localhost:5004/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ const Orders = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-backend.onrender.com/api/orders/${orderId}`, {
+      const response = await fetch(`http://localhost:5004/api/orders/${orderId}`, {
         method: 'DELETE',
       });
 

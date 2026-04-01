@@ -14,7 +14,7 @@ const SubcategoryProducts = () => {
   const [error, setError] = useState(null);
   const [subcategoryData, setSubcategoryData] = useState(null);
 
-  const API_URL = "https://demotents-backend.onrender.com/api";
+  const API_URL = "http://localhost:5004/api";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -111,7 +111,7 @@ const SubcategoryProducts = () => {
 
   // Get display names
   const displaySubcategoryName = subCategoryName || subcategoryData?.name || "Subcategory";
-  const displayParentCategoryName = parentCategoryName || "Category";
+  // const displayParentCategoryName = parentCategoryName || "Category";
 
   return (
     <div className="container py-5 category-products-container" style={{marginTop: "50px"}}>
@@ -139,11 +139,7 @@ const SubcategoryProducts = () => {
                   style={{ cursor: "pointer" }}
                 >
                   <img
-                    src={product.main_image_url 
-                      ? product.main_image_url.startsWith('http') 
-                        ? product.main_image_url 
-                        : `https://demotents-backend.onrender.com${product.main_image_url}`
-                      : '/placeholder.jpg'}
+                    src={product.main_image_url}
                     alt={product.name}
                     className="d-block w-100 product-image"
                     onError={(e) => {
@@ -159,7 +155,23 @@ const SubcategoryProducts = () => {
                 <div className="card-body text-center d-flex flex-column justify-content-between">
                   <div>
                     <h6 className="product-title-category">{product.name}</h6>
-                    <p className="product-price-category">₹ {product.price?.toLocaleString() || 'Price on request'}</p>
+                    {product.core_price || product.elite_price || product.pro_price ? (
+                        <div className="product-price-category">
+                          <p>Core: ₹ {product.core_price || "—"}</p>
+                          <p>Elite: ₹ {product.elite_price || "—"}</p>
+                          <p>Pro: ₹ {product.pro_price || "—"}</p>
+                        </div>
+                      ) : (
+                        <p className="product-price-category">
+                          ₹ {product.price?.toLocaleString() || "Price on request"}
+                        </p>
+                      )}
+                       {/* ✅ ADD THIS BLOCK HERE */}
+                        {product.cloth_colors && product.cloth_colors.length > 0 && (
+                          <p className="product-colors-category">
+                            Colors: {product.cloth_colors.join(", ")}
+                          </p>
+                        )}
                     <p className="product-sku-category">SKU: {product.sku || 'N/A'}</p>
                     
                     {product.description && (

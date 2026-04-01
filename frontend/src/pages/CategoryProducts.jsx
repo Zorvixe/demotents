@@ -7,15 +7,15 @@ const CategoryProducts = () => {
   const location = useLocation();
   const { categorySlug } = useParams();
   const { categoryId, categoryName } = location.state || {};
-  
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
 
-  const API_URL = "https://demotents-backend.onrender.com/api";
+  const API_URL = "http://localhost:5004/api";
 
-  // Default images for categories
+  // Default category images stored in React public folder
   const defaultCategoryImages = {
     'Canvas Tent': '/canvas.jpg',
     'Family Tent': '/family.jpg',
@@ -31,26 +31,25 @@ const CategoryProducts = () => {
     'Wedding Tent': '/wedding.jpg',
   };
 
+  // Fetch products for the category
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Fetch category data
         let finalCategoryId = categoryId;
         let finalCategoryName = categoryName;
 
+        // If categoryId not passed from navigate state, find from slug
         if (!finalCategoryId) {
-          // Try to get category by name from slug
           const categoryRes = await fetch(`${API_URL}/categories`);
           const categoryData = await categoryRes.json();
-          
           if (categoryData.success) {
             const foundCategory = categoryData.categories.find(
-              cat => cat.name.toLowerCase().replace(/\s+/g, '-') === categorySlug
+              (cat) =>
+                cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
             );
-            
             if (foundCategory) {
               finalCategoryId = foundCategory.id;
               finalCategoryName = foundCategory.name;
@@ -59,26 +58,18 @@ const CategoryProducts = () => {
           }
         }
 
-        if (!finalCategoryId) {
-          throw new Error("Category not found");
-        }
+        if (!finalCategoryId) throw new Error("Category not found");
 
-        // Fetch products for this category
         const productRes = await fetch(
           `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`
         );
-        
-        if (!productRes.ok) {
-          throw new Error(`Failed to fetch products: ${productRes.status}`);
-        }
-        
-        const productData = await productRes.json();
 
-        if (productData.success) {
-          setProducts(productData.products);
-        } else {
-          setError(productData.message || "Failed to load products");
-        }
+        if (!productRes.ok)
+          throw new Error(`Failed to fetch products: ${productRes.status}`);
+
+        const productData = await productRes.json();
+        if (productData.success) setProducts(productData.products);
+        else setError(productData.message || "Failed to load products");
       } catch (err) {
         console.error("Fetch error:", err);
         setError("Failed to load products. Please try again.");
@@ -87,32 +78,25 @@ const CategoryProducts = () => {
       }
     };
 
-    fetchData();
+    fetchProducts();
   }, [categorySlug, categoryId, categoryName]);
 
+  // Helper: Get category image
   const getCategoryImage = (categoryName) => {
-    return defaultCategoryImages[categoryName] || '/placeholder.jpg';
+    return defaultCategoryImages[categoryName] || "/placeholder.jpg";
   };
 
+  // Open product modal
   const openModal = (product) => {
-    navigate(`/product/${product.id}`, {
-      state: { product }
-    });
+    navigate(`/product/${product.id}`, { state: { product } });
   };
 
   // Loading state
   if (loading) {
     return (
-      <div className="category-products-container py-5">
-        <div className="text-center mb-5">
-          <h3 className="section-title-main">
-            <span>Loading Products...</span>
-          </h3>
-        </div>
-        <div className="loading-state text-center py-5">
-          <div className="spinner"></div>
-          <p className="mt-3">Loading products...</p>
-        </div>
+      <div className="category-products-container py-5 text-center">
+        <h3>Loading Products...</h3>
+        <div className="spinner"></div>
       </div>
     );
   }
@@ -120,38 +104,48 @@ const CategoryProducts = () => {
   // Error state
   if (error) {
     return (
-      <div className="category-products-container py-5">
-        <div className="text-center mb-5">
-          <h3 className="section-title-main">
-            <span>Products</span>
-          </h3>
-        </div>
-        <div className="error-state text-center py-5">
-          <p className="error-message">{error}</p>
-          <button 
-            className="retry-btn"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="category-products-container py-5 text-center">
+        <h3>Products</h3>
+        <p className="text-danger">{error}</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>
+          Try Again
+        </button>
       </div>
     );
   }
 
-  // Get category name from state or use the slug
-  const displayCategoryName = categoryName || 
-    (categorySlug ? categorySlug.replace(/-/g, ' ') : 'Products');
+  const displayCategoryName =
+    categoryName || (categorySlug ? categorySlug.replace(/-/g, " ") : "Products");
 
   return (
-    <div className="container py-5 category-products-container " style={{marginTop: "50px"}}>
-    
-
+    <div className="container py-5 category-products-container" style={{ marginTop: "50px" }}>
       {/* Category Banner */}
-      <div className="category-banner mb-5">
-       
-        <div className="banner-overlay">
-          <h2>{displayCategoryName}</h2>
+      <div className="category-banner mb-5" style={{ position: "relative" }}>
+        <img
+          src={getCategoryImage(displayCategoryName)}
+          alt={displayCategoryName}
+          className="w-100"
+          style={{ height: "250px", objectFit: "cover", borderRadius: "8px" }}
+        />
+        <div
+          className="banner-overlay"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#fff",
+            fontSize: "2rem",
+            fontWeight: "600",
+            borderRadius: "8px",
+          }}
+        >
+          {displayCategoryName}
         </div>
       </div>
 
@@ -167,16 +161,18 @@ const CategoryProducts = () => {
                   style={{ cursor: "pointer" }}
                 >
                   <img
-                    src={product.main_image_url 
-                      ? product.main_image_url.startsWith('http') 
-                        ? product.main_image_url 
-                        : `https://demotents-backend.onrender.com${product.main_image_url}`
-                      : '/placeholder.jpg'}
+                    src={
+                      product.main_image_url
+                        ? product.main_image_url.startsWith("http")
+                          ? product.main_image_url
+                          : `http://localhost:5004${product.main_image_url}`
+                        : "/placeholder.jpg"
+                    }
                     alt={product.name}
                     className="d-block w-100 product-image"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/placeholder.jpg';
+                      e.target.src = "/placeholder.jpg";
                     }}
                   />
                   {product.sub_images_count > 0 && (
@@ -187,28 +183,36 @@ const CategoryProducts = () => {
                 <div className="card-body text-center d-flex flex-column justify-content-between">
                   <div>
                     <h6 className="product-title-category">{product.name}</h6>
-                    <p className="product-price-category">₹ {product.price?.toLocaleString() || 'Price on request'}</p>
-                    <p className="product-sku-category">SKU: {product.sku || 'N/A'}</p>
-                    
-                    {product.description && (
-                      <p className="product-description-category">
-                        {product.description.length > 60 
-                          ? `${product.description.substring(0, 60)}...` 
-                          : product.description}
-                      </p>
-                    )}
-                  </div>
 
+                      {product.core_price || product.elite_price || product.pro_price ? (
+                        <div className="product-price-category">
+                          <p>Core: ₹ {product.core_price || "—"}</p>
+                          <p>Elite: ₹ {product.elite_price || "—"}</p>
+                          <p>Pro: ₹ {product.pro_price || "—"}</p>
+                        </div>
+                      ) : (
+                        <p className="product-price-category">
+                          ₹ {product.price?.toLocaleString() || "Price on request"}
+                        </p>
+                      )}
+
+                      {/* ✅ ADD THIS */}
+                      {product.cloth_colors && product.cloth_colors.length > 0 && (
+                        <p className="product-colors-category">
+                          Colors: {product.cloth_colors.join(", ")}
+                        </p>
+                      )}
+
+                      <p className="product-sku-category">SKU: {product.sku || "N/A"}</p>
+                  </div>
                   <div className="product-actions-category mt-3">
-                    <button 
+                    <button
                       className="btn btn-success btn-sm px-3 me-2"
                       onClick={() => openModal(product)}
                     >
                       View Details
                     </button>
-                    <button className="btn btn-outline-primary btn-sm px-3">
-                      Enquire Now
-                    </button>
+                    <button className="btn btn-outline-primary btn-sm px-3">Enquire Now</button>
                   </div>
                 </div>
               </div>
@@ -217,10 +221,7 @@ const CategoryProducts = () => {
         ) : (
           <div className="col-12 text-center py-5">
             <p className="no-products">No products available in this category yet.</p>
-            <button 
-              className="btn btn-primary"
-              onClick={() => navigate('/categories')}
-            >
+            <button className="btn btn-primary" onClick={() => navigate("/categories")}>
               Browse Other Categories
             </button>
           </div>

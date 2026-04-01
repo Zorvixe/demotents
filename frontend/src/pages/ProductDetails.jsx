@@ -165,9 +165,30 @@ const ProductDetails = () => {
           
         
 
-          <p className="product-price">
-            ₹ {product.price?.toLocaleString() || 'Price on request'}
-          </p>
+          <div className="product-price">
+
+  {/* WITH CUSTOMIZATION */}
+  {product.core_price || product.elite_price || product.pro_price ? (
+    <>
+      <p>Core: ₹ {product.core_price || "—"}</p>
+      <p>Elite: ₹ {product.elite_price || "—"}</p>
+      <p>Pro: ₹ {product.pro_price || "—"}</p>
+    </>
+  ) : (
+    /* WITHOUT CUSTOMIZATION */
+    <p>
+      ₹ {product.price?.toLocaleString() || "Price on request"}
+    </p>
+  )}
+
+  {/* COLORS (FOR BOTH) */}
+  {product.cloth_colors && product.cloth_colors.length > 0 && (
+  <p className="product-colors">
+    Colors: {product.cloth_colors.join(", ")}
+  </p>
+)}
+
+</div>
 
           <p className={`product-stock ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
             {product.stock_quantity > 0

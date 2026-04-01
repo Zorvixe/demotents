@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from "react";
 import "./Navbar.css";
+import { RiCloseLine } from "react-icons/ri";
+import { RiArrowDropDownLine } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const API_URL = "https://demotents-backend.onrender.com/api";
+  const API_URL = "http://localhost:5004/api";
 
+  const toggleMenu = () => {
+  setMenuOpen(!menuOpen);
+};
+  
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -62,15 +70,18 @@ const Navbar = () => {
           type: "dropdown",
           label: category.name.toUpperCase(),
           items: category.sub_categories.map(subCat => ({
-            label: subCat.name,
-            path: `/subcategory/${subCat.id}`,
-            state: {
-              subCategoryId: subCat.id,
-              subCategoryName: subCat.name,
-              parentCategoryId: category.id,
-              parentCategoryName: category.name
-            }
-          }))
+  label: subCat.name,
+  children: [
+    {
+      label: "Without Print",
+      path: `/subcategory/${subCat.id}?type=without-print`,
+    },
+    {
+      label: "With Customization",
+      path: `/subcategory/${subCat.id}?type=custom`,
+    }
+  ]
+}))
         });
       } else {
         // Category without sub-categories becomes a direct link
@@ -89,16 +100,39 @@ const Navbar = () => {
     return navItems;
   };
 
+  const filteredMenuItems = menuItems
+  .map(item => {
+    if (item.type === "dropdown") {
+      const filteredSubItems = item.items.filter(sub =>
+        sub.label.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+      // Show category if subcategories match OR category matches
+      if (
+        filteredSubItems.length > 0 ||
+        item.label.toLowerCase().includes(searchTerm.toLowerCase())
+      ) {
+        return {
+          ...item,
+          items: filteredSubItems,
+        };
+      }
+      return null;
+    } else {
+      return item.label.toLowerCase().includes(searchTerm.toLowerCase())
+        ? item
+        : null;
+    }
+  })
+  .filter(Boolean);
+
   const handleNavigation = (item) => {
     if (item.path) {
       navigate(item.path, { state: item.state || {} });
     }
   };
 
-  // Generate URL-friendly path
-  const generatePath = (name) => {
-    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  };
+  
 
   if (loading) {
     return (
@@ -116,83 +150,117 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark navbar-custom fixed-top">
-      <div className="container">
-        {/* Logo */}
-        <a className="navbar-brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-          <img src="/logo11.png" alt="logo" className="logo" />
-        </a>
+  <nav className="navbar navbar-dark bg-dark navbar-custom fixed-top">
+    <div className="container flex-column">
 
-        {/* Mobile Toggle Button */}
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
+      {/* ===== Row 1 ===== */}
+      <div className="d-flex w-100 align-items-center justify-content-between top-row">
+
+        {/* Empty space (left) */}
+     <div className="search-box">
+  <input
+    type="text"
+    placeholder="Search category..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+  />
+</div>
+
+        {/* Logo - Center */}
+        <div
+          className="navbar-brand m-0 text-center"
+          onClick={() => navigate("/")}
+          style={{ cursor: "pointer" }}
         >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-
-        {/* Navigation Items */}
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto">
-            {/* Home */}
-            <li className="nav-item" onClick={() => navigate("/")}>
-              <span className="nav-link" style={{ cursor: "pointer" }}>HOME</span>
-            </li>
-
-            {/* About Us */}
-            <li className="nav-item" onClick={() => navigate("/about")}>
-              <span className="nav-link" style={{ cursor: "pointer" }}>ABOUT US</span>
-            </li>
-
-            {/* Dynamic Categories from Backend */}
-            {menuItems.map((item, index) => (
-              <React.Fragment key={index}>
-                {item.type === "dropdown" ? (
-                  // Dropdown menu for categories with sub-categories
-                  <li className="nav-item dropdown dropdown-hover">
-                    <span className="nav-link dropdown-toggle" style={{ cursor: "pointer" }}>
-                      {item.label}
-                    </span>
-                    <ul className="dropdown-menu">
-                      {item.items.map((subItem, subIndex) => (
-                        <li key={subIndex} onClick={() => handleNavigation(subItem)}>
-                          <span className="dropdown-item" style={{ cursor: "pointer" }}>
-                            {subItem.label}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ) : (
-                  // Direct link for categories without sub-categories
-                  <li className="nav-item" onClick={() => handleNavigation(item)}>
-                    <span className="nav-link" style={{ cursor: "pointer" }}>
-                      {item.label}
-                    </span>
-                  </li>
-                )}
-              </React.Fragment>
-            ))}
-
-            {/* Contact - Always visible */}
-            <li className="nav-item" onClick={() => navigate("/contact")}>
-              <span className="nav-link" style={{ cursor: "pointer" }}>CONTACT</span>
-            </li>
-
-            {/* All Categories Link */}
-            <li className="nav-item" onClick={() => navigate("/categories")}>
-              <span className="nav-link" style={{ cursor: "pointer" }}>ALL CATEGORIES</span>
-            </li>
-          </ul>
+          <h1 className = "Logo-Text">Demotents.com</h1>
         </div>
+
+        {/* Home - Right */}
+        <div
+          className="nav-item"
+          onClick={() => navigate("/")}
+          style={{ cursor: "pointer" }}
+        >
+          <span className="nav-link">HOME</span>
+        </div>
+        {/* Hamburger Menu (Mobile) */}
+<div className="menu" onClick={toggleMenu}>
+  {menuOpen ? (
+    <RiCloseLine size={28} color="white" />
+  ) : (
+    <>
+      <span></span>
+      <span></span>
+      <span></span>
+    </>
+  )}
+</div>
       </div>
-    </nav>
-  );
+
+      {/* ===== Row 2 ===== */}
+      <div className={`w-100 mt-2 nav-links ${menuOpen ? "active" : ""}`}>
+      
+        <ul className="navbar-nav d-flex flex-row justify-content-center flex-wrap">
+
+          
+
+          {/* Dynamic Categories */}
+         {filteredMenuItems.map((item, index) => (
+            <React.Fragment key={index}>
+              {item.type === "dropdown" ? (
+                <li className="nav-item dropdown dropdown-hover">
+  <span className="nav-link d-flex align-items-center gap-1">
+    {item.label}
+    <RiArrowDropDownLine size={20} />
+  </span>
+
+  <ul className="dropdown-menu">
+    {item.items.map((subItem, subIndex) => (
+      <li key={subIndex} className="dropdown-submenu">
+
+        <span className="dropdown-item">
+          {subItem.label}
+        </span>
+
+        {/* 🔥 LEVEL 3 */}
+        <ul className="dropdown-menu nested-menu">
+          {subItem.children.map((child, i) => (
+            <li key={i} onClick={() => handleNavigation(child)}>
+              <span className="dropdown-item">
+                {child.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+      </li>
+    ))}
+  </ul>
+</li>
+              ) : (
+                <li
+                  className="nav-item"
+                  onClick={() => handleNavigation(item)}
+                >
+                  <span className="nav-link">{item.label}</span>
+                </li>
+              )}
+            </React.Fragment>
+          ))}
+
+          
+
+          {/* All Categories */}
+          {/* <li className="nav-item" onClick={() => navigate("/categories")}>
+            <span className="nav-link">ALL CATEGORIES</span>
+          </li> */}
+
+        </ul>
+      </div>
+
+    </div>
+  </nav>
+);
 };
 
-export default Navbar;
+export default Navbar; 

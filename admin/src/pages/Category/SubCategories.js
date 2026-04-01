@@ -23,7 +23,7 @@ const SubCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://demotents-backend.onrender.com/api/categories');
+      const response = await fetch('http://localhost:5004/api/categories');
       const result = await response.json();
       
       if (result.success) {
@@ -36,7 +36,7 @@ const SubCategories = () => {
 
   const fetchSubCategories = async () => {
     try {
-      const response = await fetch('https://demotents-backend.onrender.com/api/sub-categories');
+      const response = await fetch('http://localhost:5004/api/sub-categories');
       const result = await response.json();
       
       if (result.success) {
@@ -69,7 +69,7 @@ const SubCategories = () => {
     }
 
     try {
-      const response = await fetch('https://demotents-backend.onrender.com/api/sub-categories', {
+      const response = await fetch('http://localhost:5004/api/sub-categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ const SubCategories = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-backend.onrender.com/api/sub-categories/${currentSubCategory.id}`, {
+      const response = await fetch(`http://localhost:5004/api/sub-categories/${currentSubCategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,7 @@ const SubCategories = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-backend.onrender.com/api/sub-categories/${subCategoryId}`, {
+      const response = await fetch(`http://localhost:5004/api/sub-categories/${subCategoryId}`, {
         method: 'DELETE',
       });
 

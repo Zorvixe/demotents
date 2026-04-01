@@ -14,7 +14,7 @@ const Footer = () => {
           <div className="col-lg-4 mb-4">
             <div className="company-info">
               <a onClick={() => navigate("/")} role="button">
-                <img src="/logo11.png" alt="logo" className="footer-logo" />
+                 <h1 className = "Logo-Text">Demotents.com</h1>
               </a>
 
               <p className="company-description mb-3">
