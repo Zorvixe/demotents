@@ -11,7 +11,7 @@ const ProductDetails = () => {
   const [activeImg, setActiveImg] = useState("");
   const [relatedProducts, setRelatedProducts] = useState([]);
 
-  const API_URL = "https://demotents-backend.onrender.com/api";
+  const API_URL = "https://demotents-dhia.onrender.com/api";
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -36,7 +36,7 @@ const ProductDetails = () => {
           if (product.main_image_url) {
             const mainImage = product.main_image_url.startsWith('http') 
               ? product.main_image_url 
-              : `https://demotents-backend.onrender.com${product.main_image_url}`;
+              : `https://demotents-dhia.onrender.com${product.main_image_url}`;
             setActiveImg(mainImage);
           }
 
@@ -75,7 +75,7 @@ const ProductDetails = () => {
     if (!imagePath) return '/placeholder.jpg';
     return imagePath.startsWith('http') 
       ? imagePath 
-      : `https://demotents-backend.onrender.com${imagePath}`;
+      : `https://demotents-dhia.onrender.com${imagePath}`;
   };
 
   const handleRelatedProductClick = (relatedProduct) => {

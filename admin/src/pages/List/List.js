@@ -28,7 +28,7 @@ const List = () => {
   const [subImageFiles, setSubImageFiles] = useState([]);
   const [existingSubImages, setExistingSubImages] = useState([]);
 
-  const API_URL = 'http://localhost:5004/api';
+  const API_URL = 'https://demotents-dhia.onrender.com/api';
 
   // Fetch all data on mount
   useEffect(() => {

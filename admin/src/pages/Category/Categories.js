@@ -20,7 +20,7 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5004/api/categories?includeSubCategories=true');
+      const response = await fetch('https://demotents-dhia.onrender.com/api/categories?includeSubCategories=true');
       const result = await response.json();
       
       if (result.success) {
@@ -53,7 +53,7 @@ const Categories = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5004/api/categories', {
+      const response = await fetch('https://demotents-dhia.onrender.com/api/categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ const Categories = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5004/api/categories/${currentCategory.id}`, {
+      const response = await fetch(`https://demotents-dhia.onrender.com/api/categories/${currentCategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ const Categories = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5004/api/categories/${categoryId}`, {
+      const response = await fetch(`https://demotents-dhia.onrender.com/api/categories/${categoryId}`, {
         method: 'DELETE',
       });
 

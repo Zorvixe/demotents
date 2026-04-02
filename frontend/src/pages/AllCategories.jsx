@@ -12,7 +12,7 @@ export default function AllCategories() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = "http://localhost:5004/api/categories";
+  const API_URL = "https://demotents-dhia.onrender.com/api/categories";
 
   // Default images for categories without preview images
   const defaultCategoryImages = {
@@ -92,10 +92,10 @@ export default function AllCategories() {
       }
       // If it starts with /uploads, add the base URL
       if (category.preview_image.startsWith('/uploads/')) {
-        return `http://localhost:5004/api${category.preview_image}`;
+        return `https://demotents-dhia.onrender.com/api${category.preview_image}`;
       }
       // If it's just a filename, construct the full URL
-      return `http://localhost:5004/api/uploads/${category.preview_image}`;
+      return `https://demotents-dhia.onrender.com/api/uploads/${category.preview_image}`;
     }
     
     // If no preview image, use default based on category name

@@ -14,7 +14,7 @@ const SubcategoryProducts = () => {
   const [error, setError] = useState(null);
   const [subcategoryData, setSubcategoryData] = useState(null);
 
-  const API_URL = "http://localhost:5004/api";
+  const API_URL = "https://demotents-dhia.onrender.com/api";
 
   useEffect(() => {
     const fetchData = async () => {

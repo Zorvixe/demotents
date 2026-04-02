@@ -11,7 +11,7 @@ const Navbar = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const API_URL = "http://localhost:5004/api";
+  const API_URL = "https://demotents-dhia.onrender.com/api";
 
   const toggleMenu = () => {
   setMenuOpen(!menuOpen);

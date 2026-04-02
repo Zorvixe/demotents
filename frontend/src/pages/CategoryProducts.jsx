@@ -13,7 +13,7 @@ const CategoryProducts = () => {
   const [error, setError] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
 
-  const API_URL = "http://localhost:5004/api";
+  const API_URL = "https://demotents-dhia.onrender.com/api";
 
   // Default category images stored in React public folder
   const defaultCategoryImages = {
@@ -165,7 +165,7 @@ const CategoryProducts = () => {
                       product.main_image_url
                         ? product.main_image_url.startsWith("http")
                           ? product.main_image_url
-                          : `http://localhost:5004${product.main_image_url}`
+                          : `https://demotents-dhia.onrender.com${product.main_image_url}`
                         : "/placeholder.jpg"
                     }
                     alt={product.name}
