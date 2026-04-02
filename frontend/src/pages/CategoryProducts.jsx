@@ -13,7 +13,7 @@ const CategoryProducts = () => {
   const [error, setError] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
 
-  const API_URL = `${process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
+  const API_URL = `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
   
 
 
@@ -119,6 +119,17 @@ const CategoryProducts = () => {
   const displayCategoryName =
     categoryName || (categorySlug ? categorySlug.replace(/-/g, " ") : "Products");
 
+    const getImageUrl = (url) => {
+  if (!url) return "/placeholder.jpg";
+
+  // If already full URL (new images)
+  if (url.startsWith("http")) {
+    return url;
+  }
+
+  // Old images (relative path)
+  return `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5004"}${url}`;
+};
   return (
     <div className="container py-5 category-products-container" style={{ marginTop: "50px" }}>
       {/* Category Banner */}
@@ -163,19 +174,14 @@ const CategoryProducts = () => {
                   style={{ cursor: "pointer" }}
                 >
                   <img
-                    src={
-                      product.main_image_url
-                        ? product.main_image_url.startsWith("http")
-                          ? product.main_image_url
-                          : `https://demotents-dhia.onrender.com${product.main_image_url}`
-                        : "/placeholder.jpg"
-                    }
-                    alt={product.name}
-                    className="d-block w-100 product-image"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "/placeholder.jpg";
-                    }}
+                      src={getImageUrl(product.main_image_url)}
+  alt={product.name}
+  className="d-block w-100 product-image"
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src = "/placeholder.jpg";
+  }}
+
                   />
                   {product.sub_images_count > 0 && (
                     <span className="photo-badge">+{product.sub_images_count}</span>

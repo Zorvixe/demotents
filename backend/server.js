@@ -864,7 +864,9 @@ app.post('/api/products', upload.fields([
       });
     }
 
-    const mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
+    const BASE_URL = `${req.protocol}://${req.get('host')}`;
+
+  const mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
 
     // Start transaction
     const client = await pool.connect();
@@ -905,7 +907,7 @@ app.post('/api/products', upload.fields([
         for (let i = 0; i < req.files.subImages.length; i++) {
           await client.query(
             'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
-            [product.id, `/uploads/${req.files.subImages[i].filename}`, i]
+            [product.id, `${BASE_URL}/uploads/${req.files.subImages[i].filename}`, i]
           );
         }
       }
@@ -1118,7 +1120,8 @@ app.put('/api/products/:id', upload.fields([
           }
         }
 
-        mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
+        const BASE_URL = `${req.protocol}://${req.get('host')}`;
+mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
       }
 
       // Build update query

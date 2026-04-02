@@ -12,7 +12,7 @@ export default function AllCategories() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = `${process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004"}/api/categories`;
+  const API_URL = `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5004"}/api/categories`;
   
 
   // Default images for categories without preview images

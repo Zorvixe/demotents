@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./TentCategories.css";
 import { useNavigate } from "react-router-dom";
 
-const BASE_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
+const BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5004";
 
 const TentCategories = () => {
   const navigate = useNavigate();
@@ -95,13 +95,19 @@ const TentCategories = () => {
               className="tent-card"
             >
               <img
-                src={
-                  cat.preview_image
-                    ? `${BASE_URL}${cat.preview_image}`
-                    : "/placeholder.jpg"
-                }
-                alt={cat.name}
-              />
+  src={
+    cat.preview_image
+      ? cat.preview_image.startsWith("http")
+        ? cat.preview_image
+        : `${BASE_URL}${cat.preview_image}`
+      : "/placeholder.jpg"
+  }
+  alt={cat.name}
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src = "/placeholder.jpg";
+  }}
+/>
 
               <div className="tent-details">
 

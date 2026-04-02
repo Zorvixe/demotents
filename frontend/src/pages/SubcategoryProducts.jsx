@@ -14,7 +14,7 @@ const SubcategoryProducts = () => {
   const [error, setError] = useState(null);
   const [subcategoryData, setSubcategoryData] = useState(null);
 
-  const API_URL = `${process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
+  const API_URL = `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -139,14 +139,20 @@ const SubcategoryProducts = () => {
                   style={{ cursor: "pointer" }}
                 >
                   <img
-                    src={product.main_image_url}
-                    alt={product.name}
-                    className="d-block w-100 product-image"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/placeholder.jpg';
-                    }}
-                  />
+  src={
+    product.main_image_url
+      ? product.main_image_url.startsWith("http")
+        ? product.main_image_url
+        : `${import.meta.env.VITE_BACKEND_BASE_URL || "https://demotents-dhia.onrender.com"}${product.main_image_url}`
+      : "/placeholder.jpg"
+  }
+  alt={product.name}
+  className="d-block w-100 product-image"
+  onError={(e) => {
+    e.target.onerror = null;
+    e.target.src = "/placeholder.jpg";
+  }}
+/>
                   {product.sub_images_count > 0 && (
                     <span className="photo-badge">+{product.sub_images_count}</span>
                   )}
