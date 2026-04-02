@@ -11,7 +11,7 @@ const ProductDetails = () => {
   const [activeImg, setActiveImg] = useState("");
   const [relatedProducts, setRelatedProducts] = useState([]);
 
-  const API_URL = `${process.env.VITE_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
+  const API_URL = `${"https://demotents-dhia.onrender.com" || "http://localhost:5004"}/api`;
 
   useEffect(() => {
     const fetchProductDetails = async () => {
