@@ -166,52 +166,44 @@ const CategoriesScroller = () => {
           </p>
         </div>
 
-        <div className="row g-4 justify-content-center">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              className="col-6 col-md-4 col-lg-3 d-flex"
-              onClick={() => handleCategoryClick(cat)}
-              style={{ cursor: "pointer" }}
-            >
-              <div className="product-card p-3 w-100">
-                <h4 className="product-name">{cat.name}</h4>
+     <div className="categories-grid full-width">
+  {categories.map((cat) => (
+    <div
+      key={cat.id}
+      className="category-card"
+      onClick={() => handleCategoryClick(cat)}
+    >
+      <div className="image-wrapper">
+        <img
+          src={getCategoryImage(cat)}
+          alt={cat.name}
+          className="category-image"
+          onError={(e) => {
+            e.target.onerror = null;
+            const defaultImg = defaultCategoryImages[cat.name];
+            e.target.src = defaultImg || '/placeholder.jpg';
+          }}
+        />
+      </div>
 
-                <div className="product-img-wrapper">
-                  <img
-                    src={getCategoryImage(cat)}
-                    alt={cat.name}
-                    className="product-img"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      // Try to get default image based on category name
-                      const defaultImg = defaultCategoryImages[cat.name];
-                      if (defaultImg) {
-                        e.target.src = defaultImg;
-                      } else {
-                        e.target.src = '/placeholder.jpg';
-                      }
-                    }}
-                  />
-                </div>
+      <div className="card-content">
+        <h4 className="category-name">{cat.name}</h4>
 
-                <div className="category-info">
-                  <div className="product-count">
-                    {cat.product_count || 0} {cat.product_count === 1 ? 'Product' : 'Products'}
-                  </div>
-                  
-                  {cat.description && (
-                    <p className="category-description">
-                      {cat.description.length > 50 
-                        ? `${cat.description.substring(0, 50)}...` 
-                        : cat.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="category-count">
+          {cat.product_count || 0} {cat.product_count === 1 ? 'Product' : 'Products'}
         </div>
+
+        {cat.description && (
+          <p className="category-description">
+            {cat.description.length > 60 
+              ? `${cat.description.substring(0, 60)}...` 
+              : cat.description}
+          </p>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
 
         <div className="text-center mt-5">
           <button
