@@ -30,7 +30,7 @@ const List = () => {
   const [subImageFiles, setSubImageFiles] = useState([]);
   const [existingSubImages, setExistingSubImages] = useState([]);
 
-  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
+  const API_URL = `${process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
 
   // Fetch all data on mount
   useEffect(() => {
