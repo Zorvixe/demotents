@@ -1,5 +1,5 @@
 .popular-products-section {
-  background: #ebdbe8d7;
+  background: #f0edede6;
 }
 
 
@@ -232,4 +232,115 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+/* Grid Layout */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  margin-bottom: 60px;
+  align-items: stretch; 
+}
+
+/* Card */
+.category-card {
+  background: white;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.category-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Image wrapper - takes 90% of card height */
+.image-wrapper {
+  flex: 9; /* 90% */
+  overflow: hidden;
+  position: relative;
+}
+
+.category-image {
+  width: 100% !important;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.category-card:hover .category-image {
+  transform: scale(1.08);
+}
+
+/* Card Content - bottom 10% */
+.card-content {
+  flex: 1; /* 10% */
+  padding: 12px 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  background: #f9fafb;
+}
+
+/* Category Name */
+.category-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+/* Product Count */
+.category-count {
+  display: inline-block;
+  background: linear-gradient(135deg, #fbbf24, #f97316);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+}
+
+/* Optional: Category Description (if needed) */
+.category-description {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .category-card {
+    height: auto;
+  }
+
+  .image-wrapper {
+    flex: none;
+    height: 200px;
+  }
+
+  .card-content {
+    flex: none;
+    padding: 10px 12px;
+  }
+
+  .category-name {
+    font-size: 1rem;
+  }
+
+  .category-count {
+    font-size: 0.8rem;
+    padding: 3px 12px;
+  }
+}
+.full-width {
+  width: 100%;
+  padding: 0;
+  margin: 0;
 }

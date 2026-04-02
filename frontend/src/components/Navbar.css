@@ -320,3 +320,9 @@
 .nav-item .nav-link {
   margin-left: 10px;
 }
+.show-dropdown {
+  display: block !important;
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+}

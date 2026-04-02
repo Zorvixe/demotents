@@ -28,7 +28,6 @@ const pool = new Pool({
 // Initialize database tables
 const initDatabase = async () => {
   try {
-    // Create categories table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
@@ -40,7 +39,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Create sub_categories table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sub_categories (
         id SERIAL PRIMARY KEY,
@@ -54,7 +52,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Create products table (UPDATED - removed old category column)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -73,51 +70,29 @@ const initDatabase = async () => {
       )
     `);
 
-    // Check and drop the old 'category' column if it exists
-    try {
-      const checkColumn = await pool.query(`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'products' AND column_name = 'category'
-      `);
+    await pool.query(`
+      ALTER TABLE products 
+      ADD COLUMN IF NOT EXISTS product_detail VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS without_print_price NUMERIC,
+      ADD COLUMN IF NOT EXISTS core_price NUMERIC,
+      ADD COLUMN IF NOT EXISTS elite_price NUMERIC,
+      ADD COLUMN IF NOT EXISTS pro_price NUMERIC,
+      ADD COLUMN IF NOT EXISTS cloth_colors TEXT[];
+    `);
 
-      if (checkColumn.rows.length > 0) {
-        console.log('Dropping old category column...');
-        await pool.query(`ALTER TABLE products DROP COLUMN category`);
-      }
-    } catch (error) {
-      console.log('Error checking/dropping old category column:', error.message);
-    }
-
-    // Create product_images table for sub-images
+    // ✅ THIS WAS MISSING
     await pool.query(`
       CREATE TABLE IF NOT EXISTS product_images (
         id SERIAL PRIMARY KEY,
         product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
-        image_url VARCHAR(500) NOT NULL,
-        display_order INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        image_url TEXT,
+        display_order INTEGER DEFAULT 0
       )
     `);
 
-    // Create orders table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id SERIAL PRIMARY KEY,
-        customer_name VARCHAR(255) NOT NULL,
-        customer_email VARCHAR(255),
-        phone VARCHAR(20) NOT NULL,
-        address TEXT NOT NULL,
-        items JSONB NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        status VARCHAR(50) DEFAULT 'Pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log('Database tables initialized');
+    console.log("✅ Database tables initialized successfully");
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error("❌ Database initialization error:", error);
   }
 };
 
@@ -838,15 +813,22 @@ app.post('/api/products', upload.fields([
 ]), async (req, res) => {
   try {
     const {
-      name,
-      description,
-      price,
-      category_id,
-      sub_category_id,
-      sku,
-      stock_quantity,
-      is_featured
-    } = req.body;
+  name,
+  description,
+  price,
+  category_id,
+  sub_category_id,
+  sku,
+  stock_quantity,
+  is_featured,
+  without_print_price,
+  core_price,
+  elite_price,
+  pro_price,
+  cloth_colors,
+    size,
+  product_type
+} = req.body;
 
     // Check if main image is uploaded
     if (!req.files || !req.files.mainImage || req.files.mainImage.length === 0) {
@@ -865,9 +847,10 @@ app.post('/api/products', upload.fields([
     }
 
     const BASE_URL = `${req.protocol}://${req.get('host')}`;
-
-  const mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
-
+const mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
+const subImageUrls = req.files.subImages
+  ? req.files.subImages.map(file => `${BASE_URL}/uploads/${file.filename}`)
+  : [];
     // Start transaction
     const client = await pool.connect();
 
@@ -883,22 +866,31 @@ app.post('/api/products', upload.fields([
 
       // Insert product
       const productResult = await client.query(
-        `INSERT INTO products (
-          name, description, price, category_id, sub_category_id, 
-          main_image_url, sku, stock_quantity, is_featured
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-        [
-          name,
-          description,
-          parseFloat(price),
-          category_id,
-          sub_category_id || null,
-          mainImageUrl,
-          finalSku,
-          parseInt(stock_quantity) || 0,
-          is_featured === 'true'
-        ]
-      );
+  `INSERT INTO products (
+    name, description, price, category_id, sub_category_id, 
+    main_image_url, sku, stock_quantity, is_featured,
+    without_print_price, core_price, elite_price, pro_price, cloth_colors
+  ) 
+  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) 
+  RETURNING *`,
+  [
+    name,
+    description,
+    parseFloat(price),
+    category_id,
+    sub_category_id || null,
+    mainImageUrl,
+    finalSku,
+    parseInt(stock_quantity) || 0,
+    is_featured === 'true',
+
+    without_print_price || null,
+    core_price || null,
+    elite_price || null,
+    pro_price || null,
+    cloth_colors ? JSON.parse(cloth_colors) : null
+  ]
+);
 
       const product = productResult.rows[0];
 
@@ -962,82 +954,23 @@ app.post('/api/products', upload.fields([
 });
 
 // 12. Get All Products
-// 12. Get All Products
 app.get('/api/products', async (req, res) => {
   try {
-    const {
-      category_id,
-      sub_category_id,
-      is_featured,
-      is_active = 'true',
-      page = 1,
-      limit = 20
-    } = req.query;
-
-    const offset = (page - 1) * limit;
-
-    // Build query with proper parameter handling
-    let whereClauses = ['p.is_active = $1'];
-    const values = [is_active === 'true'];
-    let paramIndex = 2;
-
-    if (category_id) {
-      whereClauses.push(`p.category_id = $${paramIndex}`);
-      values.push(parseInt(category_id));
-      paramIndex++;
-    }
-
-    if (sub_category_id) {
-      whereClauses.push(`p.sub_category_id = $${paramIndex}`);
-      values.push(parseInt(sub_category_id));
-      paramIndex++;
-    }
-
-    if (is_featured !== undefined) {
-      whereClauses.push(`p.is_featured = $${paramIndex}`);
-      values.push(is_featured === 'true');
-      paramIndex++;
-    }
-
-    const whereQuery = whereClauses.join(' AND ');
-    
-    const query = `
-      SELECT p.*, 
+    const result = await pool.query(`
+      SELECT 
+        p.*, 
         c.name as category_name,
-        sc.name as sub_category_name,
-        (SELECT COUNT(*) FROM product_images pi WHERE pi.product_id = p.id) as sub_images_count
+        sc.name as sub_category_name
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
-      WHERE ${whereQuery}
-      ORDER BY p.created_at DESC 
-      LIMIT $${paramIndex} 
-      OFFSET $${paramIndex + 1}
-    `;
-
-    values.push(parseInt(limit), offset);
-
-    const result = await pool.query(query, values);
-
-    // Get total count for pagination
-    const countQuery = `
-      SELECT COUNT(*) 
-      FROM products p 
-      WHERE ${whereQuery}
-    `;
-
-    const countResult = await pool.query(countQuery, values.slice(0, -2)); // Remove limit and offset values
-    const total = parseInt(countResult.rows[0].count);
+      WHERE p.is_active = true
+      ORDER BY p.created_at DESC
+    `);
 
     res.json({
       success: true,
-      products: result.rows,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
+      products: result.rows
     });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -1120,8 +1053,7 @@ app.put('/api/products/:id', upload.fields([
           }
         }
 
-        const BASE_URL = `${req.protocol}://${req.get('host')}`;
-mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
+        mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
       }
 
       // Build update query
@@ -1536,6 +1468,6 @@ app.use((err, req, res, next) => {
 initDatabase().then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
-    console.log(`Uploads directory: ${path.join(__dirname, 'uploads')}`);
+    console.log(`Uploads directory: ${uploadsDir}`);
   });
 });

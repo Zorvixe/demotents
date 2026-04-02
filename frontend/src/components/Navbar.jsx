@@ -215,7 +215,7 @@ const Navbar = () => {
     <RiArrowDropDownLine size={20} />
   </span>
 
-  <ul className="dropdown-menu">
+  <ul className={`dropdown-menu ${searchTerm ? "show-dropdown" : ""}`}>
     {item.items.map((subItem, subIndex) => (
       <li key={subIndex} className="dropdown-submenu">
 

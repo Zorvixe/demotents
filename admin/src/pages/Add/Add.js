@@ -13,15 +13,22 @@ const Add = () => {
     const [categories, setCategories] = useState([]);
     const [subCategories, setSubCategories] = useState([]);
     const [data, setData] = useState({
-        name: "",
-        description: "",
-        price: "",
-        category_id: "",
-        sub_category_id: "",
-        sku: "",
-        stock_quantity: 0,
-        is_featured: false
-    });
+  name: "",
+  description: "",
+  category_id: "",
+  sub_category_id: "",
+  sku: "",
+  stock_quantity: 0,
+  is_featured: false,
+  size: "",
+  product_type: "",
+
+  without_print_price: "",
+  core_price: "",
+  elite_price: "",
+  pro_price: "",
+  cloth_colors: ""
+});
 
     useEffect(() => {
         fetchCategories();
@@ -64,19 +71,41 @@ const Add = () => {
     };
 
     const onChangeHandler = (event) => {
-        const name = event.target.name;
-        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
-        
-        if (name === 'category_id') {
-            setData(prev => ({ 
-                ...prev, 
-                [name]: value,
-                sub_category_id: "" // Reset sub-category when category changes
-            }));
-        } else {
-            setData(prev => ({ ...prev, [name]: value }));
-        }
-    }
+  const name = event.target.name;
+  const value =
+    event.target.type === "checkbox"
+      ? event.target.checked
+      : event.target.value;
+
+  // CATEGORY RESET
+  if (name === "category_id") {
+    setData((prev) => ({
+      ...prev,
+      [name]: value,
+      sub_category_id: "",
+    }));
+  }
+
+  // ✅ PRODUCT TYPE RESET LOGIC (VERY IMPORTANT)
+  else if (name === "product_type") {
+    setData((prev) => ({
+      ...prev,
+      product_type: value,
+
+      // reset all prices when type changes
+      without_print_price: "",
+      core_price: "",
+      elite_price: "",
+      pro_price: "",
+    }));
+  }
+
+  // NORMAL
+  else {
+    setData((prev) => ({ ...prev, [name]: value }));
+  }
+};
+    
 
     const handleMainImageChange = (e) => {
         if (e.target.files && e.target.files[0]) {
@@ -119,17 +148,13 @@ const Add = () => {
         setLoading(true);
 
         // Validate inputs
-        if (!data.name || !data.description || !data.price || !mainImage || !data.category_id) {
+        if (!data.name || !data.description  || !mainImage || !data.category_id) {
             toast.error('Please fill all required fields');
             setLoading(false);
             return;
         }
 
-        if (parseFloat(data.price) <= 0) {
-            toast.error('Price must be greater than 0');
-            setLoading(false);
-            return;
-        }
+        
 
         const formData = new FormData();
         formData.append("name", data.name);
@@ -137,7 +162,8 @@ const Add = () => {
         formData.append("price", Number(data.price));
         formData.append("category_id", data.category_id);
         formData.append("mainImage", mainImage);
-        
+        formData.append("size", data.size);
+        formData.append("product_type", data.product_type);
         if (data.sub_category_id) {
             formData.append("sub_category_id", data.sub_category_id);
         }
@@ -148,6 +174,51 @@ const Add = () => {
         
         formData.append("stock_quantity", data.stock_quantity);
         formData.append("is_featured", data.is_featured);
+        // TYPE BASED DATA SEND
+if (data.product_type === "without_print") {
+  const price = Number(data.without_print_price);
+  if (isNaN(price)) {
+    toast.error("Without Print Price must be a number");
+    setLoading(false);
+    return;
+  }
+  formData.append("without_print_price", price);
+}
+
+if (data.product_type === "customization") {
+  const core = Number(data.core_price);
+  const elite = Number(data.elite_price);
+  const pro = Number(data.pro_price);
+
+  if (isNaN(core) || isNaN(elite) || isNaN(pro)) {
+    toast.error("Core, Elite, and Pro prices must be numbers");
+    setLoading(false);
+    return;
+  }
+
+  formData.append("core_price", core);
+  formData.append("elite_price", elite);
+  formData.append("pro_price", pro);
+}
+// ✅ TYPE BASED VALIDATION
+if (data.product_type === "without_print" && !data.without_print_price) {
+  toast.error("Please enter Without Print Price");
+  setLoading(false);
+  return;
+}
+
+if (data.product_type === "customization") {
+  if (!data.core_price || !data.elite_price || !data.pro_price) {
+    toast.error("Please fill Core, Elite and Pro prices");
+    setLoading(false);
+    return;
+  }
+}
+// Convert colors string → array
+if (data.cloth_colors) {
+    const colorsArray = data.cloth_colors.split(",").map(c => c.trim());
+    formData.append("cloth_colors", JSON.stringify(colorsArray));
+}
         
         // Append sub-images
         subImages.forEach((image) => {
@@ -165,16 +236,24 @@ const Add = () => {
             if (response.ok) {
                 toast.success('Product added successfully!');
                 // Reset form
-                setData({
-                    name: "",
-                    description: "",
-                    price: "",
-                    category_id: "",
-                    sub_category_id: "",
-                    sku: "",
-                    stock_quantity: 0,
-                    is_featured: false
-                });
+setData({
+  name: "",
+  description: "",
+  category_id: "",
+  sub_category_id: "",
+  sku: "",
+  stock_quantity: 0,
+  is_featured: false,
+
+  size: "",
+  product_type: "",
+
+  without_print_price: "",
+  core_price: "",
+  elite_price: "",
+  pro_price: "",
+  cloth_colors: ""
+});
                 setMainImage(null);
                 setSubImages([]);
                 setSubCategories([]);
@@ -323,36 +402,111 @@ const Add = () => {
                         </select>
                     </div>
                 </div>
+               
+                {/* SIZE + TYPE */}
+<div className="add-category-price">
 
-                {/* Price and Stock */}
-                <div className="add-category-price">
-                    <div className="add-price flex-col">
-                        <p>Product Price*</p>
-                        <input
-                            onChange={onChangeHandler}
-                            value={data.price}
-                            type="number"
-                            name='price'
-                            placeholder='$20'
-                            min="0.01"
-                            step="0.01"
-                            required
-                        />
-                    </div>
-                    
-                    <div className="add-price flex-col">
-                        <p>Stock Quantity</p>
-                        <input
-                            onChange={onChangeHandler}
-                            value={data.stock_quantity}
-                            type="number"
-                            name='stock_quantity'
-                            placeholder='0'
-                            min="0"
-                            step="1"
-                        />
-                    </div>
-                </div>
+  {/* SIZE */}
+  <div className="add-category flex-col">
+    <p>Size*</p>
+    <select
+      name="size"
+      value={data.size}
+      onChange={onChangeHandler}
+      required
+    >
+      <option value="">Select Size</option>
+      <option value="4x4">4x4</option>
+      <option value="6x6">6x6</option>
+      <option value="10x10">10x10</option>
+      <option value="10x20">10x20</option>
+    </select>
+  </div>
+
+  {/* PRODUCT TYPE */}
+  <div className="add-category flex-col">
+    <p>Product Type*</p>
+    <select
+      name="product_type"
+      value={data.product_type}
+      onChange={onChangeHandler}
+      required
+    >
+      <option value="">Select Type</option>
+      <option value="without_print">Without Print</option>
+      <option value="customization">With Customization</option>
+    </select>
+  </div>
+
+</div>
+                {/* CUSTOM PRICING */}
+{/* CUSTOM PRICING */}
+
+{/* WITHOUT PRINT */}
+{data.product_type === "without_print" && (
+  <div className="add-price flex-col">
+    <p>Without Print Price*</p>
+    <input
+      type="text"
+      name="without_print_price"
+      value={data.without_print_price}
+      onChange={onChangeHandler}
+      required
+    />
+  </div>
+)}
+
+{/* CUSTOMIZATION */}
+{data.product_type === "customization" && (
+  <div className="add-category-price">
+
+    <div className="add-price flex-col">
+      <p>Core Price*</p>
+      <input
+        type="text"
+        name="core_price"
+        value={data.core_price}
+        onChange={onChangeHandler}
+        required
+      />
+    </div>
+
+    <div className="add-price flex-col">
+      <p>Elite Price*</p>
+      <input
+        type="text"
+        name="elite_price"
+        value={data.elite_price}
+        onChange={onChangeHandler}
+        required
+      />
+    </div>
+
+    <div className="add-price flex-col">
+      <p>Pro Price*</p>
+      <input
+        type="text"
+        name="pro_price"
+        value={data.pro_price}
+        onChange={onChangeHandler}
+        required
+      />
+    </div>
+
+  </div>
+)}
+
+{/* COLORS */}
+<div className="add-product-name flex-col">
+    <p>Cloth Colors (comma separated)</p>
+    <input
+        type="text"
+        name="cloth_colors"
+        value={data.cloth_colors}
+        onChange={onChangeHandler}
+        placeholder="Red, Blue, Green"
+    />
+</div>
 
                 {/* SKU and Featured */}
                 <div className="add-category-price">

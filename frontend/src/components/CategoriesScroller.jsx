@@ -182,28 +182,28 @@ const CategoriesScroller = () => {
                     src={getCategoryImage(cat)}
                     alt={cat.name}
                     className="product-img"
-                    loading="lazy"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src =
-                        defaultCategoryImages[cat.name] ||
-                        "/placeholder.jpg";
+                      // Try to get default image based on category name
+                      const defaultImg = defaultCategoryImages[cat.name];
+                      if (defaultImg) {
+                        e.target.src = defaultImg;
+                      } else {
+                        e.target.src = '/placeholder.jpg';
+                      }
                     }}
                   />
                 </div>
 
                 <div className="category-info">
                   <div className="product-count">
-                    {cat.product_count || 0}{" "}
-                    {cat.product_count === 1
-                      ? "Product"
-                      : "Products"}
+                    {cat.product_count || 0} {cat.product_count === 1 ? 'Product' : 'Products'}
                   </div>
-
+                  
                   {cat.description && (
                     <p className="category-description">
-                      {cat.description.length > 50
-                        ? `${cat.description.substring(0, 50)}...`
+                      {cat.description.length > 50 
+                        ? `${cat.description.substring(0, 50)}...` 
                         : cat.description}
                     </p>
                   )}

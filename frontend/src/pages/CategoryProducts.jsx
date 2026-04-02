@@ -193,16 +193,16 @@ const CategoryProducts = () => {
                     <h6 className="product-title-category">{product.name}</h6>
 
                       {product.core_price || product.elite_price || product.pro_price ? (
-                        <div className="product-price-category">
-                          <p>Core: ₹ {product.core_price || "—"}</p>
-                          <p>Elite: ₹ {product.elite_price || "—"}</p>
-                          <p>Pro: ₹ {product.pro_price || "—"}</p>
-                        </div>
-                      ) : (
-                        <p className="product-price-category">
-                          ₹ {product.price?.toLocaleString() || "Price on request"}
-                        </p>
-                      )}
+  <div className="product-price-category">
+    {product.core_price && <p className="core-price">Core: ₹ {product.core_price}</p>}
+    {product.elite_price && <p className="elite-price">Elite: ₹ {product.elite_price}</p>}
+    {product.pro_price && <p className="pro-price">Pro: ₹ {product.pro_price}</p>}
+  </div>
+                          ) : (
+                            <p className="product-price-category">
+                              ₹ {product.price?.toLocaleString() || "Price on request"}
+                            </p>
+                          )}
 
                       {/* ✅ ADD THIS */}
                       {product.cloth_colors && product.cloth_colors.length > 0 && (

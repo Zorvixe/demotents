@@ -54,7 +54,7 @@
 }
 
 .product-stock {
-  color: #d97706;
+  color: #fa0404;
   font-size: 0.95rem;
 }
 
@@ -76,13 +76,42 @@
 }
 
 /* BUTTON */
+/* WhatsApp Enquiry button */
 .contact-product-btn {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
+  background-color: #25D366; /* WhatsApp green */
   color: #fff;
-  padding: 12px 32px;
+  padding: 12px 28px;
   border-radius: 30px;
   font-weight: 600;
   border: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.contact-product-btn:hover {
+  background-color: #1ebe57; /* Darker green */
+  transform: scale(1.05); /* Slightly bigger */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Shadow on hover */
+}
+
+/* Call Now button */
+.btn-outline-primary {
+  background-color: #0d6efd; /* Blue */
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-weight: 600;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  background-color: #0b5ed7; /* Darker blue */
+  transform: scale(1.05); /* Slightly bigger */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2); /* Shadow on hover */
 }
 
 .contact-product-btn:hover {
@@ -139,4 +168,7 @@
   .thumbnail-row {
     justify-content: center;
   }
+}
+.product-colors{
+  color: #323a6e;
 }

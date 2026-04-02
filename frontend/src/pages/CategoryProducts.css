@@ -149,3 +149,13 @@
     font-size: 15px;
   }
 }
+
+.core-price {
+  color: #3c77b6; /* blue */
+}
+.elite-price {
+  color: #28a745; /* green */
+}
+.pro-price {
+  color: #d97706; /* red */
+}
