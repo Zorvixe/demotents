@@ -4,6 +4,8 @@ import uploadImg from "../../assets/upload_img.png";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
+
 const Add = () => {
     const [mainImage, setMainImage] = useState(null);
     const [subImages, setSubImages] = useState([]);
@@ -35,7 +37,7 @@ const Add = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch('https://demotents-dhia.onrender.com/api/categories');
+            const response = await fetch(`${API_URL}/api/categories`);
             const result = await response.json();
             
             if (result.success) {
@@ -49,7 +51,7 @@ const Add = () => {
 
     const fetchSubCategories = async (categoryId) => {
         try {
-            const response = await fetch(`https://demotents-dhia.onrender.com/api/categories/${categoryId}/sub-categories`);
+            const response = await fetch(`${API_URL}/api/categories/${categoryId}/sub-categories`);
             const result = await response.json();
             
             if (result.success) {
@@ -153,7 +155,7 @@ const Add = () => {
         });
 
         try {
-            const response = await fetch('https://demotents-dhia.onrender.com/api/products', {
+            const response = await fetch(`${API_URL}/api/products`, {
                 method: 'POST',
                 body: formData,
             });

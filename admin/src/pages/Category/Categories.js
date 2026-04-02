@@ -3,6 +3,9 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Categories.css';
 
+  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
+
+
 const Categories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,13 +17,16 @@ const Categories = () => {
     description: ''
   });
 
+
+  
+
   useEffect(() => {
     fetchCategories();
   }, []);
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://demotents-dhia.onrender.com/api/categories?includeSubCategories=true');
+      const response = await fetch(`${API_URL}/api/categories?includeSubCategories=true`);
       const result = await response.json();
       
       if (result.success) {
@@ -53,7 +59,7 @@ const Categories = () => {
     }
 
     try {
-      const response = await fetch('https://demotents-dhia.onrender.com/api/categories', {
+      const response = await fetch(`${API_URL}/api/categories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +92,7 @@ const Categories = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-dhia.onrender.com/api/categories/${currentCategory.id}`, {
+      const response = await fetch(`${API_URL}/api/categories/${currentCategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +123,7 @@ const Categories = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-dhia.onrender.com/api/categories/${categoryId}`, {
+      const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
         method: 'DELETE',
       });
 

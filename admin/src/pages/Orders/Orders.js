@@ -3,6 +3,9 @@ import "./Orders.css";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
+
+
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +16,7 @@ const Orders = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('https://demotents-dhia.onrender.com/api/orders');
+      const response = await fetch(`${API_URL}/api/orders`);
       const data = await response.json();
       if (data.success) {
         setOrders(data.orders);
@@ -28,7 +31,7 @@ const Orders = () => {
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
-      const response = await fetch(`https://demotents-dhia.onrender.com/api/orders/${orderId}/status`, {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -56,7 +59,7 @@ const Orders = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-dhia.onrender.com/api/orders/${orderId}`, {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
         method: 'DELETE',
       });
 

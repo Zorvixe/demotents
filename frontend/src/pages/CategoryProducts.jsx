@@ -13,7 +13,9 @@ const CategoryProducts = () => {
   const [error, setError] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
 
-  const API_URL = "https://demotents-dhia.onrender.com/api";
+  const API_URL = `${process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
+  
+
 
   // Default category images stored in React public folder
   const defaultCategoryImages = {

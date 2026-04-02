@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./TentCategories.css";
 import { useNavigate } from "react-router-dom";
 
-const BASE_URL = "https://demotents-dhia.onrender.com";
+const BASE_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
 
 const TentCategories = () => {
   const navigate = useNavigate();

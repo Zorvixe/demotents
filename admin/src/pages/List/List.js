@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import './List.css';
 
+
+
 const List = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ const List = () => {
   const [subImageFiles, setSubImageFiles] = useState([]);
   const [existingSubImages, setExistingSubImages] = useState([]);
 
-  const API_URL = 'https://demotents-dhia.onrender.com/api';
+  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
 
   // Fetch all data on mount
   useEffect(() => {

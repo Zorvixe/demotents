@@ -3,6 +3,10 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './SubCategories.css';
 
+
+  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
+
+
 const SubCategories = () => {
   const [subCategories, setSubCategories] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,7 +27,7 @@ const SubCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('https://demotents-dhia.onrender.com/api/categories');
+      const response = await fetch(`${API_URL}/api/categories`);
       const result = await response.json();
       
       if (result.success) {
@@ -36,7 +40,7 @@ const SubCategories = () => {
 
   const fetchSubCategories = async () => {
     try {
-      const response = await fetch('https://demotents-dhia.onrender.com/api/sub-categories');
+      const response = await fetch(`${API_URL}/api/sub-categories`);
       const result = await response.json();
       
       if (result.success) {
@@ -69,7 +73,7 @@ const SubCategories = () => {
     }
 
     try {
-      const response = await fetch('https://demotents-dhia.onrender.com/api/sub-categories', {
+      const response = await fetch(`${API_URL}/api/sub-categories`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +106,7 @@ const SubCategories = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-dhia.onrender.com/api/sub-categories/${currentSubCategory.id}`, {
+      const response = await fetch(`${API_URL}/api/sub-categories/${currentSubCategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +137,7 @@ const SubCategories = () => {
     }
 
     try {
-      const response = await fetch(`https://demotents-dhia.onrender.com/api/sub-categories/${subCategoryId}`, {
+      const response = await fetch(`${API_URL}/api/sub-categories/${subCategoryId}`, {
         method: 'DELETE',
       });
 
