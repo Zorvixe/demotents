@@ -6,34 +6,25 @@ const CategoryProducts = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { categorySlug } = useParams();
+  const queryParams = new URLSearchParams(location.search);
+  const printType = queryParams.get("type"); // "without-print" or "custom"
+
   const { categoryId, categoryName } = location.state || {};
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [categoryData, setCategoryData] = useState(null);
-
-  const API_URL = `${"https://demotents-dhia.onrender.com" || "http://localhost:5004"}/api`;
   
+  const [imageLoaded, setImageLoaded] = useState({});
+  const [imageError, setImageError] = useState({});
+  
+  const [bannerLoaded, setBannerLoaded] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
 
+  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const API_URL = `${BASE_URL}/api`;
 
-  // Default category images stored in React public folder
-  const defaultCategoryImages = {
-    'Canvas Tent': '/canvas.jpg',
-    'Family Tent': '/family.jpg',
-    'PVC Tent': '/pvc.jpg',
-    'Promotional Tent': '/promotional.jpg',
-    'Advertising Umbrellas': '/advertise.jpg',
-    'Roll-Up Banner': '/rollup.png',
-    'Folding Tent': '/folding.jpg',
-    'Display Tent': '/display.avif',
-    'Camping Tent': '/camping.jpg',
-    'Luxury Tent': '/luxury.jpg',
-    'Beach Umbrellas': '/beach.jpg',
-    'Wedding Tent': '/wedding.jpg',
-  };
-
-  // Fetch products for the category
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -42,13 +33,13 @@ const CategoryProducts = () => {
 
         let finalCategoryId = categoryId;
         let finalCategoryName = categoryName;
+        let foundCategory = null;
 
-        // If categoryId not passed from navigate state, find from slug
         if (!finalCategoryId) {
           const categoryRes = await fetch(`${API_URL}/categories`);
           const categoryData = await categoryRes.json();
           if (categoryData.success) {
-            const foundCategory = categoryData.categories.find(
+            foundCategory = categoryData.categories.find(
               (cat) =>
                 cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
             );
@@ -62,9 +53,13 @@ const CategoryProducts = () => {
 
         if (!finalCategoryId) throw new Error("Category not found");
 
-        const productRes = await fetch(
-          `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`
-        );
+        // ✅ Build URL with optional type filter
+        let url = `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`;
+        if (printType) {
+          url += `&type=${printType}`;
+        }
+
+        const productRes = await fetch(url);
 
         if (!productRes.ok)
           throw new Error(`Failed to fetch products: ${productRes.status}`);
@@ -81,157 +76,233 @@ const CategoryProducts = () => {
     };
 
     fetchProducts();
-  }, [categorySlug, categoryId, categoryName]);
+  }, [categorySlug, categoryId, categoryName, printType]);
 
-  // Helper: Get category image
-  const getCategoryImage = (categoryName) => {
-    return defaultCategoryImages[categoryName] || "/placeholder.jpg";
+  const getCategoryBannerImage = () => {
+    if (categoryData && categoryData.preview_image) {
+      const img = categoryData.preview_image;
+      if (img.startsWith("http")) return img;
+      if (img.startsWith("/uploads/")) return `${BASE_URL}${img}`;
+      return `${BASE_URL}/uploads/${img}`;
+    }
+    return null;
   };
 
-  // Open product modal
+  const getProductImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `${BASE_URL}${url}`;
+  };
+
+  const handleProductImageLoad = (productId) => {
+    setImageLoaded(prev => ({ ...prev, [productId]: true }));
+  };
+
+  const handleProductImageError = (productId) => {
+    setImageError(prev => ({ ...prev, [productId]: true }));
+    setImageLoaded(prev => ({ ...prev, [productId]: true }));
+  };
+
+  const handleBannerLoad = () => setBannerLoaded(true);
+  const handleBannerError = () => setBannerError(true);
+
   const openModal = (product) => {
     navigate(`/product/${product.id}`, { state: { product } });
   };
 
-  // Loading state
+  // Helper to display correct price based on print type
+  const getDisplayPrice = (product) => {
+    if (printType === "without-print") {
+      return product.without_print_price
+        ? `₹ ${product.without_print_price.toLocaleString()}`
+        : "Price on request";
+    } else if (printType === "custom") {
+      // Show tiered prices
+      if (product.core_price || product.elite_price || product.pro_price) {
+        return null; // will render tiered pricing
+      }
+      return product.price ? `₹ ${product.price.toLocaleString()}` : "Price on request";
+    } else {
+      return product.price ? `₹ ${product.price.toLocaleString()}` : "Price on request";
+    }
+  };
+
   if (loading) {
     return (
-      <div className="category-products-container py-5 text-center">
-        <h3>Loading Products...</h3>
-        <div className="spinner"></div>
+      <div className="category-loader-container">
+        <div className="category-loader-ring"></div>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="category-products-container py-5 text-center">
-        <h3>Products</h3>
-        <p className="text-danger">{error}</p>
-        <button className="btn btn-primary" onClick={() => window.location.reload()}>
-          Try Again
-        </button>
+      <div className="category-error-container py-5 text-center">
+        <div className="error-content">
+          <svg className="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 className="error-title">Oops! Something went wrong</h3>
+          <p className="error-message">{error}</p>
+          <button className="category-btn category-btn-primary" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   const displayCategoryName =
     categoryName || (categorySlug ? categorySlug.replace(/-/g, " ") : "Products");
+  const bannerImageUrl = getCategoryBannerImage();
 
-    const getImageUrl = (url) => {
-  if (!url) return "/placeholder.jpg";
+  // Add type suffix to page title
+  const pageTitle = printType === "without-print" 
+    ? `${displayCategoryName} - Without Print`
+    : printType === "custom"
+    ? `${displayCategoryName} - With Customization`
+    : displayCategoryName;
 
-  // If already full URL (new images)
-  if (url.startsWith("http")) {
-    return url;
-  }
-
-  // Old images (relative path)
-  return `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:5004"}${url}`;
-};
   return (
-    <div className="container py-5 category-products-container" style={{ marginTop: "50px" }}>
-      {/* Category Banner */}
-      <div className="category-banner mb-5" style={{ position: "relative" }}>
-        <img
-          src={getCategoryImage(displayCategoryName)}
-          alt={displayCategoryName}
-          className="w-100"
-          style={{ height: "250px", objectFit: "cover", borderRadius: "8px" }}
-        />
-        <div
-          className="banner-overlay"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontSize: "2rem",
-            fontWeight: "600",
-            borderRadius: "8px",
-          }}
-        >
-          {displayCategoryName}
+    <div className="category-wrapper container py-5" style={{ marginTop: "50px" }}>
+      
+      <div className="category-banner mb-5">
+        {bannerImageUrl && !bannerError ? (
+          <>
+            {!bannerLoaded && (
+              <div className="banner-loader-overlay">
+                <div className="banner-spinner"></div>
+              </div>
+            )}
+            <img
+              src={bannerImageUrl}
+              alt={pageTitle}
+              className="banner-image"
+              style={{ display: bannerLoaded ? 'block' : 'none' }}
+              onLoad={handleBannerLoad}
+              onError={handleBannerError}
+            />
+          </>
+        ) : null}
+        <div className="banner-gradient-overlay">
+          <h1 className="banner-title">{pageTitle}</h1>
+          <p className="banner-subtitle">Explore our premium collection</p>
         </div>
       </div>
 
-      {/* Products Grid */}
       <div className="row g-4">
         {products.length > 0 ? (
-          products.map((product) => (
-            <div key={product.id} className="col-lg-3 col-md-4 col-6">
-              <div className="card product-card border-0 shadow-sm">
-                <div
-                  className="image-container"
-                  onClick={() => openModal(product)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <img
-                      src={getImageUrl(product.main_image_url)}
-  alt={product.name}
-  className="d-block w-100 product-image"
-  onError={(e) => {
-    e.target.onerror = null;
-    e.target.src = "/placeholder.jpg";
-  }}
+          products.map((product) => {
+            const imgUrl = getProductImageUrl(product.main_image_url);
+            const isLoaded = imageLoaded[product.id];
+            const hasError = imageError[product.id];
 
-                  />
-                  {product.sub_images_count > 0 && (
-                    <span className="photo-badge">+{product.sub_images_count}</span>
-                  )}
-                </div>
-
-                <div className="card-body text-center d-flex flex-column justify-content-between">
-                  <div>
-                    <h6 className="product-title-category">{product.name}</h6>
-
-                      {product.core_price || product.elite_price || product.pro_price ? (
-  <div className="product-price-category">
-    {product.core_price && <p className="core-price">Core: ₹ {product.core_price}</p>}
-    {product.elite_price && <p className="elite-price">Elite: ₹ {product.elite_price}</p>}
-    {product.pro_price && <p className="pro-price">Pro: ₹ {product.pro_price}</p>}
-  </div>
-                          ) : (
-                            <p className="product-price-category">
-                              ₹ {product.price?.toLocaleString() || "Price on request"}
-                            </p>
-                          )}
-
-                      {/* ✅ ADD THIS */}
-                      {product.cloth_colors && product.cloth_colors.length > 0 && (
-                        <p className="product-colors-category">
-                          Colors: {product.cloth_colors.join(", ")}
-                        </p>
-                      )}
-
-                      <p className="product-sku-category">SKU: {product.sku || "N/A"}</p>
+            return (
+              <div key={product.id} className="col-lg-3 col-md-4 col-sm-6 col-12">
+                <div className="category-product-card">
+                  <div
+                    className="category-image-wrapper"
+                    onClick={() => openModal(product)}
+                  >
+                    {!isLoaded && (
+                      <div className="image-loader-overlay">
+                        <div className="image-spinner"></div>
+                      </div>
+                    )}
+                    {imgUrl && !hasError && (
+                      <img
+                        src={imgUrl}
+                        alt={product.name}
+                        className="category-product-image"
+                        style={{ display: isLoaded ? 'block' : 'none' }}
+                        onLoad={() => handleProductImageLoad(product.id)}
+                        onError={() => handleProductImageError(product.id)}
+                      />
+                    )}
+                    {(hasError || !imgUrl) && (
+                      <div className="image-fallback">
+                        <span>No image</span>
+                      </div>
+                    )}
+                    {product.sub_images_count > 0 && (
+                      <div className="category-photo-badge">
+                        <svg className="badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        +{product.sub_images_count}
+                      </div>
+                    )}
                   </div>
-                  <div className="product-actions-category mt-3">
-                    <button
-                      className="btn btn-success btn-sm px-3 me-2"
-                      onClick={() => openModal(product)}
-                    >
-                      View Details
-                    </button>
-                    <button className="btn btn-outline-primary btn-sm px-3">Enquire Now</button>
+
+                  <div className="category-card-body">
+                    <div className="category-card-info">
+                      <h2 className="category-product-title">{product.name}</h2>
+                      
+                      <div className="category-product-meta">
+                        {product.sku && <span className="meta-sku">SKU: {product.sku}</span>}
+                        {product.cloth_colors && product.cloth_colors.length > 0 && (
+                          <span className="meta-colors" title={product.cloth_colors.join(", ")}>
+                            {product.cloth_colors.length} Colors
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="category-pricing-section">
+                        {printType === "custom" && (product.core_price || product.elite_price || product.pro_price) ? (
+                          <div className="tiered-pricing">
+                            {product.core_price && (
+                              <div className="price-tier core">
+                                <span className="tier-label">Core</span>
+                                <span className="tier-value">₹{product.core_price}</span>
+                              </div>
+                            )}
+                            {product.elite_price && (
+                              <div className="price-tier elite">
+                                <span className="tier-label">Elite</span>
+                                <span className="tier-value">₹{product.elite_price}</span>
+                              </div>
+                            )}
+                            {product.pro_price && (
+                              <div className="price-tier pro">
+                                <span className="tier-label">Pro</span>
+                                <span className="tier-value">₹{product.pro_price}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="single-price">{getDisplayPrice(product)}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="category-card-actions">
+                      <button
+                        className="category-btn category-btn-primary"
+                        onClick={() => openModal(product)}
+                      >
+                        View Details
+                      </button>
+                      <button className="category-btn category-btn-secondary">
+                        Enquire
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <div className="col-12 text-center py-5">
-            <p className="no-products">No products available in this category yet.</p>
-            <button className="btn btn-primary" onClick={() => navigate("/categories")}>
-              Browse Other Categories
-            </button>
+          <div className="col-12">
+            <div className="category-empty-state text-center py-5">
+              <svg className="empty-icon mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+              </svg>
+              <h3 className="empty-title">No Products Found</h3>
+              <p className="empty-subtitle mb-4">No products available for this selection.</p>
+              <button className="category-btn category-btn-primary px-4" onClick={() => navigate("/categories")}>
+                Browse All Categories
+              </button>
+            </div>
           </div>
         )}
       </div>

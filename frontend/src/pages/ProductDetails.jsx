@@ -79,39 +79,34 @@ const ProductDetails = () => {
   };
 
   const handleRelatedProductClick = (relatedProduct) => {
+    // Scroll to top when navigating to related product
+    window.scrollTo(0, 0);
     navigate(`/product/${relatedProduct.id}`, {
       state: { product: relatedProduct }
     });
   };
 
+  // ========== LOADER UI ==========
   if (loading) {
     return (
-      <div className="category-products-container py-5">
-        <div className="text-center mb-5">
-          <h3 className="section-title-main">
-            <span>Loading Products...</span>
-          </h3>
-        </div>
-        <div className="loading-state text-center py-5">
-          <div className="spinner"></div>
-          <p className="mt-3">Loading product d...</p>
-        </div>
+      <div className="ecom-loader-container">
+        <div className="ecom-loader-spinner"></div>
+        <p>Loading details...</p>
       </div>
     );
   }
 
+  // ========== ERROR UI ==========
   if (error || !product) {
     return (
-      <div className="product-details-page container py-5">
-        <div className="text-center py-5">
-          <p className="error-message">{error || "Product not found"}</p>
-          <button 
-            className="btn btn-primary mt-3"
-            onClick={() => navigate(-1)}
-          >
-            Go Back
-          </button>
-        </div>
+      <div className="ecom-error-container py-5 text-center">
+        <p className="ecom-error-message">{error || "Product not found"}</p>
+        <button 
+          className="ecom-btn-primary mt-3"
+          onClick={() => navigate(-1)}
+        >
+          Go Back
+        </button>
       </div>
     );
   }
@@ -123,121 +118,172 @@ const ProductDetails = () => {
   ].filter(Boolean);
 
   return (
-    <div className="product-details-page container py-5">
-      {/* MAIN SECTION */}
-      <div className="row g-5 align-items-start">
-        {/* LEFT – IMAGES */}
-        <div className="col-lg-6 col-md-12">
-          <div className="product-image-box">
-            <img
-              src={activeImg || getImageUrl(product.main_image_url)}
-              alt={product.name}
-              className="main-product-img"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/placeholder.jpg';
-              }}
-            />
-          </div>
+    <div className="ecom-product-page container py-5">
 
-          {allImages.length > 1 && (
-            <div className="thumbnail-row">
-              {allImages.map((img, index) => (
-                <img
-                  key={index}
-                  src={getImageUrl(img)}
-                  alt="thumbnail"
-                  className={`thumb-img ${activeImg === getImageUrl(img) ? "active" : ""}`}
-                  onClick={() => setActiveImg(getImageUrl(img))}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/placeholder.jpg';
-                  }}
-                />
-              ))}
+      {/* MAIN LAYOUT */}
+      <div className="row g-4 align-items-start">
+        
+        {/* LEFT – IMAGE GALLERY (Amazon/Flipkart Style) */}
+        <div className="col-lg-5 col-md-6">
+          <div className="ecom-gallery-container">
+            {/* Main Image Box */}
+            <div className="ecom-main-image-wrapper">
+              <img
+                src={activeImg || getImageUrl(product.main_image_url)}
+                alt={product.name}
+                className="ecom-main-img"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/placeholder.jpg';
+                }}
+              />
             </div>
-          )}
+
+            {/* Thumbnail Row */}
+            {allImages.length > 1 && (
+              <div className="ecom-thumbnail-row">
+                {allImages.map((img, index) => (
+                  <div 
+                    key={index}
+                    className={`ecom-thumb-box ${activeImg === getImageUrl(img) ? "active" : ""}`}
+                    onClick={() => setActiveImg(getImageUrl(img))}
+                  >
+                    <img
+                      src={getImageUrl(img)}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="ecom-thumb-img"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/placeholder.jpg';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT – DETAILS */}
-        <div className="col-lg-6 col-md-12">
-          <h2 className="product-title">{product.name}</h2>
-          
-        
+        {/* RIGHT – DETAILS (Clear hierarchy, pricing rules intact) */}
+        <div className="col-lg-7 col-md-6">
+          <div className="ecom-product-info">
+            <h1 className="ecom-product-title">{product.name}</h1>
+            
+            {/* SKU */}
+            {product.sku && (
+              <p className="ecom-sku">SKU: <span>{product.sku}</span></p>
+            )}
 
-          <div className="product-price">
+            <hr className="ecom-divider" />
 
-  {/* WITH CUSTOMIZATION */}
- {product.core_price || product.elite_price || product.pro_price ? (
-  <div className="product-price-category">
-    {product.core_price && <p className="core-price">Core: ₹ {product.core_price}</p>}
-    {product.elite_price && <p className="elite-price">Elite: ₹ {product.elite_price}</p>}
-    {product.pro_price && <p className="pro-price">Pro: ₹ {product.pro_price}</p>}
-  </div>
-                      ) : (
-                        <p className="product-price-category">
-                          ₹ {product.price?.toLocaleString() || "Price on request"}
-                        </p>
-                      )}
+            {/* PRICING SECTION */}
+            <div className="ecom-price-section">
+              {/* WITH CUSTOMIZATION / TIERS */}
+              {product.core_price || product.elite_price || product.pro_price ? (
+                <div className="ecom-tiered-pricing">
+                  <span className="ecom-price-label">Available Tiers:</span>
+                  <div className="ecom-tier-grid">
+                    {product.core_price && (
+                      <div className="ecom-tier-card core">
+                        <span className="tier-name">Core</span>
+                        <span className="tier-price">₹ {product.core_price?.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {product.elite_price && (
+                      <div className="ecom-tier-card elite">
+                        <span className="tier-name">Elite</span>
+                        <span className="tier-price">₹ {product.elite_price?.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {product.pro_price && (
+                      <div className="ecom-tier-card pro">
+                        <span className="tier-name">Pro</span>
+                        <span className="tier-price">₹ {product.pro_price?.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="ecom-single-price-box">
+                  <span className="ecom-price-symbol">₹</span>
+                  <span className="ecom-price-value">
+                    {product.price ? product.price.toLocaleString() : "Price on request"}
+                  </span>
+                </div>
+              )}
+            </div>
 
-  {/* COLORS (FOR BOTH) */}
-  {product.cloth_colors && product.cloth_colors.length > 0 && (
-  <p className="product-colors">
-    Colors: {product.cloth_colors.join(", ")}
-  </p>
-)}
+            {/* STOCK STATUS */}
+            <div className="ecom-stock-status">
+              <span className={`ecom-stock-indicator ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                {product.stock_quantity > 0
+                  ? `In stock: ${product.stock_quantity} available`
+                  : "Out of stock - Contact for availability"}
+              </span>
+            </div>
 
-</div>
+            {/* COLORS SECTION */}
+            {product.cloth_colors && product.cloth_colors.length > 0 && (
+              <div className="ecom-color-variants mt-3">
+                <p className="ecom-variant-label">Available Colors:</p>
+                <div className="ecom-color-tags">
+                  {product.cloth_colors.map((color, idx) => (
+                    <span key={idx} className="ecom-color-tag">{color}</span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          <p className={`product-stock ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
-            {product.stock_quantity > 0
-              ? `In stock: ${product.stock_quantity} available`
-              : "Out of stock - Contact for availability"}
-          </p>
+            <hr className="ecom-divider" />
 
-          {product.sku && (
-            <p className="product-sku-detail">SKU: {product.sku}</p>
-          )}
+            {/* DESCRIPTION */}
+            <div className="ecom-description-section">
+              <h3 className="ecom-section-heading">About this item</h3>
+              <p className="ecom-description-text">{product.description}</p>
+            </div>
 
-          <p className="product-description">{product.description}</p>
+            {/* ACTION BUTTONS (Amazon/Flipkart style sticky logic via CSS) */}
+            <div className="ecom-action-buttons">
+              <button className="ecom-btn ecom-btn-whatsapp">
+                <i className="bi bi-whatsapp"></i> WhatsApp Enquiry
+              </button>
+              <button className="ecom-btn ecom-btn-call">
+                <i className="bi bi-telephone"></i> Call Now
+              </button>
+            </div>
 
-          <div className="product-actions mt-4">
-            <button className="btn contact-product-btn me-3">
-              <i className="bi bi-whatsapp me-2"></i> WhatsApp Enquiry
-            </button>
-            <button className="btn btn-outline-primary">
-              <i className="bi bi-telephone me-2"></i> Call Now
-            </button>
           </div>
         </div>
       </div>
 
       {/* RELATED PRODUCTS */}
       {relatedProducts.length > 0 && (
-        <div className="related-products mt-5">
-          <h4 className="mb-4">You may also like</h4>
-
-          <div className="row g-3">
+        <div className="ecom-related-section mt-5 pt-4 border-top">
+          <h2 className="ecom-related-title">Also Like</h2>
+          <div className="row g-3 ecom-related-grid mt-3">
             {relatedProducts.map((item) => (
               <div key={item.id} className="col-6 col-md-4 col-lg-3">
                 <div 
-                  className="related-card"
+                  className="ecom-related-card"
                   onClick={() => handleRelatedProductClick(item)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <img
-                    src={getImageUrl(item.main_image_url)}
-                    alt={item.name}
-                    className="related-img"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/placeholder.jpg';
-                    }}
-                  />
-                  <p className="related-title">{item.name}</p>
-                  <p className="related-price">
-                    ₹ {item.price?.toLocaleString() || 'Price on request'}
-                  </p>
+                  <div className="ecom-related-img-box">
+                    <img
+                      src={getImageUrl(item.main_image_url)}
+                      alt={item.name}
+                      className="ecom-related-img"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/placeholder.jpg';
+                      }}
+                    />
+                  </div>
+                  <div className="ecom-related-details">
+                    <p className="ecom-related-name" title={item.name}>{item.name}</p>
+                    <p className="ecom-related-price">
+                      ₹ {item.price?.toLocaleString() || 'Price on request'}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

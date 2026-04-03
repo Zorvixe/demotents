@@ -11,30 +11,15 @@ export default function AllCategories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState({});
+  const [imageError, setImageError] = useState({});
 
-  const API_URL = `${"https://demotents-dhia.onrender.com" || "http://localhost:5004"}/api/categories`;
-  
+  // ✅ Same BASE_URL as CategoriesScroller
+  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const API_URL = `${BASE_URL}/api/categories`;
 
-  // Default images for categories without preview images
-  const defaultCategoryImages = {
-    'Canvas Tent': '/canvas.jpg',
-    'Family Tent': '/family.jpg',
-    'PVC Tent': '/pvc.jpg',
-    'Promotional Tent': '/promotional.jpg',
-    'Advertising Umbrellas': '/advertise.jpg',
-    'Roll-Up Banner': '/rollup.png',
-    'Folding Tent': '/folding.jpg',
-    'Display Tent': '/display.avif',
-    'Camping Tent': '/camping.jpg',
-    'Luxury Tent': '/luxury.jpg',
-    'Beach Umbrellas': '/beach.jpg',
-    'Wedding Tent': '/wedding.jpg',
-  };
-
-  // Create refs for scrolling
   const refs = useRef({});
 
-  // Fetch categories from backend
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -42,15 +27,10 @@ export default function AllCategories() {
         setError(null);
         
         const res = await fetch(`${API_URL}?includeSubCategories=true`);
-        
-        if (!res.ok) {
-          throw new Error(`Failed to fetch: ${res.status}`);
-        }
-        
+        if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
         const data = await res.json();
 
         if (data.success) {
-          // Transform backend data to match component structure
           const transformedCategories = data.categories.map(category => ({
             id: category.id,
             name: category.name,
@@ -63,8 +43,6 @@ export default function AllCategories() {
           }));
           
           setCategories(transformedCategories);
-          
-          // Initialize refs after data is loaded
           transformedCategories.forEach((s) => {
             const id = s.idSlug;
             if (!refs.current[id]) refs.current[id] = React.createRef();
@@ -79,97 +57,69 @@ export default function AllCategories() {
         setLoading(false);
       }
     };
-
     fetchCategories();
   }, []);
 
-  // Function to get the correct image URL
+  // ✅ FIXED: Same logic as CategoriesScroller
   const getCategoryImage = (category) => {
-    // If there's a preview image from backend, use it
     if (category.preview_image) {
-      // Check if the URL already has the full path
-      if (category.preview_image.startsWith('http')) {
-        return category.preview_image;
-      }
-      // If it starts with /uploads, add the base URL
-      if (category.preview_image.startsWith('/uploads/')) {
-        return `https://demotents-dhia.onrender.com/api${category.preview_image}`;
-      }
-      // If it's just a filename, construct the full URL
-      return `https://demotents-dhia.onrender.com/api/uploads/${category.preview_image}`;
+      if (category.preview_image.startsWith("http")) return category.preview_image;
+      if (category.preview_image.startsWith("/uploads/")) return `${BASE_URL}${category.preview_image}`;
+      return `${BASE_URL}/uploads/${category.preview_image}`;
     }
-    
-    // If no preview image, use default based on category name
-    const defaultImg = defaultCategoryImages[category.name];
-    return defaultImg || '/placeholder.jpg';
+    return null; // No default image – will show loader then "No image"
   };
 
-  // Handle category click for navigation
   const handleCategoryClick = (category) => {
     navigate(`/category/${category.idSlug}`, {
-      state: {
-        categoryId: category.id,
-        categoryName: category.name
-      }
+      state: { categoryId: category.id, categoryName: category.name }
     });
   };
 
-  // Scroll to selected category
   useEffect(() => {
     if (!selected || categories.length === 0) return;
-    
-    const match = categories.find(
-      (c) => c.name.toLowerCase() === selected.toLowerCase()
-    );
-    
+    const match = categories.find(c => c.name.toLowerCase() === selected.toLowerCase());
     if (match && refs.current[match.idSlug]?.current) {
-      // Small delay to ensure DOM is ready
       setTimeout(() => {
-        refs.current[match.idSlug].current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        refs.current[match.idSlug].current.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
     }
   }, [selected, categories]);
 
   const scrollTo = (id) => {
     if (refs.current[id]?.current) {
-      refs.current[id].current.scrollIntoView({ 
-        behavior: "smooth", 
-        block: "start" 
-      });
+      refs.current[id].current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  };
+
+  const handleImageLoad = (catId) => {
+    setImageLoaded(prev => ({ ...prev, [catId]: true }));
+  };
+
+  const handleImageError = (catId) => {
+    setImageError(prev => ({ ...prev, [catId]: true }));
+    setImageLoaded(prev => ({ ...prev, [catId]: true }));
   };
 
   if (loading) {
     return (
-      <div className="allcats-page">
-        <header className="allcats-header">
-          <h1 className="allcats-title">All Categories</h1>
-          <p className="allcats-sub">Loading categories...</p>
-        </header>
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-        </div>
+      <div className="modern-loader-container full-page">
+        <div className="modern-loader-ring"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="allcats-page">
-        <header className="allcats-header">
-          <h1 className="allcats-title">All Categories</h1>
-          <p className="allcats-sub">Browse every tent type in one place.</p>
-        </header>
-        <div className="error-container">
+      <div className="modern-cats-page container py-5">
+        <div className="modern-error-container text-center py-5">
+          <svg className="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 className="error-title">Oops! Something went wrong</h3>
           <p className="error-message">{error}</p>
-          <button 
-            className="retry-button" 
-            onClick={() => window.location.reload()}
-          >
-            Retry
+          <button className="modern-btn modern-btn-primary mt-3" onClick={() => window.location.reload()}>
+            Try Again
           </button>
         </div>
       </div>
@@ -178,18 +128,15 @@ export default function AllCategories() {
 
   if (categories.length === 0) {
     return (
-      <div className="allcats-page">
-        <header className="allcats-header">
-          <h1 className="allcats-title">All Categories</h1>
-          <p className="allcats-sub">Browse every tent type in one place.</p>
-        </header>
-        <div className="no-categories">
-          <p>No categories found.</p>
-          <button 
-            className="retry-button" 
-            onClick={() => window.location.reload()}
-          >
-            Refresh
+      <div className="modern-cats-page container py-5">
+        <div className="modern-empty-state text-center py-5">
+          <svg className="empty-icon mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+          </svg>
+          <h3 className="empty-title">No Categories Found</h3>
+          <p className="empty-subtitle mb-4">We are currently updating our catalog.</p>
+          <button className="modern-btn modern-btn-primary" onClick={() => window.location.reload()}>
+            Refresh Page
           </button>
         </div>
       </div>
@@ -197,99 +144,119 @@ export default function AllCategories() {
   }
 
   return (
-    <div className="allcats-page">
-      <header className="allcats-header">
-        <h1 className="allcats-title">All Categories</h1>
-        <p className="allcats-sub">Browse every tent type in one place.</p>
-        
-      </header>
+    <div className="modern-cats-page container" style={{ marginTop: "80px", marginBottom: "60px" }}>
+      
+      <div className="modern-cats-header mb-4">
+        <h1 className="cats-main-title">All Categories</h1>
+      </div>
 
-      <div className="allcats-body">
-        {/* LEFT SIDEBAR */}
-        <aside className="allcats-sidebar">
-          <h3 className="side-title">Categories</h3>
-          <ul className="side-list">
-            {categories.map((c) => (
-              <li key={c.id}>
-                <button 
-                  onClick={() => scrollTo(c.idSlug)} 
-                  aria-label={c.name}
-                  className="category-button"
-                >
-                  <span className="category-name">{c.name}</span>
-                  <span className="product-count-badge">{c.product_count}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+      <div className="modern-cats-layout">
+        
+        <aside className="modern-cats-sidebar d-none d-lg-block">
+          <div className="sidebar-sticky-wrapper">
+            <h3 className="sidebar-heading">Jump to</h3>
+            <ul className="sidebar-nav-list">
+              {categories.map((c) => (
+                <li key={c.id}>
+                  <button onClick={() => scrollTo(c.idSlug)} aria-label={c.name} className="sidebar-nav-btn">
+                    <span className="nav-name">{c.name}</span>
+                    <span className="nav-count">{c.product_count}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </aside>
 
-        {/* RIGHT CONTENT */}
-        <main className="allcats-content">
-          {categories.map((c) => (
-            <section 
-              className="cat-section" 
-              id={c.idSlug} 
-              key={c.id} 
-              ref={refs.current[c.idSlug]}
-            >
-              <div className="cat-card" onClick={() => handleCategoryClick(c)} style={{ cursor: 'pointer' }}>
-                <img 
-                  src={getCategoryImage(c)} 
-                  alt={c.name}
-                  className="category-image"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    // Try to get default image based on category name
-                    const defaultImg = defaultCategoryImages[c.name];
-                    if (defaultImg) {
-                      e.target.src = defaultImg;
-                    } else {
-                      e.target.src = '/placeholder.jpg';
-                    }
-                  }}
-                />
-                <div className="cat-info">
-                  <div className="cat-header">
-                    <h2>{c.name}</h2>
-                    <div className="product-count">
-                      {c.product_count || 0} {c.product_count === 1 ? 'Product' : 'Products'}
+        <main className="modern-cats-content">
+          {categories.map((c) => {
+            const imgUrl = getCategoryImage(c);
+            const isLoaded = imageLoaded[c.id];
+            const hasError = imageError[c.id];
+
+            return (
+              <section 
+                className="modern-cat-section" 
+                id={c.idSlug} 
+                key={c.id} 
+                ref={refs.current[c.idSlug]}
+              >
+                <div className="modern-cat-card" onClick={() => handleCategoryClick(c)}>
+                  
+                  <div className="modern-cat-image-box">
+                    {!isLoaded && (
+                      <div className="image-loader-overlay">
+                        <div className="image-spinner"></div>
+                      </div>
+                    )}
+                    {imgUrl && !hasError && (
+                      <img 
+                        src={imgUrl} 
+                        alt={c.name}
+                        className="modern-cat-img"
+                        style={{ display: isLoaded ? 'block' : 'none' }}
+                        onLoad={() => handleImageLoad(c.id)}
+                        onError={() => handleImageError(c.id)}
+                      />
+                    )}
+                    {hasError && (
+                      <div className="image-fallback">
+                        <span>No image</span>
+                      </div>
+                    )}
+                    {!imgUrl && !hasError && (
+                      <div className="image-fallback">
+                        <span>No image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="modern-cat-info">
+                    <div className="cat-info-top">
+                      <h2 className="cat-title">{c.name}</h2>
+                      <span className="cat-product-count">
+                        {c.product_count || 0} {c.product_count === 1 ? 'Product' : 'Products'}
+                      </span>
+                    </div>
+                    
+                    {c.description && <p className="cat-description">{c.description}</p>}
+                    
+                    {c.sub_categories && c.sub_categories.length > 0 ? (
+                      <div className="cat-subcategories">
+                        <h4 className="subcat-label">Subcategories:</h4>
+                        <div className="subcat-pill-container">
+                          {c.sub_categories.map((sub) => (
+                            <div key={sub.id} className="subcat-pill">
+                              {sub.name} <span className="subcat-pill-count">({sub.product_count || 0})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="cat-subcategories empty">
+                        <p className="no-subcat-text">No subcategories available</p>
+                      </div>
+                    )}
+                    
+                    <div className="cat-action-bottom mt-auto pt-3">
+                      <button 
+                        className="modern-btn modern-btn-primary w-100 w-sm-auto"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCategoryClick(c);
+                        }}
+                      >
+                        View All Products
+                        <svg className="btn-icon-right" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  
-                  {c.description && (
-                    <p className="category-description">{c.description}</p>
-                  )}
-                  
-                  {c.sub_categories && c.sub_categories.length > 0 ? (
-                    <div className="subcategories-list">
-                      <h4>Sub-Categories:</h4>
-                      <div className="subcategories-grid">
-                        {c.sub_categories.map((sub) => (
-                          <div key={sub.id} className="subcategory-item">
-                            <span className="subcategory-name">{sub.name}</span>
-                            <span className="subcategory-count">{sub.product_count || 0}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="no-subcategories">No sub-categories available</p>
-                  )}
-                  
-                  <button 
-                    className="view-category-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCategoryClick(c);
-                    }}
-                  >
-                    View Products →
-                  </button>
                 </div>
-              </div>
-            </section>
-          ))}
+              </section>
+            );
+          })}
         </main>
       </div>
     </div>

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import "./CategoryProducts.css"; // Reuse the same CSS
+import "./CategoryProducts.css";
 
 const SubcategoryProducts = () => {
   const { subcategoryId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const printType = queryParams.get("type"); // "without-print" or "custom"
   
   const { subCategoryId, subCategoryName, parentCategoryId, parentCategoryName } = location.state || {};
   
@@ -13,8 +15,16 @@ const SubcategoryProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [subcategoryData, setSubcategoryData] = useState(null);
+  
+  const [imageLoaded, setImageLoaded] = useState({});
+  const [imageError, setImageError] = useState({});
 
-  const API_URL = `${"https://demotents-dhia.onrender.com" || "http://localhost:5004"}/api`;
+  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const API_URL = `${BASE_URL}/api`;
+
+  const generatePath = (name) => {
+    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,10 +38,13 @@ const SubcategoryProducts = () => {
           throw new Error("Subcategory not found");
         }
 
-        // Fetch products for this subcategory
-        const productRes = await fetch(
-          `${API_URL}/products?sub_category_id=${finalSubcategoryId}&is_active=true`
-        );
+        // ✅ Build URL with optional type filter
+        let url = `${API_URL}/products?sub_category_id=${finalSubcategoryId}&is_active=true`;
+        if (printType) {
+          url += `&type=${printType}`;
+        }
+
+        const productRes = await fetch(url);
         
         if (!productRes.ok) {
           throw new Error(`Failed to fetch products: ${productRes.status}`);
@@ -42,7 +55,6 @@ const SubcategoryProducts = () => {
         if (productData.success) {
           setProducts(productData.products);
           
-          // Fetch subcategory details
           const subcatRes = await fetch(`${API_URL}/sub-categories/${finalSubcategoryId}`);
           if (subcatRes.ok) {
             const subcatData = await subcatRes.json();
@@ -62,46 +74,60 @@ const SubcategoryProducts = () => {
     };
 
     fetchData();
-  }, [subcategoryId, subCategoryId]);
+  }, [subcategoryId, subCategoryId, printType]);
 
-  const openModal = (product) => {
-    navigate(`/product/${product.id}`, {
-      state: { product }
-    });
+  const getProductImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    return `${BASE_URL}${url}`;
   };
 
-  // Loading state
+  const handleImageLoad = (productId) => {
+    setImageLoaded(prev => ({ ...prev, [productId]: true }));
+  };
+
+  const handleImageError = (productId) => {
+    setImageError(prev => ({ ...prev, [productId]: true }));
+    setImageLoaded(prev => ({ ...prev, [productId]: true }));
+  };
+
+  const openModal = (product) => {
+    navigate(`/product/${product.id}`, { state: { product } });
+  };
+
+  const getDisplayPrice = (product) => {
+    if (printType === "without-print") {
+      return product.without_print_price
+        ? `₹ ${product.without_print_price.toLocaleString()}`
+        : "Price on request";
+    } else if (printType === "custom") {
+      if (product.core_price || product.elite_price || product.pro_price) {
+        return null; // render tiered
+      }
+      return product.price ? `₹ ${product.price.toLocaleString()}` : "Price on request";
+    } else {
+      return product.price ? `₹ ${product.price.toLocaleString()}` : "Price on request";
+    }
+  };
+
   if (loading) {
     return (
-      <div className="category-products-container py-5">
-        <div className="text-center mb-5">
-          <h3 className="section-title-main">
-            <span>Loading Products...</span>
-          </h3>
-        </div>
-        <div className="loading-state text-center py-5">
-          <div className="spinner"></div>
-          <p className="mt-3">Loading products...</p>
-        </div>
+      <div className="category-loader-container">
+        <div className="category-loader-ring"></div>
       </div>
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="category-products-container py-5">
-        <div className="text-center mb-5">
-          <h3 className="section-title-main">
-            <span>Products</span>
-          </h3>
-        </div>
-        <div className="error-state text-center py-5">
+      <div className="category-error-container py-5 text-center">
+        <div className="error-content">
+          <svg className="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 className="error-title">Oops! Something went wrong</h3>
           <p className="error-message">{error}</p>
-          <button 
-            className="retry-btn"
-            onClick={() => window.location.reload()}
-          >
+          <button className="category-btn category-btn-primary" onClick={() => window.location.reload()}>
             Try Again
           </button>
         </div>
@@ -109,130 +135,170 @@ const SubcategoryProducts = () => {
     );
   }
 
-  // Get display names
   const displaySubcategoryName = subCategoryName || subcategoryData?.name || "Subcategory";
-  // const displayParentCategoryName = parentCategoryName || "Category";
+  const pageTitle = printType === "without-print" 
+    ? `${displaySubcategoryName} - Without Print`
+    : printType === "custom"
+    ? `${displaySubcategoryName} - With Customization`
+    : displaySubcategoryName;
 
   return (
-    <div className="container py-5 category-products-container" style={{marginTop: "50px"}}>
-      {/* Category Banner */}
-      <div className="category-banner mb-5">
-        <div className="banner-overlay">
-          <h2>{displaySubcategoryName}</h2>
-          {parentCategoryName && (
-            <p className="section-subtext mt-2">
-              Under: {parentCategoryName}
+    <div className="category-wrapper container py-5" style={{ marginTop: "50px" }}>
+      <div className="category-subcategory-banner mb-5">
+        <div className="banner-content-wrapper">
+          <h1 className="banner-title">{pageTitle}</h1>
+          {parentCategoryName ? (
+            <p className="banner-subtitle">
+              <span className="opacity-75">Explore collection in</span> {parentCategoryName}
             </p>
+          ) : (
+            <p className="banner-subtitle">Explore our premium collection</p>
           )}
         </div>
       </div>
 
-      {/* Products Grid */}
       <div className="row g-4">
         {products.length > 0 ? (
-          products.map((product) => (
-            <div key={product.id} className="col-lg-3 col-md-4 col-6">
-              <div className="card product-card border-0 shadow-sm">
-                <div
-                  className="image-container"
-                  onClick={() => openModal(product)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <img
-  src={
-    product.main_image_url
-      ? product.main_image_url.startsWith("http")
-        ? product.main_image_url
-        : `${import.meta.env.VITE_BACKEND_BASE_URL || "https://demotents-dhia.onrender.com"}${product.main_image_url}`
-      : "/placeholder.jpg"
-  }
-  alt={product.name}
-  className="d-block w-100 product-image"
-  onError={(e) => {
-    e.target.onerror = null;
-    e.target.src = "/placeholder.jpg";
-  }}
-/>
-                  {product.sub_images_count > 0 && (
-                    <span className="photo-badge">+{product.sub_images_count}</span>
-                  )}
-                </div>
+          products.map((product) => {
+            const imgUrl = getProductImageUrl(product.main_image_url);
+            const isLoaded = imageLoaded[product.id];
+            const hasError = imageError[product.id];
 
-                <div className="card-body text-center d-flex flex-column justify-content-between">
-                  <div>
-                    <h6 className="product-title-category">{product.name}</h6>
-                    {product.core_price || product.elite_price || product.pro_price ? (
-  <div className="product-price-category">
-    {product.core_price && <p className="core-price">Core: ₹ {product.core_price}</p>}
-    {product.elite_price && <p className="elite-price">Elite: ₹ {product.elite_price}</p>}
-    {product.pro_price && <p className="pro-price">Pro: ₹ {product.pro_price}</p>}
-  </div>
-                      ) : (
-                        <p className="product-price-category">
-                          ₹ {product.price?.toLocaleString() || "Price on request"}
-                        </p>
-                      )}
-                       {/* ✅ ADD THIS BLOCK HERE */}
-                        {product.cloth_colors && product.cloth_colors.length > 0 && (
-                          <p className="product-colors-category">
-                            Colors: {product.cloth_colors.join(", ")}
-                          </p>
-                        )}
-                    <p className="product-sku-category">SKU: {product.sku || 'N/A'}</p>
-                    
-                    {product.description && (
-                      <p className="product-description-category">
-                        {product.description.length > 60 
-                          ? `${product.description.substring(0, 60)}...` 
-                          : product.description}
-                      </p>
+            return (
+              <div key={product.id} className="col-lg-3 col-md-4 col-sm-6 col-12">
+                <div className="category-product-card">
+                  <div
+                    className="category-image-wrapper"
+                    onClick={() => openModal(product)}
+                  >
+                    {!isLoaded && (
+                      <div className="image-loader-overlay">
+                        <div className="image-spinner"></div>
+                      </div>
+                    )}
+                    {imgUrl && !hasError && (
+                      <img
+                        src={imgUrl}
+                        alt={product.name}
+                        className="category-product-image"
+                        style={{ display: isLoaded ? 'block' : 'none' }}
+                        onLoad={() => handleImageLoad(product.id)}
+                        onError={() => handleImageError(product.id)}
+                      />
+                    )}
+                    {(hasError || !imgUrl) && (
+                      <div className="image-fallback">
+                        <span>No image</span>
+                      </div>
+                    )}
+                    {product.sub_images_count > 0 && (
+                      <div className="category-photo-badge">
+                        <svg className="badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        +{product.sub_images_count}
+                      </div>
                     )}
                   </div>
 
-                  <div className="product-actions-category mt-3">
-                    <button 
-                      className="btn btn-success btn-sm px-3 me-2"
-                      onClick={() => openModal(product)}
-                    >
-                      View Details
-                    </button>
-                    <button className="btn btn-outline-primary btn-sm px-3">
-                      Enquire Now
-                    </button>
+                  <div className="category-card-body">
+                    <div className="category-card-info">
+                      <h2 className="category-product-title">{product.name}</h2>
+
+                      <div className="category-product-meta">
+                        {product.sku && <span className="meta-sku">SKU: {product.sku}</span>}
+                        {product.cloth_colors && product.cloth_colors.length > 0 && (
+                          <span className="meta-colors" title={product.cloth_colors.join(", ")}>
+                            {product.cloth_colors.length} Colors
+                          </span>
+                        )}
+                      </div>
+
+                      {product.description && (
+                        <p className="category-product-description">
+                          {product.description.length > 60 
+                            ? `${product.description.substring(0, 60)}...` 
+                            : product.description}
+                        </p>
+                      )}
+
+                      <div className="category-pricing-section mt-3">
+                        {printType === "custom" && (product.core_price || product.elite_price || product.pro_price) ? (
+                          <div className="tiered-pricing">
+                            {product.core_price && (
+                              <div className="price-tier core">
+                                <span className="tier-label">Core</span>
+                                <span className="tier-value">₹{product.core_price}</span>
+                              </div>
+                            )}
+                            {product.elite_price && (
+                              <div className="price-tier elite">
+                                <span className="tier-label">Elite</span>
+                                <span className="tier-value">₹{product.elite_price}</span>
+                              </div>
+                            )}
+                            {product.pro_price && (
+                              <div className="price-tier pro">
+                                <span className="tier-label">Pro</span>
+                                <span className="tier-value">₹{product.pro_price}</span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="single-price">{getDisplayPrice(product)}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="category-card-actions">
+                      <button
+                        className="category-btn category-btn-primary"
+                        onClick={() => openModal(product)}
+                      >
+                        View Details
+                      </button>
+                      <button className="category-btn category-btn-secondary">
+                        Enquire
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
-          <div className="col-12 text-center py-5">
-            <p className="no-products">No products available in this subcategory yet.</p>
-            {parentCategoryName && (
-              <button 
-                className="btn btn-primary me-2"
-                onClick={() => navigate(`/category/${generatePath(parentCategoryName)}`, {
-                  state: { categoryId: parentCategoryId, categoryName: parentCategoryName }
-                })}
-              >
-                View {parentCategoryName}
-              </button>
-            )}
-            <button 
-              className="btn btn-outline-primary"
-              onClick={() => navigate('/categories')}
-            >
-              Browse All Categories
-            </button>
+          <div className="col-12">
+            <div className="category-empty-state text-center py-5">
+              <svg className="empty-icon mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+              </svg>
+              <h3 className="empty-title">No Products Found</h3>
+              <p className="empty-subtitle mb-4">No products available for this selection.</p>
+              
+              <div className="d-flex justify-content-center gap-3 flex-wrap">
+                {parentCategoryName && (
+                  <button 
+                    className="category-btn category-btn-secondary px-4"
+                    onClick={() => navigate(`/category/${generatePath(parentCategoryName)}`, {
+                      state: { categoryId: parentCategoryId, categoryName: parentCategoryName }
+                    })}
+                  >
+                    View {parentCategoryName}
+                  </button>
+                )}
+                <button 
+                  className="category-btn category-btn-primary px-4"
+                  onClick={() => navigate('/categories')}
+                >
+                  Browse All Categories
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-// Helper function for URL generation
-const generatePath = (name) => {
-  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 };
 
 export default SubcategoryProducts;
