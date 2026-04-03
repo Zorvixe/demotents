@@ -954,12 +954,9 @@ const subImageUrls = req.files.subImages
 });
 
 // 12. Get All Products
-// Inside GET /api/products, after extracting query params
 app.get('/api/products', async (req, res) => {
   try {
-    const { category_id, sub_category_id, type, is_active } = req.query;
-
-    let baseQuery = `
+    const result = await pool.query(`
       SELECT 
         p.*, 
         c.name as category_name,
@@ -967,35 +964,9 @@ app.get('/api/products', async (req, res) => {
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
-      WHERE 1=1
-    `;
-    const values = [];
-    let paramIndex = 1;
-
-    if (category_id) {
-      baseQuery += ` AND p.category_id = $${paramIndex}`;
-      values.push(category_id);
-      paramIndex++;
-    }
-    if (sub_category_id) {
-      baseQuery += ` AND p.sub_category_id = $${paramIndex}`;
-      values.push(sub_category_id);
-      paramIndex++;
-    }
-    if (is_active === 'true') {
-      baseQuery += ` AND p.is_active = true`;
-    }
-
-    // ✅ NEW: Filter by print type
-    if (type === 'without-print') {
-      baseQuery += ` AND p.without_print_price IS NOT NULL`;
-    } else if (type === 'custom') {
-      baseQuery += ` AND (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL)`;
-    }
-
-    baseQuery += ` ORDER BY p.created_at DESC`;
-
-    const result = await pool.query(baseQuery, values);
+      WHERE p.is_active = true
+      ORDER BY p.created_at DESC
+    `);
 
     res.json({
       success: true,
