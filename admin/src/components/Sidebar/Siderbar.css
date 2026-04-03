@@ -1,37 +1,140 @@
-.sidebar{
-    width: 18%;
-    min-height: 100vh;
-    border: 1.5px solid #a9a9a9; 
-    border-top: 0;
-    font-size: max(1.5vw,10px);
+.sidebar {
+  width: 18%;
+  min-height: 100vh;
+  border: 1.5px solid #a9a9a9;
+  border-top: 0;
+  font-size: max(1.5vw, 10px);
+  transition: width 0.3s ease;
+  position: relative;
 }
 
-.sidebar-options{
-    padding-top: 50px;
-    padding-left: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+/* Collapsed state */
+.sidebar.collapsed {
+  width: 70px;
 }
-.sidebar-option{
-    display: flex;
-    align-items: center;
-    gap: 12px;
-   border: 1px solid #a9a9a9;
-   border-right: 0;
-    padding: 8px 10px;
-    margin-left: 50px;
-    margin-top: 20px;
-    border-radius: 3px 0px 0px 3px;
-    cursor: pointer;
+
+.sidebar.collapsed .sidebar-options {
+  padding-left: 0;
+  align-items: center;
 }
-.sidebar-option.active{
-    background-color: #fff0ed;
-    border-color: tomato;
+
+.sidebar.collapsed .sidebar-option {
+  margin-left: 10px;
+  justify-content: center;
+  border-right: 1px solid #a9a9a9;
+  border-radius: 3px;
+  width: 50px;
+  position: relative;
 }
-@media (max-width:900px) {
-    .sidebar-option p{
-        display: none;
-    }
-    
+
+.sidebar.collapsed .sidebar-option p {
+  display: none;
+}
+
+/* Tooltip on hover when collapsed */
+.sidebar.collapsed .sidebar-option:hover p {
+  display: block;
+  position: absolute;
+  left: 60px;
+  background: #333;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.sidebar.collapsed .sidebar-option:hover p::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent #333 transparent transparent;
+}
+
+/* Normal (expanded) styles */
+.sidebar-options {
+  padding-top: 50px;
+  padding-left: 0px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #a9a9a9;
+  border-right: 0;
+  padding: 8px 10px;
+  margin-left: 50px;
+  margin-top: 20px;
+  border-radius: 3px 0px 0px 3px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.sidebar-option.active {
+  background-color: #fff0ed;
+  border-color: tomato;
+}
+
+/* Toggle button - now at the top */
+.sidebar-toggle {
+  position: absolute;
+  top: 20px;
+  right: -12px;
+  background: white;
+  border: 1px solid #a9a9a9;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+  color: #666;
+}
+
+.sidebar-toggle:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+/* For screens up to 900px: when NOT collapsed, hide text to match original behaviour */
+@media (max-width: 900px) {
+  .sidebar:not(.collapsed) .sidebar-option p {
+    display: none;
+  }
+}
+
+/* For screens 480px and below */
+@media (max-width: 480px) {
+  .sidebar {
+    width: 70px;
+  }
+  .sidebar:not(.collapsed) {
+    width: 180px;
+  }
+  .sidebar:not(.collapsed) .sidebar-option {
+    margin-left: 20px;
+    width: auto;
+    justify-content: flex-start;
+  }
+  .sidebar:not(.collapsed) .sidebar-option p {
+    display: block;
+  }
+  .sidebar-toggle {
+    right: -10px;
+    top: 15px;
+  }
 }

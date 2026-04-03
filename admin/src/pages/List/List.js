@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import './List.css';
 
-
-
 const List = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +28,12 @@ const List = () => {
   const [subImageFiles, setSubImageFiles] = useState([]);
   const [existingSubImages, setExistingSubImages] = useState([]);
 
-  const API_URL = `${process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004"}/api`;
+  // Image loading states for product list
+  const [imageLoaded, setImageLoaded] = useState({});
+  const [imageError, setImageError] = useState({});
+
+  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const API_URL = `${BASE_URL}/api`;
 
   // Fetch all data on mount
   useEffect(() => {
@@ -106,18 +109,21 @@ const List = () => {
     return null;
   };
 
+  // ✅ Robust image URL builder (no fallback)
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith("http")) return imagePath;
+    if (imagePath.startsWith("/uploads/")) return `${BASE_URL}${imagePath}`;
+    return `${BASE_URL}/uploads/${imagePath}`;
+  };
+
   // Handle delete
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const response = await fetch(`${API_URL}/products/${id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
       const data = await response.json();
-
       if (data.success) {
         showNotification('Product deleted successfully', 'success');
         fetchProducts();
@@ -209,18 +215,15 @@ const List = () => {
   const handleSubImagesChange = (e) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-
       if (subImageFiles.length + filesArray.length > 10) {
         showNotification('Maximum 10 sub-images allowed', 'error');
         return;
       }
-
       const oversizedFiles = filesArray.filter(file => file.size > 5 * 1024 * 1024);
       if (oversizedFiles.length > 0) {
         showNotification('Some files exceed 5MB limit', 'error');
         return;
       }
-
       setSubImageFiles(prev => [...prev, ...filesArray]);
     }
   };
@@ -234,32 +237,19 @@ const List = () => {
   const handleUpdate = async (id) => {
     try {
       const formData = new FormData();
-
       Object.keys(editForm).forEach(key => {
         if (editForm[key] !== null && editForm[key] !== undefined) {
           formData.append(key, editForm[key]);
         }
       });
-
-      if (mainImageFile) {
-        formData.append('mainImage', mainImageFile);
-      }
-
-      subImageFiles.forEach((file) => {
-        formData.append('subImages', file);
-      });
-
+      if (mainImageFile) formData.append('mainImage', mainImageFile);
+      subImageFiles.forEach((file) => formData.append('subImages', file));
       if (existingSubImages.length > 0) {
         formData.append('existingSubImages', JSON.stringify(existingSubImages));
       }
 
-      const response = await fetch(`${API_URL}/products/${id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
+      const response = await fetch(`${API_URL}/products/${id}`, { method: 'PUT', body: formData });
       const data = await response.json();
-
       if (data.success) {
         showNotification('Product updated successfully', 'success');
         handleCancelEdit();
@@ -275,23 +265,28 @@ const List = () => {
 
   // Get category name
   const getCategoryName = (product) => {
-    if (product.category_name) {
-      return product.category_name;
-    }
+    if (product.category_name) return product.category_name;
     const category = categories.find(cat => cat.id === product.category_id);
     return category ? category.name : 'No Category';
   };
 
   // Get subcategory name
   const getSubCategoryName = (product) => {
-    if (product.sub_category_name) {
-      return product.sub_category_name;
-    }
+    if (product.sub_category_name) return product.sub_category_name;
     if (product.sub_category_id) {
       const subCategory = subCategories.find(sub => sub.id === product.sub_category_id);
       return subCategory ? subCategory.name : '';
     }
     return '';
+  };
+
+  // Image handlers for product list
+  const handleImageLoad = (productId) => {
+    setImageLoaded(prev => ({ ...prev, [productId]: true }));
+  };
+  const handleImageError = (productId) => {
+    setImageError(prev => ({ ...prev, [productId]: true }));
+    setImageLoaded(prev => ({ ...prev, [productId]: true }));
   };
 
   // Filter and sort products
@@ -303,16 +298,11 @@ const List = () => {
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'price-asc':
-          return a.price - b.price;
-        case 'price-desc':
-          return b.price - a.price;
-        case 'stock':
-          return b.stock_quantity - a.stock_quantity;
-        case 'featured':
-          return b.is_featured - a.is_featured;
-        default:
-          return a.name.localeCompare(b.name);
+        case 'price-asc': return a.price - b.price;
+        case 'price-desc': return b.price - a.price;
+        case 'stock': return b.stock_quantity - a.stock_quantity;
+        case 'featured': return b.is_featured - a.is_featured;
+        default: return a.name.localeCompare(b.name);
       }
     });
 
@@ -400,53 +390,62 @@ const List = () => {
         </div>
       ) : (
         <div className="products-container">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className={`product-card ${editingId === product.id ? 'editing' : ''}`}
-            >
-              {/* Product Image */}
-              <div className="product-image-section">
-                {editingId === product.id ? (
-                  <div className="image-edit-wrapper">
-                    <div className="current-image">
-                      <img
-                        src={mainImageFile ? URL.createObjectURL(mainImageFile) : `${API_URL.replace('/api', '')}${product.main_image_url}`}
-                        alt={product.name}
-                      />
-                    </div>
-                    <label className="change-image-btn">
-                      <input
-                        type="file"
-                        onChange={handleMainImageChange}
-                        accept="image/*"
-                      />
-                      <span>Change Image</span>
-                    </label>
-                    {mainImageFile && (
-                      <p className="filename">{mainImageFile.name}</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="product-image">
-                    <img
-                      src={`${API_URL.replace('/api', '')}${product.main_image_url || '/uploads/default.jpg'}`}
-                      alt={product.name}
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/100x100?text=No+Image';
-                      }}
-                    />
-                    {product.sub_images_count > 0 && (
-                      <div className="image-badge">+{product.sub_images_count}</div>
-                    )}
-                  </div>
-                )}
-              </div>
+          {filteredProducts.map((product) => {
+            const imgUrl = getImageUrl(product.main_image_url);
+            const isLoaded = imageLoaded[product.id];
+            const hasError = imageError[product.id];
+            const isEditing = editingId === product.id;
 
-              {/* Product Info */}
-              <div className="product-info-section">
-                {editingId === product.id ? (
-                  <>
+            return (
+              <div key={product.id} className={`product-card ${isEditing ? 'editing' : ''}`}>
+                {/* Product Image */}
+                <div className="product-image-section">
+                  {isEditing ? (
+                    <div className="image-edit-wrapper">
+                      <div className="current-image">
+                        {mainImageFile ? (
+                          <img src={URL.createObjectURL(mainImageFile)} alt="Preview" />
+                        ) : imgUrl && !hasError ? (
+                          <img src={imgUrl} alt={product.name} />
+                        ) : (
+                          <div className="no-image-placeholder">No image</div>
+                        )}
+                      </div>
+                      <label className="change-image-btn">
+                        <input type="file" onChange={handleMainImageChange} accept="image/*" />
+                        <span>Change Image</span>
+                      </label>
+                      {mainImageFile && <p className="filename">{mainImageFile.name}</p>}
+                    </div>
+                  ) : (
+                    <div className="product-image">
+                      {!isLoaded && imgUrl && !hasError && (
+                        <div className="image-loader-overlay">
+                          <div className="spinner-small"></div>
+                        </div>
+                      )}
+                      {imgUrl && !hasError && (
+                        <img
+                          src={imgUrl}
+                          alt={product.name}
+                          style={{ display: isLoaded ? 'block' : 'none' }}
+                          onLoad={() => handleImageLoad(product.id)}
+                          onError={() => handleImageError(product.id)}
+                        />
+                      )}
+                      {(hasError || !imgUrl) && (
+                        <div className="no-image-placeholder">No image</div>
+                      )}
+                      {product.sub_images_count > 0 && (
+                        <div className="image-badge">+{product.sub_images_count}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="product-info-section">
+                  {isEditing ? (
                     <input
                       type="text"
                       name="name"
@@ -455,204 +454,171 @@ const List = () => {
                       className="edit-input"
                       placeholder="Product Name"
                     />
-                  </>
-                ) : (
-                  <>
-                    <h3 className="product-name">{product.name}</h3>
-                    <p className="product-sku">SKU: {product.sku || 'N/A'}</p>
-                  </>
-                )}
-              </div>
-
-              {/* Product Details Grid */}
-              <div className="product-details-grid">
-                {/* Category */}
-                <div className="detail-item">
-                  <label>Category</label>
-                  {editingId === product.id ? (
-                    <select
-                      name="category_id"
-                      value={editForm.category_id}
-                      onChange={handleFormChange}
-                      className="edit-input"
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
                   ) : (
-                    <span className="detail-value">{getCategoryName(product)}</span>
+                    <>
+                      <h3 className="product-name">{product.name}</h3>
+                      <p className="product-sku">SKU: {product.sku || 'N/A'}</p>
+                    </>
                   )}
                 </div>
 
-                {/* Sub-Category */}
-                <div className="detail-item">
-                  <label>Sub-Category</label>
-                  {editingId === product.id ? (
-                    <select
-                      name="sub_category_id"
-                      value={editForm.sub_category_id}
-                      onChange={handleFormChange}
-                      className="edit-input"
-                      disabled={!editForm.category_id}
-                    >
-                      <option value="">Select Sub-Category</option>
-                      {subCategories.map(subCat => (
-                        <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="detail-value">{getSubCategoryName(product) || '-'}</span>
-                  )}
-                </div>
-
-                {/* Price */}
-                <div className="detail-item">
-                  <label>Price</label>
-                  {editingId === product.id ? (
-                    <div className="price-input-group">
-                      <span>$</span>
-                      <input
-                        type="number"
-                        name="price"
-                        value={editForm.price}
+                {/* Product Details Grid */}
+                <div className="product-details-grid">
+                  <div className="detail-item">
+                    <label>Category</label>
+                    {isEditing ? (
+                      <select
+                        name="category_id"
+                        value={editForm.category_id}
                         onChange={handleFormChange}
                         className="edit-input"
-                        step="0.01"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="detail-value">{getCategoryName(product)}</span>
+                    )}
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Sub-Category</label>
+                    {isEditing ? (
+                      <select
+                        name="sub_category_id"
+                        value={editForm.sub_category_id}
+                        onChange={handleFormChange}
+                        className="edit-input"
+                        disabled={!editForm.category_id}
+                      >
+                        <option value="">Select Sub-Category</option>
+                        {subCategories.map(subCat => (
+                          <option key={subCat.id} value={subCat.id}>{subCat.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="detail-value">{getSubCategoryName(product) || '-'}</span>
+                    )}
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Price</label>
+                    {isEditing ? (
+                      <div className="price-input-group">
+                        <span>$</span>
+                        <input
+                          type="number"
+                          name="price"
+                          value={editForm.price}
+                          onChange={handleFormChange}
+                          className="edit-input"
+                          step="0.01"
+                          min="0"
+                        />
+                      </div>
+                    ) : (
+                      <span className="detail-value price">${parseFloat(product.price).toFixed(2)}</span>
+                    )}
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Stock</label>
+                    {isEditing ? (
+                      <input
+                        type="number"
+                        name="stock_quantity"
+                        value={editForm.stock_quantity}
+                        onChange={handleFormChange}
+                        className="edit-input"
                         min="0"
                       />
-                    </div>
-                  ) : (
-                    <span className="detail-value price">${parseFloat(product.price).toFixed(2)}</span>
-                  )}
+                    ) : (
+                      <span className={`detail-value stock ${product.stock_quantity === 0 ? 'out-of-stock' : 'in-stock'}`}>
+                        {product.stock_quantity} units
+                        {product.stock_quantity === 0 && <span className="stock-status"> - Out of Stock</span>}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="detail-item featured-item">
+                    <label>Featured</label>
+                    {isEditing ? (
+                      <div className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          id={`featured-${product.id}`}
+                          name="is_featured"
+                          checked={editForm.is_featured}
+                          onChange={handleFormChange}
+                        />
+                        <label htmlFor={`featured-${product.id}`} className="toggle-label"></label>
+                      </div>
+                    ) : (
+                      <span className={`detail-value ${product.is_featured ? 'featured-badge' : 'not-featured'}`}>
+                        {product.is_featured ? '⭐ Featured' : '-'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {/* Stock */}
-                <div className="detail-item">
-                  <label>Stock</label>
-                  {editingId === product.id ? (
-                    <input
-                      type="number"
-                      name="stock_quantity"
-                      value={editForm.stock_quantity}
+                {/* Description (edit mode only) */}
+                {isEditing && (
+                  <div className="description-section">
+                    <label>Description</label>
+                    <textarea
+                      name="description"
+                      value={editForm.description}
                       onChange={handleFormChange}
-                      className="edit-input"
-                      min="0"
-                    />
-                  ) : (
-                    <span className={`detail-value stock ${product.stock_quantity === 0 ? 'out-of-stock' : 'in-stock'}`}>
-                      {product.stock_quantity} units
-                      {product.stock_quantity === 0 && <span className="stock-status"> - Out of Stock</span>}
-                    </span>
-                  )}
-                </div>
-
-                {/* Featured */}
-                <div className="detail-item featured-item">
-                  <label>Featured</label>
-                  {editingId === product.id ? (
-                    <div className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        id={`featured-${product.id}`}
-                        name="is_featured"
-                        checked={editForm.is_featured}
-                        onChange={handleFormChange}
-                      />
-                      <label htmlFor={`featured-${product.id}`} className="toggle-label"></label>
-                    </div>
-                  ) : (
-                    <span className={`detail-value ${product.is_featured ? 'featured-badge' : 'not-featured'}`}>
-                      {product.is_featured ? '⭐ Featured' : '-'}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Description */}
-              {editingId === product.id && (
-                <div className="description-section">
-                  <label>Description</label>
-                  <textarea
-                    name="description"
-                    value={editForm.description}
-                    onChange={handleFormChange}
-                    className="edit-textarea"
-                    placeholder="Product description"
-                  ></textarea>
-                </div>
-              )}
-
-              {/* Sub Images */}
-              {editingId === product.id && (
-                <div className="sub-images-section">
-                  <label>Product Images</label>
-                  <input
-                    type="file"
-                    onChange={handleSubImagesChange}
-                    multiple
-                    accept="image/*"
-                    className="edit-input"
-                  />
-                  {subImageFiles.length > 0 && (
-                    <div className="sub-images-preview">
-                      {subImageFiles.map((file, index) => (
-                        <div key={index} className="sub-image-item">
-                          <img src={URL.createObjectURL(file) || "/placeholder.svg"} alt={`Preview ${index + 1}`} />
-                          <button
-                            type="button"
-                            onClick={() => removeSubImage(index)}
-                            className="remove-image-btn"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {subImageFiles.length > 0 && (
-                    <p className="image-count">{subImageFiles.length} new images</p>
-                  )}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="action-buttons">
-                {editingId === product.id ? (
-                  <>
-                    <button
-                      onClick={() => handleUpdate(product.id)}
-                      className="btn btn-save"
-                    >
-                      ✓ Save
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="btn btn-cancel"
-                    >
-                      ✕ Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="btn btn-edit"
-                    >
-                      ✎ Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      className="btn btn-delete"
-                    >
-                      🗑 Delete
-                    </button>
-                  </>
+                      className="edit-textarea"
+                      placeholder="Product description"
+                    ></textarea>
+                  </div>
                 )}
+
+                {/* Sub Images (edit mode only) */}
+                {isEditing && (
+                  <div className="sub-images-section">
+                    <label>Product Images</label>
+                    <input
+                      type="file"
+                      onChange={handleSubImagesChange}
+                      multiple
+                      accept="image/*"
+                      className="edit-input"
+                    />
+                    {subImageFiles.length > 0 && (
+                      <div className="sub-images-preview">
+                        {subImageFiles.map((file, index) => (
+                          <div key={index} className="sub-image-item">
+                            <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} />
+                            <button type="button" onClick={() => removeSubImage(index)} className="remove-image-btn">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {subImageFiles.length > 0 && <p className="image-count">{subImageFiles.length} new images</p>}
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="action-buttons">
+                  {isEditing ? (
+                    <>
+                      <button onClick={() => handleUpdate(product.id)} className="btn btn-save">✓ Save</button>
+                      <button onClick={handleCancelEdit} className="btn btn-cancel">✕ Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => handleEdit(product)} className="btn btn-edit">✎ Edit</button>
+                      <button onClick={() => handleDelete(product.id)} className="btn btn-delete">🗑 Delete</button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

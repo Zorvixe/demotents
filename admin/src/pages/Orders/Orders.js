@@ -3,8 +3,7 @@ import "./Orders.css";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
-
+const API_URL = "https://demotents-dhia.onrender.com" || "http://localhost:5004";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -33,17 +32,13 @@ const Orders = () => {
     try {
       const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-
       const data = await response.json();
-
       if (data.success) {
         toast.success('Order status updated successfully');
-        fetchOrders(); // Refresh orders
+        fetchOrders();
       } else {
         toast.error(data.message);
       }
@@ -54,20 +49,13 @@ const Orders = () => {
   };
 
   const handleDeleteOrder = async (orderId) => {
-    if (!window.confirm('Are you sure you want to delete this order?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this order?')) return;
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`${API_URL}/api/orders/${orderId}`, { method: 'DELETE' });
       const data = await response.json();
-
       if (data.success) {
         toast.success('Order deleted successfully');
-        fetchOrders(); // Refresh orders
+        fetchOrders();
       } else {
         toast.error(data.message);
       }
@@ -81,7 +69,7 @@ const Orders = () => {
     return (
       <div className="loader-container">
         <div className="spinner"></div>
-        <p>Loading Ordere...</p>
+        <p>Loading Orders...</p>
       </div>
     );
   }
@@ -100,26 +88,19 @@ const Orders = () => {
         ) : (
           orders.map((order) => (
             <div key={order.id} className="order-item">
-              <img
-                src="https://cdn.pixabay.com/photo/2022/05/10/10/35/box-7186750_1280.png"
-                alt="order"
-                className="order-image"
-              />
+              {/* No image – only backend data */}
 
               <div className="order-details">
                 <div className="order-info">
                   <p className="order-customer">
                     <strong>{order.customer_name}</strong>
                   </p>
-
                   {order.customer_email && (
                     <p className="order-email">{order.customer_email}</p>
                   )}
-
                   <p className="order-phone">
                     <i className="phone-icon">📱</i> {order.phone}
                   </p>
-
                   <div className="order-address">
                     <p>{order.address}</p>
                   </div>
@@ -165,12 +146,8 @@ const Orders = () => {
                     <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
-
                 <div className="action-buttons">
-                  <button
-                    onClick={() => handleDeleteOrder(order.id)}
-                    className="delete-order-btn"
-                  >
+                  <button onClick={() => handleDeleteOrder(order.id)} className="delete-order-btn">
                     Delete Order
                   </button>
                 </div>

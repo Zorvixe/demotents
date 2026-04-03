@@ -1,38 +1,44 @@
-import React from 'react'
-import "./Siderbar.css"
-import { FiPlusCircle } from "react-icons/fi";
-import { FiClipboard } from "react-icons/fi";
-import { LuBox } from "react-icons/lu";
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { FiPlusCircle, FiClipboard, FiBox, FiFolder, FiGrid, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import './Siderbar.css';
 
 const Sidebar = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <div className='sidebar'>
-      <div className="sider-options">
-        <NavLink to='/add'className="sidebar-option">
-         <FiPlusCircle size={22}/>
+    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <div className="sidebar-options">
+        <NavLink to="/add" className="sidebar-option">
+          <FiPlusCircle size={22} />
           <p>Add Items</p>
         </NavLink>
-        <NavLink to='/list' className="sidebar-option">
-          <FiClipboard size={22}/>
+        <NavLink to="/list" className="sidebar-option">
+          <FiClipboard size={22} />
           <p>List Items</p>
         </NavLink>
-        <NavLink to='/orders' className="sidebar-option">
-          <LuBox size={22}/>
+        <NavLink to="/orders" className="sidebar-option">
+          <FiBox size={22} />
           <p>Orders Items</p>
         </NavLink>
-        <NavLink to='/new-category' className="sidebar-option">
-          <LuBox size={22}/>
+        <NavLink to="/new-category" className="sidebar-option">
+          <FiFolder size={22} />
           <p>New Category</p>
         </NavLink>
-        <NavLink to='/sub-category' className="sidebar-option">
-          <LuBox size={22}/>
+        <NavLink to="/sub-category" className="sidebar-option">
+          <FiGrid size={22} />
           <p>Sub Category</p>
         </NavLink>
-        
       </div>
+      <button className="sidebar-toggle" onClick={toggleSidebar}>
+        {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
+      </button>
     </div>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;

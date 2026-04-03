@@ -3,9 +3,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './SubCategories.css';
 
-
-  const API_URL = process.env.REACT_APP_BACKEND_BASE_URL || "http://localhost:5004";
-
+const API_URL = "https://demotents-dhia.onrender.com" || "http://localhost:5004";
 
 const SubCategories = () => {
   const [subCategories, setSubCategories] = useState([]);
@@ -40,6 +38,7 @@ const SubCategories = () => {
 
   const fetchSubCategories = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`${API_URL}/api/sub-categories`);
       const result = await response.json();
       
@@ -165,215 +164,166 @@ const SubCategories = () => {
     setShowEditModal(true);
   };
 
- if (loading) {
-  return (
-    <div className="loader-container">
-      <div className="spinner"></div>
-    </div>
-  );
-}
+  // ========== LOADER ==========
+  if (loading) {
+    return (
+      <div className="loader-container">
+        <div className="spinner"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="sub-categories-container">
-      <ToastContainer position="top-right" autoClose={3000} />
+    <div className="admin-subcat-container">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
       
-      <div className="sub-categories-header">
-        <h1>Sub-Categories Management</h1>
+      {/* HEADER */}
+      <div className="admin-subcat-header">
+        <div className="header-titles">
+          <h1>Sub-Categories</h1>
+          <p>Organize products further by managing your sub-categories.</p>
+        </div>
         <button 
-          className="add-sub-category-btn"
+          className="admin-btn-primary"
           onClick={() => setShowAddModal(true)}
         >
-          + Add New Sub-Category
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Add Sub-Category
         </button>
       </div>
 
-      <div className="sub-categories-list">
+      {/* GRID */}
+      <div className="admin-subcat-grid">
         {subCategories.length === 0 ? (
-          <div className="empty-state">
-            <p>No sub-categories found. Create your first sub-category!</p>
+          <div className="admin-empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <h3>No sub-categories yet</h3>
+            <p>Get started by creating your first sub-category.</p>
+            <button className="admin-btn-outline" onClick={() => setShowAddModal(true)}>
+              Create Sub-Category
+            </button>
           </div>
         ) : (
           subCategories.map(subCat => (
-            <div key={subCat.id} className="sub-category-card">
-              <div className="sub-category-header">
-                <div>
-                  <h3>{subCat.name}</h3>
-                  <p className="category-name">
-                    Category: {subCat.category_name}
-                  </p>
+            <div key={subCat.id} className="admin-subcat-card">
+              <div className="card-top">
+                <div className="card-title-group">
+                  <div className="title-wrapper">
+                    <h3>{subCat.name}</h3>
+                    <span className="parent-badge">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      {subCat.category_name}
+                    </span>
+                  </div>
+                  <div className="card-actions">
+                    <button className="action-btn edit" onClick={() => openEditModal(subCat)} title="Edit">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    </button>
+                    <button className="action-btn delete" onClick={() => handleDeleteSubCategory(subCat.id)} title="Delete">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="sub-category-actions">
-                  <button 
-                    className="edit-btn"
-                    onClick={() => openEditModal(subCat)}
-                  >
-                    Edit
-                  </button>
-                  <button 
-                    className="delete-btn"
-                    onClick={() => handleDeleteSubCategory(subCat.id)}
-                  >
-                    Delete
-                  </button>
+                {subCat.description ? (
+                  <p className="card-desc">{subCat.description}</p>
+                ) : (
+                  <p className="card-desc empty-desc">No description provided.</p>
+                )}
+                <div className="card-metrics">
+                  <span className="metric-badge">
+                    <strong>{subCat.product_count || 0}</strong> Products Attached
+                  </span>
                 </div>
-              </div>
-              
-              {subCat.description && (
-                <p className="sub-category-description">{subCat.description}</p>
-              )}
-              
-              <div className="sub-category-stats">
-                <span>{subCat.product_count || 0} Products</span>
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Add Sub-Category Modal */}
+      {/* ADD MODAL */}
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h2>Add New Sub-Category</h2>
-              <button 
-                className="close-btn"
-                onClick={() => {
-                  setShowAddModal(false);
-                  setFormData({ name: '', description: '', category_id: '' });
-                }}
-              >
-                ×
+        <div className="admin-modal-backdrop">
+          <div className="admin-modal">
+            <div className="modal-head">
+              <h2>Add Sub-Category</h2>
+              <button className="close-btn" onClick={() => { setShowAddModal(false); setFormData({ name: '', description: '', category_id: '' }); }}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={handleAddSubCategory}>
-              <div className="form-group">
-                <label>Category *</label>
-                <select
-                  name="category_id"
-                  value={formData.category_id}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+            <form onSubmit={handleAddSubCategory} className="modal-form">
+              <div className="input-group">
+                <label>Parent Category <span>*</span></label>
+                <div className="select-wrapper">
+                  <select name="category_id" value={formData.category_id} onChange={handleInputChange} required>
+                    <option value="" disabled>Select a parent category</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="select-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Sub-Category Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter sub-category name"
-                  required
-                />
+              <div className="input-group">
+                <label>Sub-Category Name <span>*</span></label>
+                <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. 10x10 Tents" required />
               </div>
-              <div className="form-group">
-                <label>Description (Optional)</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter sub-category description"
-                  rows="3"
-                />
+              <div className="input-group">
+                <label>Description <span>(Optional)</span></label>
+                <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Brief description of the sub-category..." rows="3" />
               </div>
-              <div className="modal-actions">
-                <button 
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setFormData({ name: '', description: '', category_id: '' });
-                  }}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn">
-                  Create Sub-Category
-                </button>
+              <div className="modal-foot">
+                <button type="button" className="admin-btn-ghost" onClick={() => { setShowAddModal(false); setFormData({ name: '', description: '', category_id: '' }); }}>Cancel</button>
+                <button type="submit" className="admin-btn-primary">Create</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Edit Sub-Category Modal */}
+      {/* EDIT MODAL */}
       {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
+        <div className="admin-modal-backdrop">
+          <div className="admin-modal">
+            <div className="modal-head">
               <h2>Edit Sub-Category</h2>
-              <button 
-                className="close-btn"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setCurrentSubCategory(null);
-                  setFormData({ name: '', description: '', category_id: '' });
-                }}
-              >
-                ×
+              <button className="close-btn" onClick={() => { setShowEditModal(false); setCurrentSubCategory(null); setFormData({ name: '', description: '', category_id: '' }); }}>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={handleEditSubCategory}>
-              <div className="form-group">
-                <label>Category *</label>
-                <select
-                  name="category_id"
-                  value={formData.category_id}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+            <form onSubmit={handleEditSubCategory} className="modal-form">
+              <div className="input-group">
+                <label>Parent Category <span>*</span></label>
+                <div className="select-wrapper">
+                  <select name="category_id" value={formData.category_id} onChange={handleInputChange} required>
+                    <option value="" disabled>Select a parent category</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <svg className="select-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Sub-Category Name *</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter sub-category name"
-                  required
-                />
+              <div className="input-group">
+                <label>Sub-Category Name <span>*</span></label>
+                <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. 10x10 Tents" required />
               </div>
-              <div className="form-group">
-                <label>Description (Optional)</label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter sub-category description"
-                  rows="3"
-                />
+              <div className="input-group">
+                <label>Description <span>(Optional)</span></label>
+                <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Brief description of the sub-category..." rows="3" />
               </div>
-              <div className="modal-actions">
-                <button 
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    setCurrentSubCategory(null);
-                    setFormData({ name: '', description: '', category_id: '' });
-                  }}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="submit-btn">
-                  Update Sub-Category
-                </button>
+              <div className="modal-foot">
+                <button type="button" className="admin-btn-ghost" onClick={() => { setShowEditModal(false); setCurrentSubCategory(null); setFormData({ name: '', description: '', category_id: '' }); }}>Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save Changes</button>
               </div>
             </form>
           </div>
