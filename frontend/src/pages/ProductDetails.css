@@ -267,11 +267,11 @@
 }
 
 .ecom-btn-call {
-  background-color: #ff9900; /* Amazon Yellow/Orange vibe for secondary action */
-  color: #111;
+  background-color: #4400ff; /* Amazon Yellow/Orange vibe for secondary action */
+  color: #fff;
 }
 .ecom-btn-call:hover {
-  background-color: #e38800;
+  background-color: #4400ff; /* Amazon Yellow/Orange vibe for secondary action */
 }
 
 /* ==========================================================================
@@ -349,7 +349,8 @@
    LOADER & ERROR
    ========================================================================== */
 .ecom-loader-container {
-  height: 60vh;
+  height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;

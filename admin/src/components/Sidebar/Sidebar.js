@@ -21,10 +21,10 @@ const Sidebar = () => {
           <FiClipboard size={22} />
           <p>List Items</p>
         </NavLink>
-        <NavLink to="/orders" className="sidebar-option">
+        {/* <NavLink to="/orders" className="sidebar-option">
           <FiBox size={22} />
           <p>Orders Items</p>
-        </NavLink>
+        </NavLink> */}
         <NavLink to="/new-category" className="sidebar-option">
           <FiFolder size={22} />
           <p>New Category</p>

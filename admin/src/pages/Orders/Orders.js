@@ -77,9 +77,10 @@ const Orders = () => {
   return (
     <div className="order add">
       <ToastContainer position="top-right" autoClose={3000} />
-      <h3>Order Page</h3>
+     <div className="order">
       <p className="total-orders">Total Orders: {orders.length}</p>
 
+     </div>
       <div className="order-list">
         {orders.length === 0 ? (
           <div className="no-orders">

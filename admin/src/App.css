@@ -1,0 +1,45 @@
+/* Reset / base */
+
+/* App container uses full viewport height */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Main area below navbar, uses flex row */
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding-bottom: 10px;
+}
+
+
+
+/* Content area – scrolls independently */
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Optional: custom scrollbar for a modern look */
+.app-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.app-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.app-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.app-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

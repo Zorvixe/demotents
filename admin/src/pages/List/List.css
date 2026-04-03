@@ -29,10 +29,9 @@
 
 /* ===== Main Container ===== */
 .product-list-container {
-  width: 80%;
+  width: 100%;
   min-height: 100vh;
   padding: 20px;
-  background: var(--background);
 }
 
 @media (min-width: 768px) {
