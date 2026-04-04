@@ -7,6 +7,8 @@ import List from './pages/List/List.js';
 import Orders from './pages/Orders/Orders.js';
 import NewCategory from './pages/Category/Categories.js';
 import SubCategory from './pages/Category/SubCategories.js';
+import Dashboard from './pages/Dashboard/Dashboard.js';
+
 import './App.css'; // we'll add the new styles here
 
 const App = () => {
@@ -17,6 +19,7 @@ const App = () => {
         <Sidebar />
         <div className="app-content">
           <Routes>
+              <Route path="/" element={<Dashboard />} />
             <Route path="/add" element={<Add />} />
             <Route path="/list" element={<List />} />
             <Route path="/orders" element={<Orders />} />

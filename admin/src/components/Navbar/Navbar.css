@@ -21,3 +21,18 @@
   cursor: pointer;
   border: 2px solid #e5e5e5;
 }
+
+
+.Logo-Text {
+  font-family: roboto;
+  font-size: 2.5rem;
+  font-weight: bold;
+  background: linear-gradient(45deg, #ff6b6b, #fdd835);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: transform 0.3s ease;
+}
+
+.Logo-Text:hover {
+  transform: scale(1.1);
+}

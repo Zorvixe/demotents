@@ -1,0 +1,244 @@
+/* DASHBOARD WRAPPER - Modern Shopify Style */
+.dashboard-page-wrapper {
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 40px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+}
+
+.dashboard-header p {
+  color: #6d7175;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.ui-stat-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e3e5;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Icon Background Colors */
+.stat-icon-wrapper.blue { background-color: #e0f0ff; }
+.stat-icon-wrapper.green { background-color: #e3f1df; }
+.stat-icon-wrapper.purple { background-color: #f3e8ff; }
+.stat-icon-wrapper.orange { background-color: #ffecd6; }
+
+.stat-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  margin: 0 0 4px 0;
+  color: #6d7175;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #202223;
+}
+
+/* UI CARDS */
+.ui-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e3e5;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f2f4;
+}
+
+.card-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #202223;
+  margin: 0;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ui-link-btn {
+  color: #2c6ecb;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.ui-link-btn:hover {
+  color: #1f5199;
+  text-decoration: underline;
+}
+
+/* TABLE STYLES */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ui-table th {
+  padding: 12px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6d7175;
+  background-color: #fafbfb;
+  border-bottom: 1px solid #e1e3e5;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ui-table td {
+  padding: 16px 24px;
+  font-size: 14px;
+  color: #202223;
+  border-bottom: 1px solid #f1f2f4;
+  vertical-align: middle;
+}
+
+.ui-table tbody tr:hover {
+  background-color: #fafbfb;
+}
+
+.ui-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* TABLE UTILITIES */
+.text-right { text-align: right !important; }
+.text-muted { color: #6d7175 !important; }
+.fw-600 { font-weight: 600 !important; }
+
+/* STATUS BADGES */
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+.badge-pending { background-color: #ffea8a; color: #8a6116; }
+.badge-processing { background-color: #e0f0ff; color: #0066cc; }
+.badge-shipped, .badge-fulfilled { background-color: #aee9d1; color: #14603d; }
+.badge-delivered { background-color: #aee9d1; color: #14603d; }
+.badge-cancelled, .badge-canceled { background-color: #ffc4b0; color: #8c2a0d; }
+
+/* EMPTY STATE */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: #6d7175;
+  font-size: 14px;
+  background-color: #fafbfb;
+}
+
+/* LOADER */
+.dashboard-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 70vh;
+  color: #6d7175;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.ui-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e1e3e5;
+  border-top-color: #2c6ecb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .dashboard-page-wrapper {
+    padding: 20px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ui-table th, .ui-table td {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiPlusCircle, FiClipboard, FiBox, FiFolder, FiGrid, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiPlusCircle, FiClipboard, FiBox, FiFolder, FiGrid, FiChevronLeft, FiChevronRight, FiBarChart2 } from 'react-icons/fi';
 import './Siderbar.css';
 
 const Sidebar = () => {
@@ -13,6 +13,10 @@ const Sidebar = () => {
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-options">
+        <NavLink to="/" className="sidebar-option">
+          <FiBarChart2 size={22} />
+          <p>Dashboard</p>
+        </NavLink>
         <NavLink to="/add" className="sidebar-option">
           <FiPlusCircle size={22} />
           <p>Add Items</p>

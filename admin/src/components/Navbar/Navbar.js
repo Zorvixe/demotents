@@ -8,8 +8,9 @@ import profileImg from "../../assets/profile.jpg";
 const Navbar = () => {
   return (
     <div className='navbar'>
-      <img className= 'logo' src={tentLogo} alt="Tent Logo" />
-  <img className= 'profile' src={profileImg} alt="Profile" />
+ <div className="navbar-brand m-0 text-center" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
+            <h1 className="Logo-Text">Demotents.com</h1>
+          </div>  <img className= 'profile' src={profileImg} alt="Profile" />
 
     </div>
   )

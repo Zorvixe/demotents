@@ -1469,6 +1469,57 @@ app.get('/api/sub-categories/:id', async (req, res) => {
   }
 });
 
+
+// ==================== STATS ENDPOINT ====================
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    // Total products
+    const productResult = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_active = true');
+    const totalProducts = parseInt(productResult.rows[0].count);
+
+    // Total orders
+    const orderResult = await pool.query('SELECT COUNT(*) as count FROM orders');
+    const totalOrders = parseInt(orderResult.rows[0].count);
+
+    // Total revenue (sum of all order amounts)
+    const revenueResult = await pool.query('SELECT COALESCE(SUM(amount), 0) as total FROM orders');
+    const totalRevenue = parseFloat(revenueResult.rows[0].total);
+
+    // Total unique customers (distinct email or name – using email if available, else name)
+    const customerResult = await pool.query(`
+      SELECT COUNT(DISTINCT COALESCE(customer_email, customer_name)) as count 
+      FROM orders
+    `);
+    const totalCustomers = parseInt(customerResult.rows[0].count);
+
+    // Recent 5 orders
+    const recentOrders = await pool.query(`
+      SELECT id, customer_name, amount, status, created_at 
+      FROM orders 
+      ORDER BY created_at DESC 
+      LIMIT 5
+    `);
+
+    res.json({
+      success: true,
+      stats: {
+        totalProducts,
+        totalOrders,
+        totalRevenue,
+        totalCustomers,
+        recentOrders: recentOrders.rows
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching dashboard statistics'
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
