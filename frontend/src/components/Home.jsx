@@ -27,6 +27,7 @@ const Home = () => {
         <div className="carousel-indicators">
           <button data-bs-target="#heroCarousel" data-bs-slide-to="0" className="active"></button>
           <button data-bs-target="#heroCarousel" data-bs-slide-to="1"></button>
+          <button data-bs-target="#heroCarousel" data-bs-slide-to="2"></button>
         </div>
 
         <div className="carousel-inner">
@@ -50,8 +51,20 @@ const Home = () => {
           >
             <div className="hero-overlay"></div>
             <div className="hero-center-content container text-center text-white d-flex flex-column justify-content-center align-items-center h-100">
-              <h1 className="fw-bold">Make Your Event Memorable</h1>
-              <p>Elegant styling & reliable tent solutions.</p>
+              {/* <h1 className="fw-bold">Make Your Event Memorable</h1>
+              <p>Elegant styling & reliable tent solutions.</p> */}
+            </div>
+          </div>
+
+          {/* Slide 2 */}
+          <div
+            className="carousel-item hero-slide"
+            style={{ backgroundImage: "url('/famt.jpg')" }}
+          >
+            <div className="hero-overlay"></div>
+            <div className="hero-center-content container text-center text-white d-flex flex-column justify-content-center align-items-center h-100">
+              {/* <h1 className="fw-bold">Best Outdoor Setup</h1>
+              <p>Trusted tents for every occasion.</p> */}
             </div>
           </div>
 

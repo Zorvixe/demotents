@@ -3,17 +3,17 @@
   font-size: 14px; 
 }
 .navbar-nav {
-  flex-wrap: nowrap !important;  
+  flex-wrap: wrap;  
   overflow-x: auto;               
   white-space: nowrap;
 }
 
 .navbar-nav .nav-item {
-  flex: 0 0 auto;   /* 🔥 prevents shrinking */
+  flex: 0 0 auto;  
 }
 .Logo-Text {
   font-family: roboto;
-  font-size: 2.5rem;
+  font-size: 3.5rem;
   font-weight: bold;
   background: linear-gradient(45deg, #ff6b6b, #fdd835);
   -webkit-background-clip: text;
@@ -325,4 +325,13 @@
   position: relative;
   opacity: 1;
   visibility: visible;
+}
+.dropdown-hover:hover > .dropdown-menu {
+  display: block;
+}
+
+.dropdown-submenu:hover > .nested-menu {
+  display: block;
+  left: 100%;           /* or top: 0; for vertical */
+  top: 0;
 }
