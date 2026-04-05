@@ -58,14 +58,7 @@ const Navbar = () => {
       <div className="container flex-column">
         {/* Top Row */}
         <div className="d-flex w-100 align-items-center justify-content-between top-row">
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="Search category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+         
 
           <div 
             className="navbar-brand m-0 text-center" 
@@ -73,6 +66,15 @@ const Navbar = () => {
             style={{ cursor: "pointer" }}
           >
             <h1 className="Logo-Text">Demotents.com</h1>
+          </div>
+
+           <div className="search-box">
+            <input
+              type="text"
+              placeholder="Search category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
           

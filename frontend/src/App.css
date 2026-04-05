@@ -12,15 +12,14 @@
   background: #25D366;
 }
 
-
 .social-fixed a.instagram {
   background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
 }
 
-
 .social-fixed a.phone {
   background: #0d6efd;
 }
+
 .social-fixed a.facebook {
   background: #1877f2; 
 }
@@ -38,12 +37,10 @@
   text-decoration: none;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);
   transition: 0.3s ease;
-
 }
 
 .social-fixed a:hover {
   transform: scale(1.3);
-
 }
 
 .social-fixed {
@@ -55,7 +52,6 @@
   50% { transform: translateY(-20px); }
   100% { transform: translateY(0); }
 }
-
 
 * {
   margin: 0;
@@ -120,6 +116,23 @@ html, body {
   border-radius: 20px;
   color: white;
   cursor: pointer;
+}
+
+/* NEW: Add top margin for pages that have the navbar */
+.page-with-navbar {
+  margin-top: 200px;
+}
+
+
+@media  (max-width: 480px) {
+  .page-with-navbar {
+    margin-top: 60px;
+  }
+}
+
+/* Ensure footer doesn't get extra unwanted margin */
+.page-with-navbar .footer {
+  margin-top: 0;
 }
 
 @keyframes spin {

@@ -33,6 +33,7 @@
    ========================================================================== */
 .ecom-main-row {
   align-items: flex-start;
+  margin: 5px;
 }
 
 .ecom-gallery-section {

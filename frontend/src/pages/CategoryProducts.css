@@ -47,7 +47,6 @@ body {
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   background-color: #e5e7eb;
-  margin-top: 50px;
 }
 
 .banner-image {

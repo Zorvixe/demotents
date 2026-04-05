@@ -1,25 +1,26 @@
-/* CategoriesScroller.css - Clean White Amazon/Flipkart Style */
+/* CategoriesScroller.css - Independent Row Scroll (Amazon/Flipkart Style) */
 
 /* Base Section Styles */
 .popular-products-section {
-  background: #ffffff; /* Pure white background */
-  padding: 3rem 0;
+  background: #ffffff;
+  padding: 2rem 0;
 }
 
-.container-fluid {
+.categories-container {
   width: 100%;
-  max-width: 1400px;
+  max-width: 1500px;
   margin: 0 auto;
-  padding-left: 40px !important;
-  padding-right: 40px !important;
+  padding-left: 30px !important;
+  padding-right: 30px !important;
+  position: relative;
 }
 
 /* Typography */
 .section-title {
-  font-size: 1.75rem;
-  font-weight: 500;
-  color: #111111;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f1111;
+  margin-bottom: 0.25rem;
   letter-spacing: -0.3px;
 }
 
@@ -29,24 +30,89 @@
   font-weight: 400;
 }
 
-/* Categories Grid - Amazon Style (responsive columns) */
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
-  margin: 32px 0 40px;
-  width: 100%;
+/* =========================================
+   CAROUSEL WRAPPER & INDIVIDUAL TRACKS
+   ========================================= */
+.categories-carousel-wrapper {
+  position: relative;
+  margin-bottom: 20px; /* Space between the two rows */
+  padding: 0 10px; /* Protect buttons from clipping outside the screen */
 }
 
-/* Category Card - Pure White, Subtle Border/Shadow */
+.categories-scroll-track {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 10px 5px; /* Adds padding to not cut off box-shadows */
+  
+  /* Hide scrollbars for a clean app-like look */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.categories-scroll-track::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* =========================================
+   CAROUSEL NAVIGATION BUTTONS (AMAZON STYLE)
+   ========================================= */
+.amz-scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 44px;
+  height: 90px; /* Tall rectangular button like Amazon desktop */
+  background: #ffffff;
+  border: 1px solid #d5d9d9;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f1111;
+  transition: all 0.2s ease;
+  opacity: 0.95;
+}
+
+.amz-scroll-btn:hover {
+  background: #f7fafa;
+  border-color: #c7c7c7;
+  opacity: 1;
+}
+
+.amz-scroll-btn:active {
+  background: #f0f2f2;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transform: translateY(-50%) scale(0.98);
+}
+
+.amz-scroll-btn.left {
+  left: -15px; /* Pull it slightly outside the track */
+}
+
+.amz-scroll-btn.right {
+  right: -15px;
+}
+
+/* =========================================
+   CATEGORY CARD
+   ========================================= */
 .category-card {
+  flex: 0 0 240px; /* Force strict width for horizontal scrolling */
   background: #ffffff;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   border: 1px solid #eaeaea;
+  display: flex;
+  flex-direction: column;
+  height: auto;
 }
 
 .category-card:hover {
@@ -55,13 +121,14 @@
   border-color: #d0d0d0;
 }
 
-/* Image Wrapper - Fixed Aspect Ratio 1:1 (Amazon style) */
+/* Image Wrapper */
 .image-wrapper {
   position: relative;
   width: 100%;
-  padding-bottom: 100%; /* 1:1 aspect ratio */
+  padding-bottom: 85%; /* Flatter rectangular ratio */
   background-color: #f8f8f8;
   overflow: hidden;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .category-image {
@@ -75,53 +142,42 @@
 }
 
 .category-card:hover .category-image {
-  transform: scale(1.02);
+  transform: scale(1.04);
 }
 
-/* Card Content - Clean Typography */
+/* Card Content */
 .card-content {
-  padding: 14px 12px 16px 12px;
+  padding: 12px;
   background: #ffffff;
   text-align: left;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .category-name {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   color: #111111;
-  margin: 0 0 6px 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Product Count - Simple Gray Badge */
-.category-count {
-  display: inline-block;
-  background: #f0f2f2;
-  color: #0f1111;
-  font-size: 0.75rem;
-  font-weight: 400;
-  padding: 3px 8px;
-  border-radius: 12px;
-  margin-bottom: 8px;
-}
-
-/* Category Description - Optional */
-.category-description {
-  font-size: 0.8rem;
-  color: #565959;
-  line-height: 1.4;
-  margin: 8px 0 0 0;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* View All Button - Outline Style */
+.category-count {
+  display: inline-block;
+  color: #007185; /* Amazon Link Blue */
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+/* =========================================
+   VIEW ALL BUTTON
+   ========================================= */
 .view-all-btn {
   background: transparent;
   color: #0f1111;
@@ -133,157 +189,27 @@
   cursor: pointer;
   transition: all 0.2s ease;
   background-color: #ffffff;
+  box-shadow: 0 2px 5px rgba(15,17,17,.15);
+  margin-top: 10px;
 }
 
 .view-all-btn:hover {
   background-color: #f7fafa;
   border-color: #c7c7c7;
-  transform: translateY(-1px);
 }
 
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 320px;
-  background: #ffffff;
-}
-
-.loading-state .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #e3e6e6;
-  border-top: 3px solid #ff9900; /* Amazon orange accent */
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Error State */
-.error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 320px;
-  background: #ffffff;
-}
-
-.error-message {
-  color: #c40000;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
-  text-align: center;
-}
-
-.retry-btn {
-  background: #ffffff;
-  color: #0f1111;
-  border: 1px solid #d5d9d9;
-  padding: 8px 24px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.retry-btn:hover {
-  background-color: #f7fafa;
-  border-color: #c7c7c7;
-}
-
-/* Empty State */
-.empty-state {
-  color: #565959;
-  font-size: 0.95rem;
-  min-height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-}
-
-/* Helper Classes */
-.full-width {
-  width: 100%;
-  padding: 0;
-  margin: 0;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .container-fluid {
-    padding-left: 20px !important;
-    padding-right: 20px !important;
-  }
-
-  .section-title {
-    font-size: 1.5rem;
-  }
-
-  .categories-grid {
-    gap: 16px;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-
-  .card-content {
-    padding: 10px 10px 12px;
-  }
-
-  .category-name {
-    font-size: 0.9rem;
-  }
-
-  .category-count {
-    font-size: 0.7rem;
-    padding: 2px 6px;
-  }
-}
-
-@media (max-width: 480px) {
-  .categories-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
-  }
-
-  .category-name {
-    font-size: 0.85rem;
-  }
-
-  .card-content {
-    padding: 8px 8px 10px;
-  }
-}
-/* Image loader overlay */
-.image-wrapper {
-  position: relative;
-  width: 100%;
-  padding-bottom: 100%;
-  background-color: #f5f5f5;
-  overflow: hidden;
-}
-
+/* =========================================
+   LOADERS & FALLBACKS
+   ========================================= */
 .image-loader {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
   background-color: #f5f5f5;
 }
 
 .image-loader .spinner {
-  width: 32px;
-  height: 32px;
+  width: 24px; height: 24px;
   border: 3px solid #e0e0e0;
   border-top: 3px solid #ff9900;
   border-radius: 50%;
@@ -292,13 +218,8 @@
 
 .image-fallback {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
   background-color: #f0f0f0;
   color: #999;
   font-size: 0.85rem;
@@ -308,12 +229,59 @@
   to { transform: rotate(360deg); }
 }
 
-.category-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+.empty-state {
+  color: #565959;
+  font-size: 0.95rem;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================
+   RESPONSIVE LAYOUT
+   ========================================= */
+@media (max-width: 991px) {
+  .category-card {
+    flex: 0 0 200px; /* Slightly smaller cards on tablet */
+  }
+}
+
+@media (max-width: 768px) {
+  .categories-container {
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+  }
+
+  .amz-scroll-btn {
+    display: none; /* Hide scroll buttons on mobile, allow natural swipe */
+  }
+
+  .categories-carousel-wrapper {
+    padding: 0; /* Remove side padding on mobile */
+    margin-bottom: 12px; /* Less space between rows on mobile */
+  }
+
+  .categories-scroll-track {
+    gap: 12px;
+    padding: 10px 0;
+  }
+
+  .category-card {
+    flex: 0 0 160px; /* Smaller cards for mobile */
+  }
+
+  .image-wrapper {
+    padding-bottom: 100%; /* Go back to 1:1 square on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .category-card {
+    flex: 0 0 140px; /* Very compact on small phones */
+  }
+  
+  .category-name {
+    font-size: 0.85rem;
+  }
 }
