@@ -18,6 +18,20 @@ const SubCategories = () => {
     category_id: ''
   });
 
+  // Custom Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    confirmType: 'danger'
+  });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
   useEffect(() => {
     fetchCategories();
     fetchSubCategories();
@@ -130,11 +144,20 @@ const SubCategories = () => {
     }
   };
 
-  const handleDeleteSubCategory = async (subCategoryId) => {
-    if (!window.confirm('Are you sure you want to delete this sub-category?')) {
-      return;
-    }
+  // Custom confirmation before delete
+  const confirmDeleteSubCategory = (subCategoryId, subCategoryName) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Sub-Category',
+      message: `Are you sure you want to delete "${subCategoryName}"? This action cannot be undone.`,
+      confirmText: 'Delete Sub-Category',
+      confirmType: 'danger',
+      onConfirm: () => executeDeleteSubCategory(subCategoryId)
+    });
+  };
 
+  const executeDeleteSubCategory = async (subCategoryId) => {
+    closeConfirmDialog();
     try {
       const response = await fetch(`${API_URL}/api/sub-categories/${subCategoryId}`, {
         method: 'DELETE',
@@ -154,6 +177,10 @@ const SubCategories = () => {
     }
   };
 
+  const closeConfirmDialog = () => {
+    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+  };
+
   const openEditModal = (subCategory) => {
     setCurrentSubCategory(subCategory);
     setFormData({
@@ -164,7 +191,16 @@ const SubCategories = () => {
     setShowEditModal(true);
   };
 
-  // ========== LOADER ==========
+  // Pagination Logic
+  const totalPages = Math.ceil(subCategories.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedSubCategories = subCategories.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
   if (loading) {
     return (
       <div className="loader-container">
@@ -177,6 +213,33 @@ const SubCategories = () => {
     <div className="admin-subcat-container">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
       
+      {/* Custom Confirmation Modal */}
+      {confirmDialog.isOpen && (
+        <div className="admin-modal-backdrop confirm-dialog-overlay" onClick={closeConfirmDialog}>
+          <div className="confirm-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="confirm-modal-header">
+              <div className="confirm-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <h3>{confirmDialog.title}</h3>
+            </div>
+            <div className="confirm-modal-body">
+              <p>{confirmDialog.message}</p>
+            </div>
+            <div className="confirm-modal-footer">
+              <button onClick={closeConfirmDialog} className="btn-modern btn-ghost">Cancel</button>
+              <button onClick={confirmDialog.onConfirm} className={`btn-modern btn-${confirmDialog.confirmType}`}>
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="admin-subcat-header">
         <div className="header-titles">
@@ -194,57 +257,103 @@ const SubCategories = () => {
         </button>
       </div>
 
-      {/* GRID */}
-      <div className="admin-subcat-grid">
-        {subCategories.length === 0 ? (
-          <div className="admin-empty-state">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h3>No sub-categories yet</h3>
-            <p>Get started by creating your first sub-category.</p>
-            <button className="admin-btn-outline" onClick={() => setShowAddModal(true)}>
-              Create Sub-Category
-            </button>
+      {/* TABLE VIEW */}
+      {paginatedSubCategories.length === 0 ? (
+        <div className="admin-empty-state">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h3>No sub-categories yet</h3>
+          <p>Get started by creating your first sub-category.</p>
+          <button className="admin-btn-outline" onClick={() => setShowAddModal(true)}>
+            Create Sub-Category
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="inventory-table-container">
+            <table className="inventory-table">
+              <thead>
+                <tr>
+                  <th width="25%">Sub-Category</th>
+                  <th width="20%">Parent Category</th>
+                  <th width="30%">Description</th>
+                  <th width="15%">Products</th>
+                  <th width="10%">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedSubCategories.map((subCat) => (
+                  <tr key={subCat.id} className="inventory-row">
+                    <td className="cell-subcategory">
+                      <div className="category-title-cell">
+                        <span className="category-title">{subCat.name}</span>
+                      </div>
+                    </td>
+                    <td className="cell-parent">
+                      <span className="parent-badge">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        {subCat.category_name}
+                      </span>
+                    </td>
+                    <td className="cell-desc">
+                      <span className={subCat.description ? "desc-text" : "text-muted italic"}>
+                        {subCat.description || 'No description provided'}
+                      </span>
+                    </td>
+                    <td className="cell-stock">
+                      <span className="stock-badge">
+                        {subCat.product_count || 0} products
+                      </span>
+                    </td>
+                    <td className="cell-actions">
+                      <button onClick={() => openEditModal(subCat)} className="action-btn edit-btn" title="Edit Sub-Category">
+                        Edit
+                      </button>
+                      <button onClick={() => confirmDeleteSubCategory(subCat.id, subCat.name)} className="action-btn delete-btn" title="Delete Sub-Category">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          subCategories.map(subCat => (
-            <div key={subCat.id} className="admin-subcat-card">
-              <div className="card-top">
-                <div className="card-title-group">
-                  <div className="title-wrapper">
-                    <h3>{subCat.name}</h3>
-                    <span className="parent-badge">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      {subCat.category_name}
-                    </span>
-                  </div>
-                  <div className="card-actions">
-                    <button className="action-btn edit" onClick={() => openEditModal(subCat)} title="Edit">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
-                    <button className="action-btn delete" onClick={() => handleDeleteSubCategory(subCat.id)} title="Delete">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                  </div>
-                </div>
-                {subCat.description ? (
-                  <p className="card-desc">{subCat.description}</p>
-                ) : (
-                  <p className="card-desc empty-desc">No description provided.</p>
-                )}
-                <div className="card-metrics">
-                  <span className="metric-badge">
-                    <strong>{subCat.product_count || 0}</strong> Products Attached
-                  </span>
-                </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="pagination-container">
+              <button 
+                className="pagination-btn" 
+                onClick={() => goToPage(currentPage - 1)} 
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                    onClick={() => goToPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
               </div>
+              <button 
+                className="pagination-btn" 
+                onClick={() => goToPage(currentPage + 1)} 
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
             </div>
-          ))
-        )}
-      </div>
+          )}
+        </>
+      )}
 
       {/* ADD MODAL */}
       {showAddModal && (
@@ -258,7 +367,7 @@ const SubCategories = () => {
             </div>
             <form onSubmit={handleAddSubCategory} className="modal-form">
               <div className="input-group">
-                <label>Parent Category <span>*</span></label>
+                <label>Parent Category <span className="required-star">*</span></label>
                 <div className="select-wrapper">
                   <select name="category_id" value={formData.category_id} onChange={handleInputChange} required>
                     <option value="" disabled>Select a parent category</option>
@@ -272,7 +381,7 @@ const SubCategories = () => {
                 </div>
               </div>
               <div className="input-group">
-                <label>Sub-Category Name <span>*</span></label>
+                <label>Sub-Category Name <span className="required-star">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. 10x10 Tents" required />
               </div>
               <div className="input-group">
@@ -300,7 +409,7 @@ const SubCategories = () => {
             </div>
             <form onSubmit={handleEditSubCategory} className="modal-form">
               <div className="input-group">
-                <label>Parent Category <span>*</span></label>
+                <label>Parent Category <span className="required-star">*</span></label>
                 <div className="select-wrapper">
                   <select name="category_id" value={formData.category_id} onChange={handleInputChange} required>
                     <option value="" disabled>Select a parent category</option>
@@ -314,7 +423,7 @@ const SubCategories = () => {
                 </div>
               </div>
               <div className="input-group">
-                <label>Sub-Category Name <span>*</span></label>
+                <label>Sub-Category Name <span className="required-star">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. 10x10 Tents" required />
               </div>
               <div className="input-group">

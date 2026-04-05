@@ -1,99 +1,109 @@
 /* ==========================================================================
-   eCommerce Product Details UI (Amazon/Flipkart Style)
-   Clean, Plain, Structure-driven
+   eCommerce Product Details UI (Amazon/Flipkart Replica)
    ========================================================================== */
 
 .ecom-product-page {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin-top: 150px;
+  font-family: "Amazon Ember", Arial, sans-serif; /* Fallback to Arial for classic ecom look */
+  margin-top: 130px;
   background-color: #ffffff;
-  color: #0f1111; /* Amazon dark text */
-
+  color: #0f1111;
+  margin-top: 200px;
 }
 
 /* --- Breadcrumb --- */
 .ecom-breadcrumb {
-  font-size: 13px;
+  font-size: 12px;
   color: #565959;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  padding-left: 10px;
 }
 .ecom-breadcrumb span {
   cursor: pointer;
 }
 .ecom-breadcrumb span:hover:not(.current) {
   text-decoration: underline;
-  color: #0f1111;
+  color: #333;
 }
 .ecom-breadcrumb .current {
-  color: #0f1111;
-  font-weight: 500;
+  color: #565959;
 }
 
 /* ==========================================================================
-   LEFT COLUMN: IMAGE GALLERY
+   LEFT COLUMN: IMAGE GALLERY (THUMBNAILS ON LEFT)
    ========================================================================== */
-.ecom-gallery-container {
+.ecom-main-row {
+  align-items: flex-start;
+}
+
+.ecom-gallery-section {
   position: sticky;
   top: 90px;
 }
 
-.ecom-main-image-wrapper {
-  width: 100%;
-  border: 1px solid #e7e7e7;
-  border-radius: 8px;
-  padding: 10px;
-  background-color: #ffffff;
+.ecom-gallery-layout {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 15px;
+  gap: 15px;
+  align-items: flex-start;
 }
 
-.ecom-main-img {
-  width: 100%;
-  height: 450px;
-  object-fit: contain;
-  cursor: zoom-in;
-}
-
-/* Thumbnails */
-.ecom-thumbnail-row {
+/* Thumbnails Column (Left Side) */
+.ecom-thumbnail-col {
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  flex-wrap: wrap;
+  width: 50px;
+  flex-shrink: 0;
 }
 
 .ecom-thumb-box {
-  width: 60px;
-  height: 60px;
-  border: 1px solid #e7e7e7;
-  border-radius: 6px;
-  padding: 4px;
+  width: 50px;
+  height: 50px;
+  border: 1px solid #a2a6ac;
+  border-radius: 4px;
+  padding: 2px;
   cursor: pointer;
   background: #fff;
-  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
-
 .ecom-thumb-box:hover {
-  border-color: #a2a6ac;
+  border-color: #e77600;
+  box-shadow: 0 0 3px rgba(231,118,0,0.5);
 }
-
 .ecom-thumb-box.active {
-  border: 2px solid #007185; /* Amazon blue active state */
-  box-shadow: 0 0 4px rgba(0, 113, 133, 0.4);
+  border: 1px solid #e77600;
+  box-shadow: 0 0 5px rgba(231,118,0,0.5);
 }
-
 .ecom-thumb-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
+/* Main Image Box */
+.ecom-main-image-wrapper {
+  flex-grow: 1;
+  width: calc(100% - 65px);
+  height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: #fff;
+  cursor: zoom-in;
+}
+
+.ecom-main-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
 /* ==========================================================================
    RIGHT COLUMN: PRODUCT INFO
    ========================================================================== */
-.ecom-product-info {
-  padding-left: 10px;
+.ecom-info-section {
+  padding-left: 20px;
 }
 
 .ecom-product-title {
@@ -101,442 +111,470 @@
   font-weight: 600;
   line-height: 1.3;
   color: #0f1111;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-.ecom-sku {
-  font-size: 13px;
-  color: #565959;
-  margin-bottom: 12px;
+.ecom-rating-box {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  margin-bottom: 10px;
 }
-.ecom-sku span {
-  color: #0f1111;
-  font-weight: 500;
+.ecom-stars {
+  color: #ffa41c; /* Amazon Yellow Stars */
+  margin-right: 8px;
+}
+.ecom-rating-count, .ecom-qa-link {
+  color: #007185;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ecom-rating-count:hover, .ecom-qa-link:hover {
+  color: #c45500;
+  text-decoration: underline;
+}
+.ecom-rating-divider {
+  color: #cccccc;
+  margin: 0 10px;
 }
 
 .ecom-divider {
   border: 0;
-  border-top: 1px solid #e7e7e7;
-  margin: 16px 0;
+  border-top: 1px solid #bbbfbf;
+  margin: 12px 0;
 }
 
 /* --- Pricing Block --- */
-.ecom-price-section {
-  margin-bottom: 12px;
+.ecom-main-price-block {
+  margin-bottom: 10px;
 }
-
-/* Single Price */
-.ecom-single-price-box {
+.ecom-price-row {
   display: flex;
   align-items: flex-start;
-  color: #b12704; /* Amazon red */
+  color: #0f1111;
 }
 .ecom-price-symbol {
   font-size: 14px;
   margin-top: 4px;
   margin-right: 2px;
 }
-.ecom-price-value {
-  font-size: 28px;
+.ecom-price-whole {
+  font-size: 32px;
+  font-weight: 500;
+}
+.ecom-tax-text {
+  font-size: 14px;
+  color: #565959;
+  margin-top: -4px;
+}
+.ecom-emi-text {
+  font-size: 14px;
+  color: #0f1111;
+  margin-top: 4px;
   font-weight: 500;
 }
 
-/* Tiered Pricing (Clean Grid) */
-.ecom-price-label {
+/* Tiered Pricing (Amazon Box Style) */
+.ecom-price-label-amz {
   font-size: 14px;
   color: #565959;
-  display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
-
-.ecom-tier-grid {
+.ecom-tier-boxes {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
-
-.ecom-tier-card {
-  border: 1px solid #d5d9d9;
-  border-radius: 8px;
-  padding: 8px 16px;
-  background-color: #fafafa;
-  min-width: 120px;
+.ecom-amz-box {
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  padding: 8px 12px;
+  min-width: 110px;
+  background: #fff;
+  cursor: pointer;
 }
-
-.ecom-tier-card .tier-name {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
+.ecom-amz-box:hover {
+  background: #f7fafa;
+  border-color: #a2a6ac;
 }
-.ecom-tier-card .tier-price {
+.ecom-amz-box .amz-box-title {
   display: block;
-  font-size: 18px;
+  font-size: 14px;
+  color: #111;
   font-weight: 700;
-  color: #b12704;
+}
+.ecom-amz-box .amz-box-price {
+  display: block;
+  font-size: 15px;
+  color: #B12704;
+  font-weight: 500;
 }
 
-/* Keeping your requested colors for tiers */
-.ecom-tier-card.core .tier-name { color: #3c77b6; }
-.ecom-tier-card.elite .tier-name { color: #28a745; }
-.ecom-tier-card.pro .tier-name { color: #d97706; }
+/* --- Trust Icons Row --- */
+.ecom-trust-icons {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  max-width: 400px;
+  margin: 15px 0;
+}
+.ecom-trust-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 85px;
+}
+.ecom-trust-item img {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
+}
+.ecom-trust-item span {
+  font-size: 12px;
+  color: #007185;
+  line-height: 1.2;
+}
+
+/* --- Meta Info Table --- */
+.ecom-meta-table {
+  font-size: 14px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  row-gap: 8px;
+  column-gap: 20px;
+  margin-top: 15px;
+}
+.ecom-meta-label {
+  font-weight: 700;
+  color: #0f1111;
+  min-width: 80px;
+}
+.ecom-meta-val {
+  color: #333;
+}
 
 /* --- Stock Status --- */
-.ecom-stock-status {
-  margin-bottom: 16px;
-}
-.ecom-stock-indicator {
+.ecom-stock-text {
   font-size: 18px;
   font-weight: 500;
+  margin-bottom: 4px;
 }
-.ecom-stock-indicator.in-stock { color: #007600; /* Amazon green */ }
-.ecom-stock-indicator.out-of-stock { color: #b12704; /* Amazon red */ }
+.ecom-stock-text.in-stock { color: #007600; }
+.ecom-stock-text.out-of-stock { color: #b12704; }
+.ecom-seller-text {
+  font-size: 14px;
+  color: #565959;
+  margin-bottom: 0;
+}
 
-/* --- Variants (Colors) --- */
-.ecom-variant-label {
+/* --- Colors Variants --- */
+.ecom-variant-label-text {
   font-size: 14px;
   color: #565959;
   margin-bottom: 8px;
 }
-.ecom-color-tags {
+.ecom-variant-label-text strong {
+  color: #0f1111;
+}
+/* Shopify-style color swatches */
+.ecom-color-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-.ecom-color-tag {
-  border: 1px solid #d5d9d9;
-  padding: 6px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  color: #0f1111;
-  background-color: #fff;
-}
-.ecom-color-tag:hover {
-  background-color: #f7fafa;
+  gap: 12px;
 }
 
-/* --- Description --- */
+.ecom-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;  /* Circular shape */
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #cccccc; /* Outer ring */
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ecom-swatch:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px #e77600;
+  border-color: #ffffff;
+}
+
+.ecom-swatch.selected {
+  box-shadow: 0 0 0 2px #e77600;
+  border-color: #ffffff;
+}
+
+.ecom-swatch-check {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 0 0 2px rgba(0,0,0,0.3);
+  /* For dark colors, make checkmark white with slight shadow; for light colors, you might want dark checkmark */
+}
+
+/* Optional: dynamic checkmark color based on background brightness */
+.ecom-swatch[style*="background-color: rgb(255, 255, 255)"] .ecom-swatch-check,
+.ecom-swatch[style*="background-color: #ffffff"] .ecom-swatch-check,
+.ecom-swatch[style*="background-color: #fff"] .ecom-swatch-check,
+.ecom-swatch[style*="background-color: white"] .ecom-swatch-check {
+  color: #000000;
+  text-shadow: none;
+}
+
+/* --- Description Bullets --- */
 .ecom-section-heading {
   font-size: 16px;
   font-weight: 700;
   color: #0f1111;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
-
-.ecom-description-text {
+.ecom-bullets {
+  padding-left: 20px;
   font-size: 14px;
-  line-height: 1.6;
-  color: #333333;
-  white-space: pre-wrap; /* preserves newlines from DB */
+  color: #0f1111;
+  line-height: 1.5;
+}
+.ecom-bullets li {
+  margin-bottom: 6px;
 }
 
-/* --- Action Buttons (Flipkart/Amazon Boxed style) --- */
+/* --- Action Panel (Buy Box Style) --- */
+.ecom-action-panel {
+  border: 1px solid #d5d9d9;
+  border-radius: 8px;
+  padding: 18px;
+  background: #fff;
+  max-width: 400px;
+}
+.ecom-qty-selector label {
+  font-size: 13px;
+  margin-right: 8px;
+  color: #0f1111;
+}
+.ecom-qty-dropdown {
+  padding: 5px 10px;
+  border: 1px solid #d5d9d9;
+  border-radius: 8px;
+  background: #f0f2f2;
+  box-shadow: 0 2px 5px rgba(15,17,17,.15);
+  cursor: pointer;
+  outline: none;
+}
 .ecom-action-buttons {
   display: flex;
-  gap: 12px;
-  margin-top: 24px;
+  flex-direction: column;
+  gap: 10px;
 }
-
-.ecom-btn {
-  flex: 1;
-  max-width: 250px;
+.ecom-btn-amz-yellow, .ecom-btn-amz-orange {
+  width: 100%;
+  padding: 10px;
+  border-radius: 100px; /* Amazon pill shape */
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 14px 20px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 30px; /* Flipkart pill style */
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px 0 rgba(213,217,217,.5);
 }
-
-.ecom-btn:active {
-  transform: scale(0.98);
+.ecom-btn-amz-yellow {
+  background: #ffd814;
+  border-color: #fcd200;
+  color: #0f1111;
 }
-
-.ecom-btn-whatsapp {
-  background-color: #25D366; /* Your required WhatsApp Green */
-  color: #fff;
+.ecom-btn-amz-yellow:hover {
+  background: #f7ca00;
 }
-.ecom-btn-whatsapp:hover {
-  background-color: #128C7E;
+.ecom-btn-amz-orange {
+  background: #ffa41c;
+  border-color: #ff8f00;
+  color: #0f1111;
 }
-
-.ecom-btn-call {
-  background-color: #4400ff; /* Amazon Yellow/Orange vibe for secondary action */
-  color: #fff;
+.ecom-btn-amz-orange:hover {
+  background: #fa8900;
 }
-.ecom-btn-call:hover {
-  background-color: #4400ff; /* Amazon Yellow/Orange vibe for secondary action */
+.ecom-secure-text {
+  font-size: 14px;
+  color: #007185;
 }
 
 /* ==========================================================================
-   RELATED PRODUCTS GRID
+   RELATED PRODUCTS (Horizontal Scroller)
    ========================================================================== */
-.ecom-related-title {
+.ecom-heavy-divider {
+  border: 0;
+  border-top: 4px solid #f2f2f2;
+  margin: 40px 0 20px 0;
+}
+.ecom-related-heading {
   font-size: 20px;
   font-weight: 700;
-  color: #cc6600; /* Amazon subtitle color */
-  margin-bottom: 10px;
+  color: #c45500;
+  margin-bottom: 15px;
 }
-
+.ecom-related-scroller {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 15px;
+}
+.ecom-related-scroller::-webkit-scrollbar {
+  height: 8px;
+}
+.ecom-related-scroller::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+.ecom-related-track {
+  display: inline-flex;
+  gap: 15px;
+}
 .ecom-related-card {
-  border: 1px solid #fff; /* Invisible border initially */
-  border-radius: 8px;
-  padding: 10px;
+  width: 180px;
+  flex-shrink: 0;
   cursor: pointer;
-  background-color: #fff;
-  height: 100%;
   display: flex;
   flex-direction: column;
 }
-
-.ecom-related-card:hover {
-  border-color: #e7e7e7;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
 .ecom-related-img-box {
   width: 100%;
-  height: 160px;
+  height: 180px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  position: relative;
 }
-
 .ecom-related-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
-
-.ecom-related-details {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-
 .ecom-related-name {
   font-size: 14px;
-  color: #007185; /* Amazon Link Blue */
-  line-height: 1.4;
-  margin-bottom: 6px;
+  color: #007185;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin-bottom: 4px;
+  line-height: 1.3;
 }
-
-.ecom-related-name:hover {
-  color: #c45500; /* Link hover color */
+.ecom-related-card:hover .ecom-related-name {
+  color: #c45500;
   text-decoration: underline;
 }
-
+.ecom-related-stars {
+  font-size: 12px;
+  color: #ffa41c;
+  margin-bottom: 4px;
+}
 .ecom-related-price {
-  font-size: 16px;
-  font-weight: 600;
-  color: #b12704;
-  margin-top: auto;
+  font-size: 17px;
+  color: #B12704;
+  font-weight: 500;
 }
 
 /* ==========================================================================
-   LOADER & ERROR
+   LOADER & ERRORS
    ========================================================================== */
 .ecom-loader-container {
   height: 100vh;
-  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: #565959;
 }
-
 .ecom-loader-spinner {
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #ff9900;
+  border-top: 3px solid #e77600;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 15px;
 }
+.ecom-spinner, .ecom-spinner-small {
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.ecom-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid #f3f3f3; border-top: 3px solid #e77600;
+}
+.ecom-spinner-small {
+  width: 20px; height: 20px;
+  border: 2px solid #f3f3f3; border-top: 2px solid #e77600;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.ecom-image-loader, .ecom-thumb-loader, .ecom-related-loader {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff;
+  z-index: 1;
 }
 
-.ecom-error-message {
-  font-size: 18px;
-  color: #b12704;
-}
-
-.ecom-btn-primary {
-  background-color: #ffd814;
-  color: #0f1111;
-  border: 1px solid #fcd200;
-  padding: 8px 24px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
+.ecom-image-fallback, .ecom-thumb-fallback, .ecom-related-fallback {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #f8f8f8; color: #999;
+  font-size: 12px;
 }
 
 /* ==========================================================================
-   RESPONSIVE DESIGN (ALL DEVICES)
+   RESPONSIVE DESIGN
    ========================================================================== */
 @media (max-width: 991px) {
-  .ecom-main-img {
-    height: 380px;
-  }
-  .ecom-product-title {
-    font-size: 20px;
-  }
+  .ecom-main-image-wrapper { height: 400px; }
+  .ecom-product-title { font-size: 20px; }
 }
 
 @media (max-width: 768px) {
   .ecom-product-page {
-    margin-top: 60px;
-    padding-top: 15px;
+    margin-top: 80px;
   }
   
-  .ecom-product-info {
+  /* Stack thumbnails under main image on mobile */
+  .ecom-gallery-layout {
+    flex-direction: column;
+  }
+  .ecom-thumbnail-col {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    order: 2; /* Put thumbnails below */
+  }
+  .ecom-main-image-wrapper {
+    width: 100%;
+    height: 350px;
+    order: 1; /* Main image on top */
+  }
+  
+  .ecom-info-section {
     padding-left: 0;
     margin-top: 20px;
   }
-  
-  .ecom-main-img {
-    height: 320px;
+  .ecom-price-whole {
+    font-size: 28px;
   }
-  
-  .ecom-price-value {
-    font-size: 24px;
-  }
-  
-  /* Buttons become full width stacked on mobile */
-  .ecom-action-buttons {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  .ecom-btn {
+  .ecom-trust-icons {
     max-width: 100%;
   }
-}
-
-@media (max-width: 576px) {
-  .ecom-main-img {
-    height: 280px;
+  .ecom-action-panel {
+    max-width: 100%;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    padding: 15px 0;
   }
-  
-  .ecom-related-img-box {
-    height: 120px;
-  }
-  
-  .ecom-tier-card {
-    min-width: calc(50% - 6px); /* 2 columns for tiers on mobile */
-  }
-}
-
-/* Image loader overlays */
-.ecom-main-image-wrapper {
-  position: relative;
-  background: #f5f5f5;
-  min-height: 400px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ecom-image-loader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-  z-index: 1;
-}
-
-.ecom-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #ff9900;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.ecom-spinner-small {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #e0e0e0;
-  border-top: 3px solid #ff9900;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.ecom-image-fallback,
-.ecom-thumb-fallback,
-.ecom-related-fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  color: #999;
-  font-size: 0.85rem;
-  min-height: inherit;
-}
-
-.ecom-thumb-box {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  cursor: pointer;
-}
-
-.ecom-thumb-loader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-}
-
-.ecom-related-img-box {
-  position: relative;
-  width: 100%;
-  padding-bottom: 100%;
-  background: #f5f5f5;
-}
-
-.ecom-related-loader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }

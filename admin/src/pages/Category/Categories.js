@@ -13,6 +13,20 @@ const Categories = () => {
   const [currentCategory, setCurrentCategory] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '' });
 
+  // Custom Confirm Dialog State
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    confirmType: 'danger'
+  });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -95,8 +109,20 @@ const Categories = () => {
     }
   };
 
-  const handleDeleteCategory = async (categoryId) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+  // Custom confirmation before delete
+  const confirmDeleteCategory = (categoryId, categoryName) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Category',
+      message: `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`,
+      confirmText: 'Delete Category',
+      confirmType: 'danger',
+      onConfirm: () => executeDeleteCategory(categoryId)
+    });
+  };
+
+  const executeDeleteCategory = async (categoryId) => {
+    closeConfirmDialog();
     try {
       const response = await fetch(`${API_URL}/api/categories/${categoryId}`, { method: 'DELETE' });
       const result = await response.json();
@@ -112,13 +138,26 @@ const Categories = () => {
     }
   };
 
+  const closeConfirmDialog = () => {
+    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+  };
+
   const openEditModal = (category) => {
     setCurrentCategory(category);
     setFormData({ name: category.name, description: category.description || '' });
     setShowEditModal(true);
   };
 
-  // ========== LOADER ==========
+  // Pagination Logic
+  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedCategories = categories.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
   if (loading) {
     return (
       <div className="loader-container">
@@ -131,6 +170,33 @@ const Categories = () => {
     <div className="admin-cat-container">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
       
+      {/* Custom Confirmation Modal */}
+      {confirmDialog.isOpen && (
+        <div className="admin-modal-backdrop confirm-dialog-overlay" onClick={closeConfirmDialog}>
+          <div className="confirm-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="confirm-modal-header">
+              <div className="confirm-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <h3>{confirmDialog.title}</h3>
+            </div>
+            <div className="confirm-modal-body">
+              <p>{confirmDialog.message}</p>
+            </div>
+            <div className="confirm-modal-footer">
+              <button onClick={closeConfirmDialog} className="btn-modern btn-ghost">Cancel</button>
+              <button onClick={confirmDialog.onConfirm} className={`btn-modern btn-${confirmDialog.confirmType}`}>
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="admin-cat-header">
         <div className="header-titles">
@@ -145,69 +211,108 @@ const Categories = () => {
         </button>
       </div>
 
-      {/* GRID */}
-      <div className="admin-cat-grid">
-        {categories.length === 0 ? (
-          <div className="admin-empty-state">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h3>No categories yet</h3>
-            <p>Get started by creating your first category.</p>
-            <button className="admin-btn-outline" onClick={() => setShowAddModal(true)}>
-              Create Category
-            </button>
-          </div>
-        ) : (
-          categories.map(category => (
-            <div key={category.id} className="admin-cat-card">
-              <div className="card-top">
-                <div className="card-title-group">
-                  <h3>{category.name}</h3>
-                  <div className="card-actions">
-                    <button className="action-btn edit" onClick={() => openEditModal(category)} title="Edit">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
-                    <button className="action-btn delete" onClick={() => handleDeleteCategory(category.id)} title="Delete">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                  </div>
-                </div>
-                {category.description ? (
-                  <p className="card-desc">{category.description}</p>
-                ) : (
-                  <p className="card-desc empty-desc">No description provided.</p>
-                )}
-                <div className="card-metrics">
-                  <span className="metric-badge">
-                    <strong>{category.product_count || 0}</strong> Products
-                  </span>
-                  <span className="metric-badge">
-                    <strong>{category.sub_categories?.length || 0}</strong> Sub-cats
-                  </span>
-                </div>
-              </div>
-
-              {/* Sub-categories List */}
-              <div className="card-bottom">
-                <h4 className="sub-title">Sub-categories</h4>
-                {category.sub_categories && category.sub_categories.length > 0 ? (
-                  <div className="sub-pill-container">
-                    {category.sub_categories.map(subCat => (
-                      <div key={subCat.id} className="sub-pill">
-                        <span className="sub-name">{subCat.name}</span>
-                        <span className="sub-count">{subCat.product_count || 0}</span>
+      {/* TABLE VIEW */}
+      {paginatedCategories.length === 0 ? (
+        <div className="admin-empty-state">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h3>No categories yet</h3>
+          <p>Get started by creating your first category.</p>
+          <button className="admin-btn-outline" onClick={() => setShowAddModal(true)}>
+            Create Category
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="inventory-table-container">
+            <table className="inventory-table">
+              <thead>
+                <tr>
+                  <th width="25%">Category Name</th>
+                  <th width="30%">Description</th>
+                  <th width="15%">Products</th>
+                  <th width="20%">Sub-categories</th>
+                  <th width="10%">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedCategories.map((category) => (
+                  <tr key={category.id} className="inventory-row">
+                    <td className="cell-category">
+                      <div className="category-title-cell">
+                        <span className="category-title">{category.name}</span>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="no-subs">None added yet</p>
-                )}
+                    </td>
+                    <td className="cell-desc">
+                      <span className={category.description ? "desc-text" : "text-muted italic"}>
+                        {category.description || 'No description provided'}
+                      </span>
+                    </td>
+                    <td className="cell-stock">
+                      <span className="stock-badge">
+                        {category.product_count || 0} products
+                      </span>
+                    </td>
+                    <td className="cell-subcats">
+                      {category.sub_categories && category.sub_categories.length > 0 ? (
+                        <div className="subcat-pill-container">
+                          {category.sub_categories.map((subCat) => (
+                            <span key={subCat.id} className="subcat-pill" title={`${subCat.product_count || 0} products`}>
+                              {subCat.name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted">None</span>
+                      )}
+                    </td>
+                    <td className="cell-actions">
+                      <button onClick={() => openEditModal(category)} className="action-btn edit-btn" title="Edit Category">
+                        Edit
+                      </button>
+                      <button onClick={() => confirmDeleteCategory(category.id, category.name)} className="action-btn delete-btn" title="Delete Category">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="pagination-container">
+              <button 
+                className="pagination-btn" 
+                onClick={() => goToPage(currentPage - 1)} 
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                    onClick={() => goToPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
               </div>
+              <button 
+                className="pagination-btn" 
+                onClick={() => goToPage(currentPage + 1)} 
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
             </div>
-          ))
-        )}
-      </div>
+          )}
+        </>
+      )}
 
       {/* ADD MODAL */}
       {showAddModal && (
@@ -221,7 +326,7 @@ const Categories = () => {
             </div>
             <form onSubmit={handleAddCategory} className="modal-form">
               <div className="input-group">
-                <label>Name <span>*</span></label>
+                <label>Name <span className="required-star">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Luxury Tents" required autoFocus />
               </div>
               <div className="input-group">
@@ -230,7 +335,7 @@ const Categories = () => {
               </div>
               <div className="modal-foot">
                 <button type="button" className="admin-btn-ghost" onClick={() => { setShowAddModal(false); setFormData({ name: '', description: '' }); }}>Cancel</button>
-                <button type="submit" className="admin-btn-primary">Create Category</button>
+                <button type="submit" className="admin-btn-primary">Save</button>
               </div>
             </form>
           </div>
@@ -249,7 +354,7 @@ const Categories = () => {
             </div>
             <form onSubmit={handleEditCategory} className="modal-form">
               <div className="input-group">
-                <label>Name <span>*</span></label>
+                <label>Name <span className="required-star">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Luxury Tents" required autoFocus />
               </div>
               <div className="input-group">

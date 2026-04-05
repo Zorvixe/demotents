@@ -14,6 +14,20 @@ const List = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50; // Show 50 products per page
+
+  // Custom Confirm Modal State
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    confirmType: 'danger'
+  });
+
   const [editForm, setEditForm] = useState({
     name: '',
     description: '',
@@ -55,6 +69,10 @@ const List = () => {
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialog({ ...confirmDialog, isOpen: false });
   };
 
   const fetchProducts = async () => {
@@ -107,8 +125,19 @@ const List = () => {
     return `${BASE_URL}/uploads/${imagePath}`;
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
+  const confirmDeleteProduct = (id) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      confirmText: 'Delete Product',
+      confirmType: 'danger',
+      onConfirm: () => executeDeleteProduct(id)
+    });
+  };
+
+  const executeDeleteProduct = async (id) => {
+    closeConfirmDialog();
     try {
       const response = await fetch(`${API_URL}/products/${id}`, { method: 'DELETE' });
       const data = await response.json();
@@ -218,15 +247,26 @@ const List = () => {
     setSubImageFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleDeleteExistingSubImage = async (imageId) => {
-    if (!window.confirm('Are you sure you want to delete this image?')) return;
+  const confirmDeleteExistingSubImage = (imageId) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Remove Image',
+      message: 'Are you sure you want to delete this image? It will be removed permanently.',
+      confirmText: 'Remove Image',
+      confirmType: 'danger',
+      onConfirm: () => executeDeleteExistingSubImage(imageId)
+    });
+  };
+
+  const executeDeleteExistingSubImage = async (imageId) => {
+    closeConfirmDialog();
     try {
       const response = await fetch(`${API_URL}/products/${editingId}/images/${imageId}`, { method: 'DELETE' });
       const data = await response.json();
       if (data.success) {
         showNotification('Image deleted successfully', 'success');
         setExistingSubImages(prev => prev.filter(img => img.id !== imageId));
-        fetchProducts(); // refresh list background
+        fetchProducts();
       } else {
         showNotification(data.message, 'error');
       }
@@ -291,6 +331,7 @@ const List = () => {
     setImageLoaded(prev => ({ ...prev, [productId]: true }));
   };
 
+  // Filter and sort products
   const filteredProducts = products
     .filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -307,6 +348,22 @@ const List = () => {
       }
     });
 
+  // Pagination logic
+  const totalFiltered = filteredProducts.length;
+  const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE);
+  // Reset to page 1 when filters change (search, category, sort)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory, sortBy]);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
   if (loading) {
     return (
       <div className="loader-container">
@@ -318,57 +375,136 @@ const List = () => {
 
   return (
     <div className="product-list-container">
+      {/* Notifications */}
       {notification.message && (
         <div className={`notification notification-${notification.type}`}>
           {notification.message}
         </div>
       )}
 
+      {/* Confirmation Modal */}
+      {confirmDialog.isOpen && (
+        <div className="modal-overlay confirm-dialog-overlay">
+          <div className="confirm-modal-content">
+            <div className="confirm-modal-header">
+              <div className="confirm-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+              <h3>{confirmDialog.title}</h3>
+            </div>
+            <div className="confirm-modal-body">
+              <p>{confirmDialog.message}</p>
+            </div>
+            <div className="confirm-modal-footer">
+              <button onClick={closeConfirmDialog} className="btn-modern btn-ghost">Cancel</button>
+              <button onClick={confirmDialog.onConfirm} className={`btn-modern btn-${confirmDialog.confirmType}`}>
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal */}
       {editingId && (
-        <div className="modal-overlay">
+        <div className="modal-overlay edit-overlay">
           <div className="modal-content large-modal">
             <div className="modal-header">
-              <h2>Edit Product</h2>
-              <button className="close-modal" onClick={handleCancelEdit}>&times;</button>
+              <div>
+                <h2>Edit Product</h2>
+              </div>
+              <button className="close-modal" onClick={handleCancelEdit}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
             </div>
 
             <div className="modal-body">
               <div className="modal-grid-2col">
-                {/* Left column */}
-                <div>
+                {/* Left column - Basic Info */}
+                <div className="form-section">
+                  <h4 className="section-title">Basic Details</h4>
                   <div className="form-group">
-                    <label>Product Name *</label>
-                    <input type="text" name="name" value={editForm.name} onChange={handleFormChange} className="edit-input" />
+                    <label>Product Name <span className="required">*</span></label>
+                    <input type="text" name="name" value={editForm.name} onChange={handleFormChange} className="edit-input" placeholder="Enter product name" />
                   </div>
                   <div className="form-group">
                     <label>Description</label>
-                    <textarea name="description" value={editForm.description} onChange={handleFormChange} className="edit-textarea" rows="4"></textarea>
+                    <textarea name="description" value={editForm.description} onChange={handleFormChange} className="edit-textarea" rows="4" placeholder="Enter product description..."></textarea>
                   </div>
-                  <div className="form-group">
-                    <label>SKU</label>
-                    <input type="text" name="sku" value={editForm.sku} onChange={handleFormChange} className="edit-input" />
+
+                  <div className="grid-2-col-inner mt-4">
+                    <div className="form-group">
+                      <label>SKU</label>
+                      <input type="text" name="sku" value={editForm.sku} onChange={handleFormChange} className="edit-input" placeholder="e.g. PROD-01" />
+                    </div>
+                    <div className="form-group">
+                      <label>Stock Quantity <span className="required">*</span></label>
+                      <input type="number" name="stock_quantity" value={editForm.stock_quantity} onChange={handleFormChange} className="edit-input" min="0" />
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label>Base Price *</label>
-                    <input type="number" name="price" value={editForm.price} onChange={handleFormChange} className="edit-input" step="0.01" />
+
+                  <div className="grid-2-col-inner">
+                    <div className="form-group">
+                      <label>Category <span className="required">*</span></label>
+                      <select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required>
+                        <option value="">Select Category</option>
+                        {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Sub-Category</label>
+                      <select name="sub_category_id" value={editForm.sub_category_id} onChange={handleFormChange} className="edit-input" disabled={!editForm.category_id}>
+                        <option value="">Select Sub-Category</option>
+                        {subCategories.map(subCat => <option key={subCat.id} value={subCat.id}>{subCat.name}</option>)}
+                      </select>
+                    </div>
                   </div>
+
                   <div className="form-group">
-                    <label>Stock Quantity *</label>
-                    <input type="number" name="stock_quantity" value={editForm.stock_quantity} onChange={handleFormChange} className="edit-input" min="0" />
+                    <label>Cloth Colors (comma separated)</label>
+                    <input type="text" name="cloth_colors" value={editForm.cloth_colors} onChange={handleFormChange} placeholder="e.g. Red, Blue, Green" className="edit-input" />
                   </div>
-                  <div className="form-group">
-                    <label>Size *</label>
-                    <select name="size" value={editForm.size} onChange={handleFormChange} className="edit-input" required>
-                      <option value="">Select Size</option>
-                      <option value="4x4">4x4</option>
-                      <option value="6x6">6x6</option>
-                      <option value="10x10">10x10</option>
-                      <option value="10x20">10x20</option>
-                    </select>
+                </div>
+
+                {/* Right column - Pricing & Images */}
+                <div className="form-section">
+                  <div className="section-header-flex">
+                    <h4 className="section-title">Pricing & Options</h4>
+                    <div className="featured-toggle">
+                      <span className="toggle-label-text">Featured Product</span>
+                      <div className="toggle-switch">
+                        <input type="checkbox" id="featured-edit" name="is_featured" checked={editForm.is_featured} onChange={handleFormChange} />
+                        <label htmlFor="featured-edit" className="toggle-label"></label>
+                      </div>
+                    </div>
                   </div>
+
+                  <div className="grid-2-col-inner">
+                    <div className="form-group">
+                      <label>Base Price <span className="required">*</span></label>
+                      <div className="input-with-prefix">
+                        <span className="prefix">$</span>
+                        <input type="number" name="price" value={editForm.price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Size <span className="required">*</span></label>
+                      <select name="size" value={editForm.size} onChange={handleFormChange} className="edit-input" required>
+                        <option value="">Select Size</option>
+                        <option value="4x4">4x4</option>
+                        <option value="6x6">6x6</option>
+                        <option value="10x10">10x10</option>
+                        <option value="10x20">10x20</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="form-group">
-                    <label>Product Type *</label>
+                    <label>Product Type <span className="required">*</span></label>
                     <select name="product_type" value={editForm.product_type} onChange={handleFormChange} className="edit-input" required>
                       <option value="">Select Type</option>
                       <option value="without_print">Without Print</option>
@@ -377,50 +513,25 @@ const List = () => {
                   </div>
 
                   {editForm.product_type === 'without_print' && (
-                    <div className="form-group">
+                    <div className="form-group bg-light p-3 rounded mt-2">
                       <label>Without Print Price</label>
-                      <input type="number" name="without_print_price" value={editForm.without_print_price} onChange={handleFormChange} className="edit-input" step="0.01" />
+                      <div className="input-with-prefix">
+                        <span className="prefix">$</span>
+                        <input type="number" name="without_print_price" value={editForm.without_print_price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" />
+                      </div>
                     </div>
                   )}
                   {editForm.product_type === 'customization' && (
-                    <div className="grid-3-col">
-                      <div className="form-group"><label>Core Price</label><input type="number" name="core_price" value={editForm.core_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div>
-                      <div className="form-group"><label>Elite Price</label><input type="number" name="elite_price" value={editForm.elite_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div>
-                      <div className="form-group"><label>Pro Price</label><input type="number" name="pro_price" value={editForm.pro_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div>
+                    <div className="grid-3-col bg-light p-3 rounded mt-2">
+                      <div className="form-group m-0"><label>Core Price</label><input type="number" name="core_price" value={editForm.core_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div>
+                      <div className="form-group m-0"><label>Elite Price</label><input type="number" name="elite_price" value={editForm.elite_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div>
+                      <div className="form-group m-0"><label>Pro Price</label><input type="number" name="pro_price" value={editForm.pro_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div>
                     </div>
                   )}
 
-                  <div className="form-group">
-                    <label>Cloth Colors (comma separated)</label>
-                    <input type="text" name="cloth_colors" value={editForm.cloth_colors} onChange={handleFormChange} placeholder="Red, Blue, Green" className="edit-input" />
-                  </div>
-                </div>
+                  <hr className="divider" />
 
-                {/* Right column */}
-                <div>
-                  <div className="form-group">
-                    <label>Category *</label>
-                    <select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required>
-                      <option value="">Select Category</option>
-                      {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Sub-Category</label>
-                    <select name="sub_category_id" value={editForm.sub_category_id} onChange={handleFormChange} className="edit-input" disabled={!editForm.category_id}>
-                      <option value="">Select Sub-Category</option>
-                      {subCategories.map(subCat => <option key={subCat.id} value={subCat.id}>{subCat.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group featured-toggle">
-                    <label>Featured Product</label>
-                    <div className="toggle-switch">
-                      <input type="checkbox" id="featured-edit" name="is_featured" checked={editForm.is_featured} onChange={handleFormChange} />
-                      <label htmlFor="featured-edit" className="toggle-label"></label>
-                    </div>
-                  </div>
-
-                  <hr />
+                  <h4 className="section-title">Media</h4>
                   <div className="form-group">
                     <label>Main Image</label>
                     <div className="image-edit-wrapper">
@@ -431,57 +542,72 @@ const List = () => {
                           <img src={getImageUrl(existingMainImage)} alt="Current Main" />
                         )}
                       </div>
-                      <label className="change-image-btn">
-                        <input type="file" onChange={handleMainImageChange} accept="image/*" />
-                        <span>Change Main Image</span>
-                      </label>
+                      <div className="upload-btn-wrapper">
+                        <label className="btn-modern btn-outline">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                          Change Main Image
+                          <input type="file" onChange={handleMainImageChange} accept="image/*" className="hidden-input" />
+                        </label>
+                      </div>
                     </div>
                   </div>
 
-                  <hr />
-                  <div className="form-group">
-                    <label>Existing Sub Images</label>
-                    {existingSubImages.length === 0 ? (
-                      <p className="no-images-text">No existing sub-images.</p>
+                  <div className="form-group mt-4">
+                    <div className="flex-between">
+                      <label>Sub Images</label>
+                      <span className="text-xs text-muted">Max 10 total</span>
+                    </div>
+
+                    {existingSubImages.length === 0 && subImageFiles.length === 0 ? (
+                      <div className="empty-images-box">No additional images added yet.</div>
                     ) : (
                       <div className="sub-images-preview">
+                        {/* Existing Sub Images */}
                         {existingSubImages.map((img) => (
                           <div key={img.id} className="sub-image-item">
                             <img src={getImageUrl(img.image_url)} alt="Sub" />
-                            <button type="button" onClick={() => handleDeleteExistingSubImage(img.id)} className="remove-image-btn" title="Delete Image">×</button>
+                            <button type="button" onClick={() => confirmDeleteExistingSubImage(img.id)} className="remove-image-btn" title="Delete Image">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                           </div>
                         ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="form-group">
-                    <label>Add New Sub Images (Max total: 10)</label>
-                    <input type="file" onChange={handleSubImagesChange} multiple accept="image/*" className="edit-input" />
-                    {subImageFiles.length > 0 && (
-                      <div className="sub-images-preview mt-2">
+                        {/* New Sub Images preview */}
                         {subImageFiles.map((file, index) => (
-                          <div key={index} className="sub-image-item">
+                          <div key={`new-${index}`} className="sub-image-item new-item">
                             <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} />
-                            <button type="button" onClick={() => removeNewSubImage(index)} className="remove-image-btn">×</button>
+                            <div className="new-badge">NEW</div>
+                            <button type="button" onClick={() => removeNewSubImage(index)} className="remove-image-btn">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                           </div>
                         ))}
                       </div>
                     )}
+
+                    <div className="upload-btn-wrapper mt-3">
+                      <label className="upload-dropzone">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span>Click to browse and add sub-images</span>
+                        <input type="file" onChange={handleSubImagesChange} multiple accept="image/*" className="hidden-input" />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="modal-footer">
-              <button onClick={handleCancelEdit} className="btn btn-cancel">Cancel</button>
-              <button onClick={handleUpdate} className="btn btn-save">Save Changes</button>
+              <button onClick={handleCancelEdit} className="btn-modern btn-ghost">Cancel</button>
+              <button onClick={handleUpdate} className="btn-modern btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Header, Filters and Products Grid (unchanged) */}
+      {/* Header, Filters and Products Grid */}
       <div className="header-section">
         <div className="header-content">
           <div className="header-text">
@@ -489,7 +615,7 @@ const List = () => {
             <p className="header-subtitle">Manage and organize your products efficiently</p>
           </div>
           <div className="header-stats">
-            <div className="stat-card"><span className="stat-number">{filteredProducts.length}</span><span className="stat-label">Products</span></div>
+            <div className="stat-card"><span className="stat-number">{totalFiltered}</span><span className="stat-label">Products</span></div>
             <div className="stat-card featured"><span className="stat-number">{products.filter(p => p.is_featured).length}</span><span className="stat-label">Featured</span></div>
           </div>
         </div>
@@ -501,37 +627,119 @@ const List = () => {
         <div className="filter-group"><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="filter-input"><option value="name">Sort by Name</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option><option value="stock">Stock Quantity</option><option value="featured">Featured First</option></select></div>
       </div>
 
-      {filteredProducts.length === 0 ? (
+      {paginatedProducts.length === 0 ? (
         <div className="empty-state"><div className="empty-icon">📦</div><h3>No Products Found</h3><p>Try adjusting your filters or add a new product</p></div>
       ) : (
-        <div className="products-container">
-          {filteredProducts.map((product) => {
-            const imgUrl = getImageUrl(product.main_image_url);
-            const isLoaded = imageLoaded[product.id];
-            const hasError = imageError[product.id];
-            return (
-              <div key={product.id} className="product-card">
-                <div className="product-image-section">
-                  <div className="product-image">
-                    {!isLoaded && imgUrl && !hasError && <div className="image-loader-overlay"><div className="spinner-small"></div></div>}
-                    {imgUrl && !hasError && <img src={imgUrl} alt={product.name} style={{ display: isLoaded ? 'block' : 'none' }} onLoad={() => handleImageLoad(product.id)} onError={() => handleImageError(product.id)} />}
-                    {(hasError || !imgUrl) && <div className="no-image-placeholder">No image</div>}
-                    {product.sub_images_count > 0 && <div className="image-badge">+{product.sub_images_count} images</div>}
-                  </div>
-                </div>
-                <div className="product-info-section"><h3 className="product-name">{product.name}</h3><p className="product-sku">SKU: {product.sku || 'N/A'}</p></div>
-                <div className="product-details-grid">
-                  <div className="detail-item"><label>Category</label><span className="detail-value">{getCategoryName(product)}</span></div>
-                  <div className="detail-item"><label>Sub-Category</label><span className="detail-value">{getSubCategoryName(product) || '-'}</span></div>
-                  <div className="detail-item"><label>Price</label><span className="detail-value price">${parseFloat(product.price).toFixed(2)}</span></div>
-                  <div className="detail-item"><label>Stock</label><span className={`detail-value stock ${product.stock_quantity === 0 ? 'out-of-stock' : 'in-stock'}`}>{product.stock_quantity} units{product.stock_quantity === 0 && <span className="stock-status"> - Out of Stock</span>}</span></div>
-                  <div className="detail-item featured-item"><label>Featured</label><span className={`detail-value ${product.is_featured ? 'featured-badge' : 'not-featured'}`}>{product.is_featured ? '⭐ Featured' : '-'}</span></div>
-                </div>
-                <div className="action-buttons"><button onClick={() => handleEdit(product)} className="btn btn-edit">✎ Edit</button><button onClick={() => handleDelete(product.id)} className="btn btn-delete">🗑 Delete</button></div>
+        <>
+          <div className="inventory-table-container">
+            <table className="inventory-table">
+              <thead>
+                <tr>
+                  <th width="5%"></th> {/* Image Thumbnail */}
+                  <th width="30%">Product</th>
+                  <th width="15%">SKU</th>
+                  <th width="15%">Category</th>
+                  <th width="10%">Price</th>
+                  <th width="12%">Inventory</th>
+                  <th width="13%">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedProducts.map((product) => {
+                  const imgUrl = getImageUrl(product.main_image_url);
+                  const isLoaded = imageLoaded[product.id];
+                  const hasError = imageError[product.id];
+
+                  return (
+                    <tr key={product.id} className="inventory-row">
+                      <td className="cell-image">
+                        <div className="table-thumbnail-wrapper">
+                          {!isLoaded && imgUrl && !hasError && <div className="img-placeholder" />}
+                          {imgUrl && !hasError ? (
+                            <img
+                              src={imgUrl}
+                              alt={product.name}
+                              className="table-thumbnail"
+                              style={{ display: isLoaded ? 'block' : 'none' }}
+                              onLoad={() => handleImageLoad(product.id)}
+                              onError={() => handleImageError(product.id)}
+                            />
+                          ) : (
+                            <div className="table-thumbnail placeholder-empty">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="cell-product">
+                        <div className="product-name-cell">
+                          <span className="product-title">{product.name}</span>
+                          {product.is_featured && <span className="badge-featured">Featured</span>}
+                        </div>
+                      </td>
+                      <td className="cell-sku">
+                        {product.sku ? <span className="sku-badge">{product.sku}</span> : <span className="text-muted">N/A</span>}
+                      </td>
+                      <td className="cell-category">
+                        <div className="category-text">{getCategoryName(product)}</div>
+                        {getSubCategoryName(product) && <div className="sub-category-text">{getSubCategoryName(product)}</div>}
+                      </td>
+                      <td className="cell-price">
+                        ${parseFloat(product.price).toFixed(2)}
+                      </td>
+                      <td className="cell-stock">
+                        {product.stock_quantity > 0 ? (
+                          <span className="stock-in">{product.stock_quantity} in stock</span>
+                        ) : (
+                          <span className="stock-out">Out of stock</span>
+                        )}
+                      </td>
+                      <td className="cell-actions">
+                        <button onClick={() => handleEdit(product)} className="action-btn edit-btn" title="Edit Product">
+                          Edit
+                        </button>
+                        <button onClick={() => confirmDeleteProduct(product.id)} className="action-btn delete-btn" title="Delete Product">
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="pagination-container">
+              <button
+                className="pagination-btn"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    className={`pagination-page ${currentPage === page ? 'active' : ''}`}
+                    onClick={() => goToPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
               </div>
-            );
-          })}
-        </div>
+              <button
+                className="pagination-btn"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
