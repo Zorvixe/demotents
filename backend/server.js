@@ -96,6 +96,18 @@ const initDatabase = async () => {
       )
     `);
 
+
+    await pool.query(`
+      UPDATE products 
+        SET main_image_url = regexp_replace(main_image_url, '^https?://[^/]+', '')
+        WHERE main_image_url LIKE 'http%';
+
+        UPDATE product_images 
+        SET image_url = regexp_replace(image_url, '^https?://[^/]+', '')
+        WHERE image_url LIKE 'http%';
+    `);
+
+
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
     console.error("❌ Database initialization error:", error);
@@ -131,7 +143,7 @@ const upload = multer({
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
-    
+
     if (extname && mimetype) {
       return cb(null, true);
     } else {
@@ -836,7 +848,6 @@ app.post('/api/products', upload.fields([
       product_type
     } = req.body;
 
-    // Check if main image is uploaded
     if (!req.files || !req.files.mainImage || req.files.mainImage.length === 0) {
       return res.status(400).json({
         success: false,
@@ -844,7 +855,6 @@ app.post('/api/products', upload.fields([
       });
     }
 
-    // Validate required fields
     if (!name || !price || !category_id) {
       return res.status(400).json({
         success: false,
@@ -852,22 +862,20 @@ app.post('/api/products', upload.fields([
       });
     }
 
-    const BASE_URL = `${req.protocol}://${req.get('host')}`;
-    const mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
+    // ✅ Store relative URL (no BASE_URL)
+    const mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
 
     const client = await pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // Generate SKU if not provided
       let finalSku = sku;
       if (!finalSku) {
         const skuPrefix = 'PROD-' + Date.now().toString().slice(-6);
         finalSku = skuPrefix;
       }
 
-      // Parse cloth_colors (can be JSON string or comma-separated)
       let colorsArray = null;
       if (cloth_colors) {
         try {
@@ -877,7 +885,6 @@ app.post('/api/products', upload.fields([
         }
       }
 
-      // Insert product with all fields
       const productResult = await client.query(
         `INSERT INTO products (
           name, description, price, category_id, sub_category_id, 
@@ -909,19 +916,18 @@ app.post('/api/products', upload.fields([
 
       const product = productResult.rows[0];
 
-      // Insert sub-images if any
+      // Insert sub-images with relative URLs
       if (req.files.subImages && req.files.subImages.length > 0) {
         for (let i = 0; i < req.files.subImages.length; i++) {
           await client.query(
             'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
-            [product.id, `${BASE_URL}/uploads/${req.files.subImages[i].filename}`, i]
+            [product.id, `/uploads/${req.files.subImages[i].filename}`, i]
           );
         }
       }
 
       await client.query('COMMIT');
 
-      // Get product with images
       const fullProduct = await getProductWithImages(product.id, client);
 
       res.status(201).json({
@@ -932,21 +938,18 @@ app.post('/api/products', upload.fields([
     } catch (error) {
       await client.query('ROLLBACK');
 
-      // Cleanup uploaded files
       const allFiles = [
         ...(req.files.mainImage || []),
         ...(req.files.subImages || [])
       ];
       const filePaths = allFiles.map(file => file.path);
       deleteFiles(filePaths);
-
       throw error;
     } finally {
       client.release();
     }
   } catch (error) {
     console.error('Error adding product:', error);
-
     if (error.code === '23505') {
       return res.status(400).json({
         success: false,
@@ -1080,7 +1083,6 @@ app.put('/api/products/:id', upload.fields([
     try {
       await client.query('BEGIN');
 
-      // Get current product data
       const currentProduct = await client.query(
         'SELECT main_image_url, sku FROM products WHERE id = $1',
         [id]
@@ -1092,20 +1094,17 @@ app.put('/api/products/:id', upload.fields([
 
       let mainImageUrl = currentProduct.rows[0].main_image_url;
 
-      // Update main image if new one is uploaded
+      // Update main image if new one is uploaded – store relative URL
       if (req.files?.mainImage?.[0]) {
-        // Delete old main image file
         if (mainImageUrl) {
-          const oldImagePath = mainImageUrl.replace(/^.*\/uploads\//, 'uploads/');
+          const oldImagePath = path.join(__dirname, mainImageUrl);
           if (fs.existsSync(oldImagePath)) {
             fs.unlinkSync(oldImagePath);
           }
         }
-        const BASE_URL = `${req.protocol}://${req.get('host')}`;
-        mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
+        mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
       }
 
-      // Build dynamic update query
       const updateFields = [];
       const values = [];
       let paramIndex = 1;
@@ -1161,26 +1160,24 @@ app.put('/api/products/:id', upload.fields([
         await client.query(query, values);
       }
 
-      // Add new sub-images
+      // Add new sub-images with relative URLs
       if (req.files?.subImages?.length > 0) {
         const orderResult = await client.query(
           'SELECT COALESCE(MAX(display_order), 0) as max_order FROM product_images WHERE product_id = $1',
           [id]
         );
         let nextOrder = orderResult.rows[0].max_order + 1;
-        const BASE_URL = `${req.protocol}://${req.get('host')}`;
 
         for (const file of req.files.subImages) {
           await client.query(
             'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
-            [id, `${BASE_URL}/uploads/${file.filename}`, nextOrder++]
+            [id, `/uploads/${file.filename}`, nextOrder++]
           );
         }
       }
 
       await client.query('COMMIT');
 
-      // Get updated product with images
       const updatedProduct = await getProductWithImages(id, client);
 
       res.json({
@@ -1191,21 +1188,18 @@ app.put('/api/products/:id', upload.fields([
     } catch (error) {
       await client.query('ROLLBACK');
 
-      // Cleanup newly uploaded files if transaction fails
       const allFiles = [
         ...(req.files?.mainImage || []),
         ...(req.files?.subImages || [])
       ];
       const filePaths = allFiles.map(file => file?.path).filter(Boolean);
       deleteFiles(filePaths);
-
       throw error;
     } finally {
       client.release();
     }
   } catch (error) {
     console.error('Error updating product:', error);
-
     if (error.code === '23505') {
       return res.status(400).json({
         success: false,
@@ -1230,7 +1224,6 @@ app.delete('/api/products/:productId/images/:imageId', async (req, res) => {
   try {
     const { productId, imageId } = req.params;
 
-    // Get image URL
     const imageResult = await pool.query(
       'SELECT image_url FROM product_images WHERE id = $1 AND product_id = $2',
       [imageId, productId]
@@ -1243,14 +1236,14 @@ app.delete('/api/products/:productId/images/:imageId', async (req, res) => {
       });
     }
 
-    // Delete file
     const imageUrl = imageResult.rows[0].image_url;
-    const imagePath = imageUrl.replace('/uploads/', 'uploads/');
+    // ✅ Build filesystem path from relative URL
+    const imagePath = path.join(__dirname, imageUrl);
+
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
     }
 
-    // Delete from database
     await pool.query(
       'DELETE FROM product_images WHERE id = $1 AND product_id = $2',
       [imageId, productId]
@@ -1278,7 +1271,6 @@ app.delete('/api/products/:id', async (req, res) => {
 
     const { id } = req.params;
 
-    // Get all images to delete
     const imagesToDelete = await client.query(
       `SELECT image_url FROM product_images WHERE product_id = $1 
        UNION ALL 
@@ -1286,13 +1278,12 @@ app.delete('/api/products/:id', async (req, res) => {
       [id]
     );
 
-    // Delete product and images (cascade will delete sub-images)
     await client.query('DELETE FROM products WHERE id = $1', [id]);
 
-    // Delete image files
+    // ✅ Delete files using relative URL → absolute path
     imagesToDelete.rows.forEach(row => {
       if (row.image_url) {
-        const imagePath = row.image_url.replace('/uploads/', 'uploads/');
+        const imagePath = path.join(__dirname, row.image_url);
         if (fs.existsSync(imagePath)) {
           fs.unlinkSync(imagePath);
         }
