@@ -80,6 +80,12 @@ const initDatabase = async () => {
       ADD COLUMN IF NOT EXISTS cloth_colors TEXT[];
     `);
 
+    await pool.query(`
+  ALTER TABLE products 
+  ADD COLUMN IF NOT EXISTS size VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS product_type VARCHAR(50)
+`);
+
     // ✅ THIS WAS MISSING
     await pool.query(`
       CREATE TABLE IF NOT EXISTS product_images (
@@ -813,22 +819,22 @@ app.post('/api/products', upload.fields([
 ]), async (req, res) => {
   try {
     const {
-  name,
-  description,
-  price,
-  category_id,
-  sub_category_id,
-  sku,
-  stock_quantity,
-  is_featured,
-  without_print_price,
-  core_price,
-  elite_price,
-  pro_price,
-  cloth_colors,
-    size,
-  product_type
-} = req.body;
+      name,
+      description,
+      price,
+      category_id,
+      sub_category_id,
+      sku,
+      stock_quantity,
+      is_featured,
+      without_print_price,
+      core_price,
+      elite_price,
+      pro_price,
+      cloth_colors,
+      size,
+      product_type
+    } = req.body;
 
     // Check if main image is uploaded
     if (!req.files || !req.files.mainImage || req.files.mainImage.length === 0) {
@@ -847,11 +853,8 @@ app.post('/api/products', upload.fields([
     }
 
     const BASE_URL = `${req.protocol}://${req.get('host')}`;
-const mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
-const subImageUrls = req.files.subImages
-  ? req.files.subImages.map(file => `${BASE_URL}/uploads/${file.filename}`)
-  : [];
-    // Start transaction
+    const mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
+
     const client = await pool.connect();
 
     try {
@@ -864,33 +867,45 @@ const subImageUrls = req.files.subImages
         finalSku = skuPrefix;
       }
 
-      // Insert product
-      const productResult = await client.query(
-  `INSERT INTO products (
-    name, description, price, category_id, sub_category_id, 
-    main_image_url, sku, stock_quantity, is_featured,
-    without_print_price, core_price, elite_price, pro_price, cloth_colors
-  ) 
-  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) 
-  RETURNING *`,
-  [
-    name,
-    description,
-    parseFloat(price),
-    category_id,
-    sub_category_id || null,
-    mainImageUrl,
-    finalSku,
-    parseInt(stock_quantity) || 0,
-    is_featured === 'true',
+      // Parse cloth_colors (can be JSON string or comma-separated)
+      let colorsArray = null;
+      if (cloth_colors) {
+        try {
+          colorsArray = JSON.parse(cloth_colors);
+        } catch (e) {
+          colorsArray = cloth_colors.split(',').map(c => c.trim());
+        }
+      }
 
-    without_print_price || null,
-    core_price || null,
-    elite_price || null,
-    pro_price || null,
-    cloth_colors ? JSON.parse(cloth_colors) : null
-  ]
-);
+      // Insert product with all fields
+      const productResult = await client.query(
+        `INSERT INTO products (
+          name, description, price, category_id, sub_category_id, 
+          main_image_url, sku, stock_quantity, is_featured,
+          without_print_price, core_price, elite_price, pro_price, cloth_colors,
+          size, product_type
+        ) 
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) 
+        RETURNING *`,
+        [
+          name,
+          description,
+          parseFloat(price),
+          category_id,
+          sub_category_id || null,
+          mainImageUrl,
+          finalSku,
+          parseInt(stock_quantity) || 0,
+          is_featured === 'true',
+          without_print_price || null,
+          core_price || null,
+          elite_price || null,
+          pro_price || null,
+          colorsArray,
+          size || null,
+          product_type || null
+        ]
+      );
 
       const product = productResult.rows[0];
 
@@ -938,14 +953,12 @@ const subImageUrls = req.files.subImages
         message: 'SKU already exists'
       });
     }
-
     if (error.code === '23503') {
       return res.status(400).json({
         success: false,
         message: 'Invalid category ID'
       });
     }
-
     res.status(500).json({
       success: false,
       message: 'Error adding product'
@@ -1052,7 +1065,14 @@ app.put('/api/products/:id', upload.fields([
       sku,
       stock_quantity,
       is_featured,
-      is_active
+      is_active,
+      size,
+      product_type,
+      without_print_price,
+      core_price,
+      elite_price,
+      pro_price,
+      cloth_colors
     } = req.body;
 
     const client = await pool.connect();
@@ -1074,79 +1094,57 @@ app.put('/api/products/:id', upload.fields([
 
       // Update main image if new one is uploaded
       if (req.files?.mainImage?.[0]) {
-        // Delete old main image
+        // Delete old main image file
         if (mainImageUrl) {
-          const oldImagePath = mainImageUrl.replace('/uploads/', 'uploads/');
+          const oldImagePath = mainImageUrl.replace(/^.*\/uploads\//, 'uploads/');
           if (fs.existsSync(oldImagePath)) {
             fs.unlinkSync(oldImagePath);
           }
         }
-
-        mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
+        const BASE_URL = `${req.protocol}://${req.get('host')}`;
+        mainImageUrl = `${BASE_URL}/uploads/${req.files.mainImage[0].filename}`;
       }
 
-      // Build update query
+      // Build dynamic update query
       const updateFields = [];
       const values = [];
       let paramIndex = 1;
 
-      if (name !== undefined) {
-        updateFields.push(`name = $${paramIndex}`);
-        values.push(name);
-        paramIndex++;
-      }
-
-      if (description !== undefined) {
-        updateFields.push(`description = $${paramIndex}`);
-        values.push(description);
-        paramIndex++;
-      }
-
-      if (price !== undefined) {
-        updateFields.push(`price = $${paramIndex}`);
-        values.push(parseFloat(price));
-        paramIndex++;
-      }
-
-      if (category_id !== undefined) {
-        updateFields.push(`category_id = $${paramIndex}`);
-        values.push(category_id);
-        paramIndex++;
-      }
-
-      if (sub_category_id !== undefined) {
-        updateFields.push(`sub_category_id = $${paramIndex}`);
-        values.push(sub_category_id || null);
-        paramIndex++;
-      }
-
+      if (name !== undefined) { updateFields.push(`name = $${paramIndex}`); values.push(name); paramIndex++; }
+      if (description !== undefined) { updateFields.push(`description = $${paramIndex}`); values.push(description); paramIndex++; }
+      if (price !== undefined) { updateFields.push(`price = $${paramIndex}`); values.push(parseFloat(price)); paramIndex++; }
+      if (category_id !== undefined) { updateFields.push(`category_id = $${paramIndex}`); values.push(category_id); paramIndex++; }
+      if (sub_category_id !== undefined) { updateFields.push(`sub_category_id = $${paramIndex}`); values.push(sub_category_id || null); paramIndex++; }
       if (sku !== undefined && sku !== currentProduct.rows[0].sku) {
         updateFields.push(`sku = $${paramIndex}`);
         values.push(sku);
         paramIndex++;
       }
-
-      if (stock_quantity !== undefined) {
-        updateFields.push(`stock_quantity = $${paramIndex}`);
-        values.push(parseInt(stock_quantity));
-        paramIndex++;
-      }
-
-      if (is_featured !== undefined) {
-        updateFields.push(`is_featured = $${paramIndex}`);
-        values.push(is_featured === 'true');
-        paramIndex++;
-      }
-
-      if (is_active !== undefined) {
-        updateFields.push(`is_active = $${paramIndex}`);
-        values.push(is_active === 'true');
-        paramIndex++;
-      }
-
+      if (stock_quantity !== undefined) { updateFields.push(`stock_quantity = $${paramIndex}`); values.push(parseInt(stock_quantity)); paramIndex++; }
+      if (is_featured !== undefined) { updateFields.push(`is_featured = $${paramIndex}`); values.push(is_featured === 'true'); paramIndex++; }
+      if (is_active !== undefined) { updateFields.push(`is_active = $${paramIndex}`); values.push(is_active === 'true'); paramIndex++; }
       if (mainImageUrl !== currentProduct.rows[0].main_image_url) {
         updateFields.push(`main_image_url = $${paramIndex}`);
         values.push(mainImageUrl);
+        paramIndex++;
+      }
+      if (size !== undefined) { updateFields.push(`size = $${paramIndex}`); values.push(size); paramIndex++; }
+      if (product_type !== undefined) { updateFields.push(`product_type = $${paramIndex}`); values.push(product_type); paramIndex++; }
+      if (without_print_price !== undefined) { updateFields.push(`without_print_price = $${paramIndex}`); values.push(without_print_price || null); paramIndex++; }
+      if (core_price !== undefined) { updateFields.push(`core_price = $${paramIndex}`); values.push(core_price || null); paramIndex++; }
+      if (elite_price !== undefined) { updateFields.push(`elite_price = $${paramIndex}`); values.push(elite_price || null); paramIndex++; }
+      if (pro_price !== undefined) { updateFields.push(`pro_price = $${paramIndex}`); values.push(pro_price || null); paramIndex++; }
+      if (cloth_colors !== undefined) {
+        let colorsArray = null;
+        if (cloth_colors) {
+          try {
+            colorsArray = JSON.parse(cloth_colors);
+          } catch (e) {
+            colorsArray = cloth_colors.split(',').map(c => c.trim());
+          }
+        }
+        updateFields.push(`cloth_colors = $${paramIndex}`);
+        values.push(colorsArray);
         paramIndex++;
       }
 
@@ -1154,31 +1152,35 @@ app.put('/api/products/:id', upload.fields([
 
       if (updateFields.length > 0) {
         values.push(id);
-        const query = `UPDATE products SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+        const query = `
+          UPDATE products 
+          SET ${updateFields.join(', ')} 
+          WHERE id = $${paramIndex} 
+          RETURNING *
+        `;
         await client.query(query, values);
       }
 
       // Add new sub-images
       if (req.files?.subImages?.length > 0) {
-        // Get current max display order
         const orderResult = await client.query(
           'SELECT COALESCE(MAX(display_order), 0) as max_order FROM product_images WHERE product_id = $1',
           [id]
         );
-
         let nextOrder = orderResult.rows[0].max_order + 1;
+        const BASE_URL = `${req.protocol}://${req.get('host')}`;
 
         for (const file of req.files.subImages) {
           await client.query(
             'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
-            [id, `/uploads/${file.filename}`, nextOrder++]
+            [id, `${BASE_URL}/uploads/${file.filename}`, nextOrder++]
           );
         }
       }
 
       await client.query('COMMIT');
 
-      // Get updated product
+      // Get updated product with images
       const updatedProduct = await getProductWithImages(id, client);
 
       res.json({
@@ -1189,7 +1191,7 @@ app.put('/api/products/:id', upload.fields([
     } catch (error) {
       await client.query('ROLLBACK');
 
-      // Cleanup uploaded files if transaction fails
+      // Cleanup newly uploaded files if transaction fails
       const allFiles = [
         ...(req.files?.mainImage || []),
         ...(req.files?.subImages || [])
@@ -1210,14 +1212,12 @@ app.put('/api/products/:id', upload.fields([
         message: 'SKU already exists'
       });
     }
-
     if (error.code === '23503') {
       return res.status(400).json({
         success: false,
         message: 'Invalid category ID'
       });
     }
-
     res.status(500).json({
       success: false,
       message: 'Error updating product'
