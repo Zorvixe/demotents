@@ -174,30 +174,36 @@ const Menu = () => {
   };
 
   // Toggle Navbar
-  const toggleNavbar = async (category) => {
-    try {
-      let res;
-      if (category.is_visible) {
-        res = await fetch(`${API_URL}/api/navbar-menu/${category.menu_id}`, { method: "DELETE" });
-      } else {
-        res = await fetch(`${API_URL}/api/navbar-menu`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ category_id: category.id, display_order: 0 }),
-        });
-      }
-      const result = await res.json();
-      if (res.ok && result.success) {
-        toast.success(category.is_visible ? "Removed from Navbar" : "Added to Navbar");
-        fetchCategories();
-      } else {
-        toast.error(result.message || "Failed to update navbar");
-      }
-    } catch (error) {
-      console.error("Toggle navbar error:", error);
-      toast.error("Failed to update navbar");
+  const toggleNavbar = async (category, e) => {
+  e.preventDefault(); // <- prevents the page jump
+  try {
+    let res;
+    if (category.is_visible) {
+      res = await fetch(`${API_URL}/api/navbar-menu/${category.menu_id}`, { method: "DELETE" });
+    } else {
+      res = await fetch(`${API_URL}/api/navbar-menu`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: category.id, display_order: 0 }),
+      });
     }
-  };
+    const result = await res.json();
+    if (res.ok && result.success) {
+      toast.success(category.is_visible ? "Removed from Navbar" : "Added to Navbar");
+      // Instead of refetching all categories, just update the state
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.id === category.id ? { ...cat, is_visible: !cat.is_visible } : cat
+        )
+      );
+    } else {
+      toast.error(result.message || "Failed to update navbar");
+    }
+  } catch (error) {
+    console.error("Toggle navbar error:", error);
+    toast.error("Failed to update navbar");
+  }
+};
 
   // Pagination
   const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
@@ -209,7 +215,7 @@ const Menu = () => {
 
   return (
     <div className="admin-cat-container">
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
+      <ToastContainer  />
 
       {/* Confirm Dialog */}
       {confirmDialog.isOpen && (
@@ -277,12 +283,13 @@ const Menu = () => {
                               </td>
                               <td className="cell-actions">
                                 <div className="action-buttons">
-                                  <button onClick={() => toggleNavbar(category)} className={`action-btn ${category.is_visible ? "remove-btn" : "add-btn"}`}>
-                                    {category.is_visible ? "Remove from Navbar" : "Add to Navbar"}
-                                  </button>
-                                  <button onClick={() => openEditModal(category)} className="action-btn edit-btn">Edit</button>
-                                  <button onClick={() => confirmDeleteCategory(category.id, category.name)} className="action-btn delete-btn">Delete</button>
-                                </div>
+                                 <button
+  onClick={(e) => toggleNavbar(category, e)}
+  className={`action-btn ${category.is_visible ? "remove-btn" : "add-btn"}`}
+>
+  {category.is_visible ? "Remove from Navbar" : "Add to Navbar"}
+</button>
+                                 </div>
                               </td>
                             </tr>
                           )}

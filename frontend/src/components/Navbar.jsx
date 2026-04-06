@@ -35,19 +35,20 @@ const Navbar = () => {
 
   //   fetchNavbarMenu();
   // }, []);
-useEffect(() => {
+  const API_URL = "https://demotents-dhia.onrender.com";
+
+  useEffect(() => {
   const fetchNavbarMenu = async () => {
     try {
-      const response = await fetch("http://localhost:5004/api/navbar-menu");
-
-      if (!response.ok) {
-        throw new Error("API failed");
-      }
+      const response = await fetch(`${API_URL}/api/navbar-menu`);
+      if (!response.ok) throw new Error("API failed");
 
       const data = await response.json();
-
       if (data.success) {
+        // Only show categories added to navbar
         setMenuItems(data.menu || []);
+      } else {
+        console.error("Navbar API error:", data.message);
       }
     } catch (error) {
       console.error("❌ Navbar fetch error:", error);
