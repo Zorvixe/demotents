@@ -18,11 +18,7 @@ const Footer = () => {
               </a>
 
               <p className="company-description mb-3">
-                Punna Graphics is your trusted partner for premium tent and event
-                rental services. We provide all types of tents for weddings,
-                parties, corporate events, exhibitions, and outdoor celebrations.
-                With quality materials, creative setups, and reliable service,
-                we help make every event memorable and stress-free.
+                We are the leading demo tent manufacturers in Hyderabad, offering high-quality, durable, and customizable tents for promotions, events, and corporate branding. With 15 years of experience, we provide gazebo tents, marketing tents, and bulk supply solutions with expert stitching and branding options.
               </p>
             </div>
           </div>
@@ -34,19 +30,19 @@ const Footer = () => {
                 <h6 className="fw-bold mb-3 mt-4">Information</h6>
                 <ul className="list-unstyled footer-links">
                   <li onClick={() => navigate("/about")}>About Us</li>
-                  <li onClick={() => navigate("/booking-policy")}>Booking Policy</li>
+                  {/* <li onClick={() => navigate("/booking-policy")}>Booking Policy</li>
                   <li onClick={() => navigate("/terms")}>Terms & Conditions</li>
-                  <li onClick={() => navigate("/privacy-policy")}>Privacy Policy</li>
+                  <li onClick={() => navigate("/privacy-policy")}>Privacy Policy</li> */}
                 </ul>
               </div>
 
               <div className="col-6">
                 <h6 className="fw-bold mb-3 mt-4">Our Services</h6>
                 <ul className="list-unstyled footer-links">
-                  <li>Wedding Tent Setup</li>
-                  <li>Party & Event Tents</li>
-                  <li>Corporate Event Arrangements</li>
-                  <li>Custom Decorations</li>
+                  <li>Canopy</li>
+                  <li>Gazebo</li>
+                  <li>Roll up Standee</li>
+                  <li>Promotable</li>
                 </ul>
               </div>
             </div>
@@ -87,12 +83,8 @@ const Footer = () => {
 
         {/* Footer bottom */}
         <div className="footer-bottom text-center mt-4">
-          <p className="mb-0">
-            © {new Date().getFullYear()} Punna Graphics. All Rights Reserved.
-          </p>
-          <p className="small text-muted">
-            Maintained by Zorvixe Technologies
-          </p>
+           <p>© {new Date().getFullYear()} <a className="sitename" href='/'>Demo Tents</a> . Developed by <a className="sitename" href='https://www.zorvixetechnologies.com'>Zorvixe Technologies</a></p>
+    
         </div>
       </div>
     </footer>

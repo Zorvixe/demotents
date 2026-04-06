@@ -574,3 +574,22 @@
   background: var(--surface-alt);
   color: var(--text-primary);
 }
+
+
+.add-btn {
+  background-color: #28a745 !important;
+  color: white;
+}
+
+.remove-btn {
+  background-color: #dc3545 !important;
+  color: white;
+}
+
+.draggable-row {
+  cursor: grab;
+}
+
+.draggable-row:hover {
+  background-color: #f8f9fa;
+}

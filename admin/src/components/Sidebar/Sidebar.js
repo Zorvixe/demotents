@@ -25,6 +25,10 @@ const Sidebar = () => {
           <FiClipboard size={22} />
           <p>List Items</p>
         </NavLink>
+        <NavLink to="/menu" className="sidebar-option">
+          <FiClipboard size={22} />
+          <p>Menu Managent</p>
+        </NavLink>
         {/* <NavLink to="/orders" className="sidebar-option">
           <FiBox size={22} />
           <p>Orders Items</p>

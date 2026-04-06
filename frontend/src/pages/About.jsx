@@ -12,20 +12,16 @@ const About = () => {
           </span>
 
           <h1 className="hero-title">
-            DemoTents by <span>Punna Graphics</span>
+            Best Demo Tent Manufacturers in <span>Hyderabad</span>
           </h1>
+         <p className="hero-description">
+  With over 15 years of experience, we are recognized as the leading demo tent manufacturers in Hyderabad, delivering high-quality tents and canopies for weddings, corporate events, roadshows, and promotional campaigns. Our products are designed to combine durability, style, and easy setup for any occasion.
 
-          <h2 className="hero-subtitle">Transforming Events</h2>
+  From gazebo tents and marketing tents to fully customized shamiyana setups, we ensure every solution meets the highest standards of safety, weather resistance, and brand visibility. Our in-house stitching and customization team crafts tents in various sizes, colors, and branding options to suit your unique requirements.
 
-          <p className="hero-description">
-            Premium tent rentals, durable canopies, and professionally managed
-            event infrastructure solutions for weddings, corporate events,
-            exhibitions, and outdoor programs.
-          </p>
-
-          <a href="#who-we-are" className="hero-btn">
-            Discover Our Story →
-          </a>
+  Trusted by event organizers, businesses, and marketing agencies across Hyderabad and Telangana, we also handle bulk orders efficiently without compromising quality. Whether you are planning a corporate launch, wedding celebration, or public promotion, our professional tent solutions ensure your event stands out seamlessly.
+</p>
+<p>We provide professionally crafted wedding and shamiyana tents that combine safety, durability, and elegant presentation, perfect for memorable events and celebrations.</p>
         </div>
       </section>
 
@@ -34,7 +30,7 @@ const About = () => {
         <div className="container">
           <div className="row justify-content-center">
             <div className="col-lg-9 text-center">
-              <h2 className="section-title mb-3">Who We Are</h2>
+              <h2 className="section-title mb-3">Why Choose Us?</h2>
               <p>
                 <strong>DemoTents by Punna Graphics</strong> is a professionally
                 managed tent rental and event infrastructure company delivering
@@ -45,6 +41,16 @@ const About = () => {
                 coverings, we ensure precision setup and dependable service for
                 every occasion.
               </p>
+              <p>Trusted demo tent manufacturers in Dilsukhnagar
+High-quality gazebo tents & canopys
+Reliable demotents for promotions
+Custom branding & printing options
+Expert canopy stiching
+Affordable prices for bulk orders
+One-stop solution including roll up standees
+Contact the Best Demo Tent Manufacturers in Hyderabad
+
+If you are searching for the best demo tent manufacturers in Hyderabad or a reliable canopy tent supplier, we are your perfect partner. Contact us today for customized demo tents, gazebo tents, and complete promotional solutions.</p>
             </div>
           </div>
         </div>
@@ -83,7 +89,7 @@ const About = () => {
 
           <div className="row g-4">
             {[
-              "Wedding & Shamiyana Tents",
+              "Elegant & Durable Event Tents",
               "Outdoor & Promotional Canopies",
               "Waterproof & Rain-Proof Tents",
               "Camping & Temporary Shelters",

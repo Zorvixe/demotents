@@ -8,7 +8,7 @@ import Orders from './pages/Orders/Orders.js';
 import NewCategory from './pages/Category/Categories.js';
 import SubCategory from './pages/Category/SubCategories.js';
 import Dashboard from './pages/Dashboard/Dashboard.js';
-
+import Menu from './pages/Menu/Menu.js';
 import './App.css'; // we'll add the new styles here
 
 const App = () => {
@@ -23,6 +23,7 @@ const App = () => {
             <Route path="/add" element={<Add />} />
             <Route path="/list" element={<List />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/menu" element={<Menu />} />
             <Route path="/new-category" element={<NewCategory />} />
             <Route path="/sub-category" element={<SubCategory />} />
           </Routes>

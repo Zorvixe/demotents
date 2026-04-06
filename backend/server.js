@@ -12,6 +12,16 @@ const port = process.env.PORT || 5004;
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Debug: List all routes (add temporarily)
+app.get('/debug-routes', (req, res) => {
+  const routes = [];
+  app._router.stack.forEach((r) => {
+    if (r.route && r.route.path) {
+      routes.push(`${Object.keys(r.route.methods)} ${r.route.path}`);
+    }
+  });
+  res.json({ routes });
+});
 
 
 // Create absolute paths
@@ -28,6 +38,19 @@ const pool = new Pool({
 // Initialize database tables
 const initDatabase = async () => {
   try {
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS carousel (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255),
+    subtitle TEXT,
+    image_url TEXT NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+console.log("✅ Carousel table initialized");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
@@ -85,6 +108,20 @@ const initDatabase = async () => {
   ADD COLUMN IF NOT EXISTS size VARCHAR(50),
   ADD COLUMN IF NOT EXISTS product_type VARCHAR(50)
 `);
+    // Add this inside initDatabase() function
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS navbar_menu (
+        id SERIAL PRIMARY KEY,
+        category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        is_visible BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(category_id)
+      )
+    `);
+
+   console.log("✅ Navbar menu table initialized");
 
     // ✅ THIS WAS MISSING
     await pool.query(`
@@ -96,7 +133,6 @@ const initDatabase = async () => {
       )
     `);
 
-
     await pool.query(`
       UPDATE products 
         SET main_image_url = regexp_replace(main_image_url, '^https?://[^/]+', '')
@@ -106,8 +142,6 @@ const initDatabase = async () => {
         SET image_url = regexp_replace(image_url, '^https?://[^/]+', '')
         WHERE image_url LIKE 'http%';
     `);
-
-
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
     console.error("❌ Database initialization error:", error);
@@ -170,6 +204,98 @@ const deleteFiles = (filePaths) => {
   });
 };
 
+//carousel 
+app.get('/api/carousel', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * 
+      FROM carousel 
+      WHERE is_active = true
+      ORDER BY display_order ASC, id ASC
+    `);
+    res.json({ success: true, carousel: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to fetch carousel' });
+  }
+});
+app.post('/api/carousel', upload.single('image'), async (req, res) => {
+  try {
+    const { title, subtitle, display_order } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Image is required' });
+    }
+
+    const imageUrl = `/uploads/${req.file.filename}`;
+
+    const result = await pool.query(`
+      INSERT INTO carousel (title, subtitle, image_url, display_order) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING *
+    `, [title || null, subtitle || null, imageUrl, display_order || 0]);
+
+    res.status(201).json({ success: true, carousel: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to add carousel item' });
+  }
+});
+app.put('/api/carousel/:id', upload.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, subtitle, display_order, is_active } = req.body;
+
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }
+    if (subtitle !== undefined) { fields.push(`subtitle = $${idx++}`); values.push(subtitle); }
+    if (display_order !== undefined) { fields.push(`display_order = $${idx++}`); values.push(display_order); }
+    if (is_active !== undefined) { fields.push(`is_active = $${idx++}`); values.push(is_active); }
+
+    if (req.file) {
+      fields.push(`image_url = $${idx++}`);
+      values.push(`/uploads/${req.file.filename}`);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields to update' });
+    }
+
+    values.push(id);
+    const query = `
+      UPDATE carousel 
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = $${idx} 
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Carousel item not found' });
+    }
+
+    res.json({ success: true, carousel: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to update carousel' });
+  }
+});
+app.delete('/api/carousel/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM carousel WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Carousel item not found' });
+    }
+    res.json({ success: true, message: 'Carousel item deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to delete carousel' });
+  }
+});
 // ==================== CATEGORY ROUTES ====================
 
 // 1. Create Category
@@ -225,91 +351,27 @@ app.post('/api/categories', async (req, res) => {
 });
 
 // 2. Get All Categories
-// 2. Get All Categories
 app.get('/api/categories', async (req, res) => {
   try {
-    const { includeSubCategories = 'false' } = req.query;
-
-    let categories;
-
-    if (includeSubCategories === 'true') {
-      // Get categories with their sub-categories
-      const result = await pool.query(`
-        SELECT 
-          c.*,
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', sc.id,
-                'name', sc.name,
-                'description', sc.description,
-                'is_active', sc.is_active,
-                'product_count', (
-                  SELECT COUNT(*) FROM products p 
-                  WHERE p.sub_category_id = sc.id AND p.is_active = true
-                )
-              ) ORDER BY sc.name
-            ) FILTER (WHERE sc.id IS NOT NULL),
-            '[]'
-          ) as sub_categories,
-          (
-            SELECT COUNT(*) FROM products p 
-            WHERE p.category_id = c.id AND p.is_active = true
-          ) as product_count,
-          (
-            SELECT p2.main_image_url
-            FROM products p2
-            WHERE p2.category_id = c.id
-              AND p2.is_active = true
-              AND p2.main_image_url IS NOT NULL
-            ORDER BY p2.created_at DESC
-            LIMIT 1
-          ) as preview_image
-        FROM categories c
-        LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
-        WHERE c.is_active = true
-        GROUP BY c.id
-        ORDER BY c.name
-      `);
-
-      categories = result.rows;
-    } else {
-      // Get only categories with preview image
-      const result = await pool.query(`
-        SELECT 
-          c.*,
-          COUNT(p.id) as product_count,
-          (
-            SELECT p2.main_image_url
-            FROM products p2
-            WHERE p2.category_id = c.id
-              AND p2.is_active = true
-              AND p2.main_image_url IS NOT NULL
-            ORDER BY p2.created_at DESC
-            LIMIT 1
-          ) as preview_image
-        FROM categories c
-        LEFT JOIN products p 
-          ON p.category_id = c.id 
-          AND p.is_active = true
-        WHERE c.is_active = true
-        GROUP BY c.id
-        ORDER BY c.name
-      `);
-
-      categories = result.rows;
-    }
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        nm.id as menu_id,
+        nm.is_visible,
+        nm.display_order
+      FROM categories c
+      LEFT JOIN navbar_menu nm ON nm.category_id = c.id
+      WHERE c.is_active = true
+      ORDER BY c.name ASC
+    `);
 
     res.json({
       success: true,
-      categories
+      categories: result.rows
     });
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching categories'
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 
@@ -511,6 +573,90 @@ app.delete('/api/categories/:id', async (req, res) => {
     client.release();
   }
 });
+
+// NAVBAR MENU ROUTES
+
+// ==================== NAVBAR MENU ROUTES - FINAL CLEAN BLOCK ====================
+
+// GET - Used by public Navbar component
+app.get('/api/navbar-menu', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.id, c.name, c.description,
+        nm.id as menu_id,
+        nm.display_order,
+        COALESCE(
+          json_agg(json_build_object('id', sc.id, 'name', sc.name)) 
+          FILTER (WHERE sc.id IS NOT NULL), '[]'
+        ) as sub_categories
+      FROM navbar_menu nm
+      JOIN categories c ON c.id = nm.category_id
+      LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
+      WHERE nm.is_visible = true AND c.is_active = true
+      GROUP BY c.id, nm.id, nm.display_order
+      ORDER BY nm.display_order ASC, c.name ASC
+    `);
+
+    res.json({ success: true, menu: result.rows || [] });
+  } catch (error) {
+    console.error('Navbar GET error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST - Add to Navbar  ← This is the one failing
+app.post('/api/navbar-menu', async (req, res) => {
+  try {
+    const { category_id, display_order = 0 } = req.body;
+
+    if (!category_id) {
+      return res.status(400).json({ success: false, message: 'Category ID is required' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO navbar_menu (category_id, display_order, is_visible)
+      VALUES ($1, $2, true)
+      ON CONFLICT (category_id) 
+      DO UPDATE SET 
+        is_visible = true, 
+        display_order = EXCLUDED.display_order, 
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [category_id, display_order]);
+
+    res.status(201).json({
+      success: true,
+      message: 'Category added to navbar',
+      menu_item: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Navbar POST error:', error);
+    res.status(500).json({ success: false, message: 'Failed to add to navbar' });
+  }
+});
+
+// DELETE - Remove from Navbar
+app.delete('/api/navbar-menu/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'UPDATE navbar_menu SET is_visible = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: 'Menu item not found' });
+    }
+
+    res.json({ success: true, message: 'Category removed from navbar' });
+  } catch (error) {
+    console.error('Navbar DELETE error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 
 // ==================== SUB-CATEGORY ROUTES ====================
 
@@ -798,6 +944,7 @@ app.delete('/api/sub-categories/:id', async (req, res) => {
     client.release();
   }
 });
+
 
 // ==================== PRODUCT ROUTES ====================
 
@@ -1541,4 +1688,6 @@ initDatabase().then(() => {
     console.log(`Server running on port ${port}`);
     console.log(`Uploads directory: ${uploadsDir}`);
   });
+
 });
+

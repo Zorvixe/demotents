@@ -19,11 +19,10 @@ const ConnectSection = () => {
         data-aos-easing="ease-out-cubic"
         data-aos-once="true"
       >
-        <h2>We Connect Event Organizers & Tent Providers</h2>
+        <h2>Best Demo Tent Manufacturers in Hyderabad
+</h2>
         <p>
-          We help you find reliable tent suppliers and event setup services
-          at the best price, quickly and easily.
-        </p>
+         We are the leading demo tent manufacturers in Hyderabad, offering high-quality, durable, and customizable tents for promotions, events, and corporate branding. With 15 years of experience, we provide gazebo tents, marketing tents, and bulk supply solutions with expert stitching and branding options.</p>
 
         <div className="trust-icons">
           <div data-aos="zoom-in" data-aos-delay="100" data-aos-duration="1200" data-aos-once="true">

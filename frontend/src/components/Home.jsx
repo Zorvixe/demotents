@@ -39,8 +39,8 @@ const Home = () => {
           >
             <div className="hero-overlay"></div>
             <div className="hero-center-content container text-center text-white d-flex flex-column justify-content-center align-items-center h-100">
-              <h1 className="fw-bold">Premium Tent Rentals</h1>
-              <p>Quality tents, quick setup & best service.</p>
+              <h3 className="fw-bold">Best Demo Tent Manufacturers in Hyderabad</h3>
+              <p>Design | Print | Stich | Deliver</p>
             </div>
           </div>
 

@@ -645,3 +645,34 @@
 .confirm-dialog-overlay {
   z-index: 9999 !important;
 }
+@media (max-width: 1200px) {
+  .header-text h3.header-title { font-size: 24px; }
+  .header-text .header-subtitle { font-size: 13px; }
+  .stat-number { font-size: 18px; }
+  .stat-label { font-size: 11px; }
+  
+}
+
+@media (max-width: 992px) {
+  .header-content { gap: 16px; }
+  .stat-card { min-width: 90px; padding: 10px 14px; }
+  
+}
+
+@media (max-width: 768px) {
+  .header-content { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .header-text h3.header-title { font-size: 22px; }
+  .header-text .header-subtitle { font-size: 12px; }
+  .stat-card { min-width: 80px; padding: 8px 12px; }
+  .stat-number { font-size: 16px; }
+  .stat-label { font-size: 11px; }
+}
+
+@media (max-width: 576px) {
+  .header-text h3.header-title { font-size: 20px; }
+  .header-text .header-subtitle { font-size: 11px; }
+  .header-stats { width: 100%; justify-content: flex-start; gap: 10px; }
+  .stat-card { flex: 1; min-width: 45%; padding: 8px 10px; }
+  .stat-number { font-size: 14px; }
+  .stat-label { font-size: 7px; }
+}

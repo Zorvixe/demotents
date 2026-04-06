@@ -1,0 +1,223 @@
+/* ===========================
+   Admin Container
+=========================== */
+.admin-cat-container {
+  padding: 20px;
+  font-family: 'Roboto', sans-serif;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+/* ===========================
+   Header Section
+=========================== */
+.admin-cat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.header-titles h1 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.header-titles p {
+  font-size: 14px;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+/* ===========================
+   Buttons
+=========================== */
+.admin-btn-primary, 
+.admin-btn-outline,
+.admin-btn-ghost,
+.add-btn, .remove-btn, .edit-btn, .delete-btn {
+  transition: 0.3s;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.admin-btn-primary { background-color: #0d6efd; color: #fff; border: none; padding: 8px 16px; }
+.admin-btn-primary:hover { background-color: #0b5ed7; }
+
+.admin-btn-outline { background-color: transparent; border: 1px solid #0d6efd; color: #0d6efd; padding: 8px 16px; }
+.admin-btn-outline:hover { background-color: #0d6efd; color: #fff; }
+
+.admin-btn-ghost { background-color: #eee; border: none; padding: 8px 14px; margin-right: 10px; }
+.admin-btn-ghost:hover { background-color: #ddd; }
+
+.add-btn { background-color: #198754; color: #fff; }
+.add-btn:hover { background-color: #157347; }
+
+.remove-btn { background-color: #dc3545; color: #fff; }
+.remove-btn:hover { background-color: #bb2d3b; }
+
+.edit-btn { background-color: #0d6efd; color: #fff; }
+.edit-btn:hover { background-color: #0b5ed7; }
+
+.delete-btn { background-color: #ffc107; color: #fff; }
+.delete-btn:hover { background-color: #e0a800; }
+
+/* ===========================
+   Empty State
+=========================== */
+.admin-empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  background-color: #fff;
+  border-radius: 10px;
+}
+
+.admin-empty-state h3 { font-size: 20px; margin-bottom: 10px; }
+.admin-empty-state p { color: #555; margin-bottom: 20px; }
+
+/* ===========================
+   Inventory Table
+=========================== */
+.inventory-table-container {
+  overflow-x: auto;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.inventory-table th, .inventory-table td {
+  text-align: left;
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.inventory-table th { background-color: #f5f5f5; font-weight: 500; }
+
+.cell-actions { display: flex; justify-content: flex-start; }
+.action-buttons { display: flex; gap: 5px; }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.status-badge.active { background-color: #d1e7dd; color: #0f5132; }
+.status-badge.inactive { background-color: #f8d7da; color: #842029; }
+
+/* ===========================
+   Pagination
+=========================== */
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pagination-container button {
+  padding: 6px 12px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.pagination-container button:hover:not(:disabled) { background-color: #0d6efd; color: #fff; }
+.pagination-container button.active { background-color: #0d6efd; color: #fff; border-color: #0d6efd; }
+.pagination-container button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===========================
+   Modals
+=========================== */
+.admin-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.admin-modal {
+  background-color: #fff;
+  width: 400px;
+  max-width: 95%;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+}
+
+.modal-head {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5f5f5;
+}
+
+.modal-head h2 { margin: 0; font-size: 18px; }
+.close-btn { background: transparent; border: none; font-size: 18px; cursor: pointer; }
+
+.modal-form { padding: 20px; }
+.input-group { margin-bottom: 15px; }
+.input-group label { display: block; font-weight: 500; margin-bottom: 5px; font-size: 14px; }
+.input-group input, .input-group textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+.input-group textarea { resize: none; }
+.modal-foot { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+.dragging-row { background-color: #f0f8ff; }
+
+/* ===========================
+   Responsive Media Queries
+=========================== */
+@media (max-width: 1200px) {
+  .header-titles h1 { font-size: 24px; }
+  .admin-btn-primary, .admin-btn-outline { padding: 7px 14px; font-size: 13px; }
+  .inventory-table th, .inventory-table td { padding: 10px 8px; font-size: 13px; }
+}
+
+@media (max-width: 992px) {
+  .admin-cat-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .inventory-table { min-width: 500px; }
+}
+
+@media (max-width: 768px) {
+  .header-titles h1 { font-size: 20px; }
+  .header-titles p { font-size: 12px; }
+  .inventory-table { min-width: 400px; }
+  .admin-btn-primary, .admin-btn-outline, .admin-btn-ghost { font-size: 12px; padding: 6px 12px; }
+}
+
+@media (max-width: 576px) {
+  .admin-cat-container { padding: 15px 10px; }
+  .inventory-table-container { padding: 5px; }
+  .inventory-table { min-width: 300px; font-size: 12px; }
+  .pagination-container button { padding: 5px 10px; font-size: 12px; }
+  .modal-form { padding: 15px; }
+  .modal-head h2 { font-size: 16px; }
+  .input-group label { font-size: 12px; }
+  .input-group input, .input-group textarea { font-size: 12px; padding: 6px 8px; }
+}
