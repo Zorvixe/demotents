@@ -103,8 +103,8 @@ export default function AllCategories() {
 
   if (loading) {
     return (
-      <div className="modern-loader-container full-page">
-        <div className="modern-loader-ring"></div>
+       <div className="global-loader">
+        <div className="spinner"></div>
       </div>
     );
   }

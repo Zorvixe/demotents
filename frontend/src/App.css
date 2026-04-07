@@ -120,7 +120,7 @@ html, body {
 
 /* NEW: Add top margin for pages that have the navbar */
 .page-with-navbar {
-  margin-top: 200px;
+  margin-top: 150px;
 }
 
 

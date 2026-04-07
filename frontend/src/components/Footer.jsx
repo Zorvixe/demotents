@@ -55,24 +55,24 @@ const Footer = () => {
 
               <p>
                 <i className="bi bi-geo-alt me-2"></i>
-                Dilsukhnagar, Hyderabad, Telangana
+                Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhngar, Dilsukhnagar, Hyderabad, Telangana 500060
               </p>
 
               <p>
                 <i className="bi bi-envelope me-2"></i>
-                punna.graphics@email.com
+                punnagfx@gmail.com
               </p>
 
               <p>
                 <i className="bi bi-telephone me-2"></i>
-                +91 9052899000
+                +91 9010864897
               </p>
 
               <div className="social-icons">
                 <a href="#"><i className="bi bi-facebook"></i></a>
-                <a href="#"><i className="bi bi-whatsapp"></i></a>
+                <a href="https://wa.me/919010864897"><i className="bi bi-whatsapp"></i></a>
                 <a href="#"><i className="bi bi-instagram"></i></a>
-                <a href="tel:+919052899000">
+                <a href="tel:+919010864897">
                   <i className="bi bi-telephone-fill"></i>
                 </a>
               </div>

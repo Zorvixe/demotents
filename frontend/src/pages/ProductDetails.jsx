@@ -12,6 +12,11 @@ const ProductDetails = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedColor, setSelectedColor] = useState(null);
 
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [allLightboxImages, setAllLightboxImages] = useState([]);
+
   const [mainImageLoaded, setMainImageLoaded] = useState(false);
   const [mainImageError, setMainImageError] = useState(false);
   const [thumbLoaded, setThumbLoaded] = useState({});
@@ -27,11 +32,9 @@ const ProductDetails = () => {
   const getColorHex = (colorName) => {
     if (!colorName) return '#dddddd';
 
-    // Normalize: trim, convert to title case (e.g., "dark red" → "Dark Red")
     const normalized = colorName.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
     const colorMap = {
-      // Basic colors
       'Red': '#ff0000', 'Blue': '#0000ff', 'Green': '#008000', 'Black': '#000000',
       'White': '#ffffff', 'Yellow': '#ffff00', 'Purple': '#800080', 'Orange': '#ffa500',
       'Pink': '#ffc0cb', 'Brown': '#a52a2a', 'Gray': '#808080', 'Grey': '#808080',
@@ -40,41 +43,28 @@ const ProductDetails = () => {
       'Gold': '#ffd700', 'Beige': '#f5f5dc', 'Ivory': '#fffff0', 'Khaki': '#f0e68c',
       'Coral': '#ff7f50', 'Salmon': '#fa8072', 'Turquoise': '#40e0d0', 'Lavender': '#e6e6fa',
       'Violet': '#ee82ee', 'Indigo': '#4b0082', 'Rose': '#ff007f', 'Copper': '#b87333',
-      'Bronze': '#cd7f32',
-      // Extended / Shopify common
-      'Charcoal': '#36454F', 'Cream': '#FFFDD0', 'Mint': '#98FB98', 'Peach': '#FFDAB9',
-      'Rose Gold': '#B76E79', 'Tan': '#D2B48C', 'Camel': '#C19A6B', 'Champagne': '#F7E7CE',
-      'Nude': '#E3BC9A', 'Olive Green': '#556B2F', 'Burgundy': '#800020', 'Navy Blue': '#000080',
-      'Forest Green': '#228B22', 'Sky Blue': '#87CEEB', 'Mustard': '#FFDB58'
+      'Bronze': '#cd7f32', 'Charcoal': '#36454F', 'Cream': '#FFFDD0', 'Mint': '#98FB98',
+      'Peach': '#FFDAB9', 'Rose Gold': '#B76E79', 'Tan': '#D2B48C', 'Camel': '#C19A6B',
+      'Champagne': '#F7E7CE', 'Nude': '#E3BC9A', 'Olive Green': '#556B2F', 'Burgundy': '#800020',
+      'Navy Blue': '#000080', 'Forest Green': '#228B22', 'Sky Blue': '#87CEEB', 'Mustard': '#FFDB58'
     };
 
-    // 1. Try exact match after normalization
     if (colorMap[normalized]) return colorMap[normalized];
-
-    // 2. Try partial match (e.g., "Dark Red" -> "Red")
     for (const [key, hex] of Object.entries(colorMap)) {
-      if (normalized.includes(key) || key.includes(normalized)) {
-        return hex;
-      }
+      if (normalized.includes(key) || key.includes(normalized)) return hex;
     }
 
-    // 3. Fallback: generate a deterministic color from the name (so it's never white)
     let hash = 0;
     for (let i = 0; i < colorName.length; i++) {
       hash = ((hash << 5) - hash) + colorName.charCodeAt(i);
-      hash |= 0; // Convert to 32-bit integer
+      hash |= 0;
     }
     const hue = Math.abs(hash % 360);
-    return `hsl(${hue}, 70%, 55%)`; // Vibrant, never white/gray
+    return `hsl(${hue}, 70%, 55%)`;
   };
 
+  const handleColorSelect = (colorName) => setSelectedColor(colorName);
 
-  const handleColorSelect = (colorName) => {
-    setSelectedColor(colorName);
-  };
-
-
-  // Helper function to capitalize only the first letter of the entire string
   const capitalizeFirstLetter = (str) => {
     if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
@@ -93,7 +83,8 @@ const ProductDetails = () => {
           const product = productData.product;
           setProduct(product);
           if (product.main_image_url) {
-            setActiveImg(getImageUrl(product.main_image_url));
+            const mainUrl = getImageUrl(product.main_image_url);
+            setActiveImg(mainUrl);
           }
 
           if (product.category_id) {
@@ -148,6 +139,17 @@ const ProductDetails = () => {
     setMainImageError(false);
   }, [activeImg]);
 
+  // Build array of all images for lightbox
+  useEffect(() => {
+    if (product) {
+      const images = [
+        ...(product.main_image_url ? [product.main_image_url] : []),
+        ...(product.sub_images?.map(img => img.image_url) || [])
+      ].filter(Boolean).map(img => getImageUrl(img));
+      setAllLightboxImages(images);
+    }
+  }, [product]);
+
   const handleMainImageLoad = () => setMainImageLoaded(true);
   const handleMainImageError = () => {
     setMainImageError(true);
@@ -166,11 +168,27 @@ const ProductDetails = () => {
     setRelatedImageLoaded(prev => ({ ...prev, [id]: true }));
   };
 
+  // Open lightbox on main image click
+  const openLightbox = () => {
+    const currentIndex = allLightboxImages.findIndex(img => img === activeImg);
+    setLightboxIndex(currentIndex >= 0 ? currentIndex : 0);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => setLightboxOpen(false);
+
+  const nextImage = () => {
+    setLightboxIndex((prev) => (prev + 1) % allLightboxImages.length);
+  };
+
+  const prevImage = () => {
+    setLightboxIndex((prev) => (prev - 1 + allLightboxImages.length) % allLightboxImages.length);
+  };
+
   if (loading) {
     return (
-      <div className="ecom-loader-container">
-        <div className="ecom-loader-spinner"></div>
-        <p>Loading details...</p>
+      <div className="global-loader">
+        <div className="spinner"></div>
       </div>
     );
   }
@@ -191,13 +209,23 @@ const ProductDetails = () => {
 
   return (
     <div className="ecom-product-page container py-4">
-
+      {/* LIGHTBOX MODAL */}
+      {lightboxOpen && allLightboxImages.length > 0 && (
+        <div className="ecom-lightbox" onClick={closeLightbox}>
+          <span className="ecom-lightbox-close" onClick={closeLightbox}>&times;</span>
+          <button className="ecom-lightbox-prev" onClick={(e) => { e.stopPropagation(); prevImage(); }}>&#10094;</button>
+          <div className="ecom-lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img src={allLightboxImages[lightboxIndex]} alt="Zoom" />
+          </div>
+          <button className="ecom-lightbox-next" onClick={(e) => { e.stopPropagation(); nextImage(); }}>&#10095;</button>
+        </div>
+      )}
 
       <div className="row g-4 ecom-main-row">
-        {/* LEFT – IMAGE GALLERY (Amazon/Flipkart Style: Thumbs on Left, Main on Right) */}
+        {/* LEFT – IMAGE GALLERY */}
         <div className="col-lg-5 col-md-6 ecom-gallery-section">
           <div className="ecom-gallery-layout">
-            {/* Thumbnails (Vertical on desktop) */}
+            {/* Thumbnails */}
             {allImages.length > 1 && (
               <div className="ecom-thumbnail-col">
                 {allImages.map((img, index) => {
@@ -233,8 +261,8 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* Main Image */}
-            <div className="ecom-main-image-wrapper">
+            {/* Main Image (clickable) */}
+            <div className="ecom-main-image-wrapper" onClick={openLightbox}>
               {!mainImageLoaded && activeImg && !mainImageError && (
                 <div className="ecom-image-loader"><div className="ecom-spinner"></div></div>
               )}
@@ -255,13 +283,11 @@ const ProductDetails = () => {
           </div>
         </div>
 
-        {/* RIGHT – PRODUCT DETAILS */}
+        {/* RIGHT – PRODUCT DETAILS (unchanged except minor fixes) */}
         <div className="col-lg-7 col-md-6 ecom-info-section">
           <div className="ecom-product-info">
-
-            {/* Title & Ratings */}
             <h1 className="ecom-product-title">{capitalizeFirstLetter(product.name)}</h1>   
-                     <div className="ecom-rating-box">
+            <div className="ecom-rating-box">
               <span className="ecom-stars">
                 <i className="bi bi-star-fill"></i>
                 <i className="bi bi-star-fill"></i>
@@ -276,7 +302,6 @@ const ProductDetails = () => {
 
             <hr className="ecom-divider" />
 
-            {/* Pricing Section */}
             <div className="ecom-price-section">
               {product.core_price || product.elite_price || product.pro_price ? (
                 <div className="ecom-tiered-pricing">
@@ -315,14 +340,12 @@ const ProductDetails = () => {
 
             <hr className="ecom-divider" />
 
-            {/* Product Meta (SKU, Size, Type) */}
             <div className="ecom-meta-table">
               {product.sku && <div className="ecom-meta-row"><span className="ecom-meta-label">SKU : </span><span className="ecom-meta-val">{product.sku}</span></div>}
               {product.product_type && <div className="ecom-meta-row"><span className="ecom-meta-label">Type : </span><span className="ecom-meta-val">{product.product_type}</span></div>}
               {product.size && <div className="ecom-meta-row"><span className="ecom-meta-label">Size</span><span className="ecom-meta-val">{product.size}</span></div>}
             </div>
 
-            {/* Stock Status */}
             <div className="ecom-stock-box mt-3">
               <h4 className={`ecom-stock-text ${product.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'}`}>
                 {product.stock_quantity > 0 ? 'In Stock' : 'Currently unavailable.'}
@@ -330,7 +353,7 @@ const ProductDetails = () => {
               {product.stock_quantity > 0 && <p className="ecom-seller-text">Sold by <b>Official Store</b> and Fulfilled by Platform.</p>}
             </div>
 
-            {/* Color Swatches - Shopify Style */}
+            {/* Color Swatches */}
             {(() => {
               const colorsArray = Array.isArray(product.cloth_colors) ? product.cloth_colors : [];
               const validColors = colorsArray.filter(c => c && c.trim() !== "");
@@ -360,7 +383,7 @@ const ProductDetails = () => {
                 </div>
               );
             })()}
-            {/* Description (About this item) */}
+
             <div className="ecom-description-section mt-4">
               <h3 className="ecom-section-heading">About this item</h3>
               <ul className="ecom-bullets">
@@ -374,7 +397,6 @@ const ProductDetails = () => {
               </ul>
             </div>
 
-            {/* ACTION BUY BOX (Amazon Right Panel Style integrated at bottom for mobile/flow) */}
             <div className="ecom-action-panel mt-4">
               <div className="ecom-qty-selector mb-3">
                 <label>Qty:</label>
@@ -394,14 +416,13 @@ const ProductDetails = () => {
                 <i className="bi bi-lock-fill text-muted"></i> Secure transaction
               </div>
             </div>
-
           </div>
         </div>
       </div>
 
       <hr className="ecom-heavy-divider" />
 
-      {/* RELATED PRODUCTS (Amazon Carousel Style) */}
+      {/* RELATED PRODUCTS */}
       {relatedProducts.length > 0 && (
         <div className="ecom-related-section">
           <h2 className="ecom-related-heading">Customers who viewed this item also viewed</h2>
@@ -412,7 +433,6 @@ const ProductDetails = () => {
                 const isLoaded = relatedImageLoaded[item.id];
                 const hasError = relatedImageError[item.id];
 
-                // Format price for related items
                 let displayPrice = "";
                 if (item.core_price || item.elite_price || item.pro_price) {
                   const prices = [item.core_price, item.elite_price, item.pro_price].filter(p => p && !isNaN(p) && p > 0);
