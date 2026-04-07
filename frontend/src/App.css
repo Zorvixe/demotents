@@ -1,3 +1,14 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
 .social-fixed {
   position: fixed;
   top: 350px;                
@@ -120,7 +131,7 @@ html, body {
 
 /* NEW: Add top margin for pages that have the navbar */
 .page-with-navbar {
-  margin-top: 200px;
+  margin-top: 150px;
 }
 
 

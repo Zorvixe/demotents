@@ -61,6 +61,10 @@ console.log("✅ Carousel table initialized");
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await pool.query(`
+  ALTER TABLE categories 
+  ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+`);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sub_categories (
@@ -362,7 +366,9 @@ app.get('/api/categories', async (req, res) => {
       FROM categories c
       LEFT JOIN navbar_menu nm ON nm.category_id = c.id
       WHERE c.is_active = true
-      ORDER BY c.name ASC
+      ORDER BY 
+  COALESCE(nm.display_order, c.display_order) ASC,
+  c.name ASC
     `);
 
     res.json({
@@ -1607,6 +1613,83 @@ app.get('/api/sub-categories/:id', async (req, res) => {
   }
 });
 
+//reorder
+//  Reorder Categories
+app.put('/api/categories/reorder', async (req, res) => {
+  const { categories } = req.body;
+
+  if (!categories || !Array.isArray(categories)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid categories data"
+    });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    for (const item of categories) {
+      await client.query(
+        `UPDATE categories 
+         SET display_order = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $2`,
+        [item.display_order, item.id]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: "Categories reordered successfully"
+    });
+
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Reorder error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to reorder categories"
+    });
+
+  } finally {
+    client.release();
+  }
+});
+// Navbar reoerder
+app.put('/api/navbar-menu/reorder', async (req, res) => {
+  const { items } = req.body;
+
+  if (!items || !Array.isArray(items)) {
+    return res.status(400).json({ success: false, message: "Invalid data" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const item of items) {
+      await client.query(
+        `UPDATE navbar_menu 
+         SET display_order = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE id = $2`,
+        [item.display_order, item.id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: "Navbar reordered successfully" });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to reorder" });
+  } finally {
+    client.release();
+  }
+});
 
 // ==================== STATS ENDPOINT ====================
 

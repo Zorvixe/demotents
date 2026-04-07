@@ -39,11 +39,11 @@ const Footer = () => {
               <div className="col-6">
                 <h6 className="fw-bold mb-3 mt-4">Our Services</h6>
                 <ul className="list-unstyled footer-links">
-                  <li>Canopy</li>
-                  <li>Gazebo</li>
-                  <li>Roll up Standee</li>
-                  <li>Promotable</li>
-                </ul>
+  <li onClick={() => navigate("/canopy")}>Canopy</li>
+  <li onClick={() => navigate("/gazebo")}>Gazebo</li>
+  <li onClick={() => navigate("/rollup-standee")}>Roll up Standee</li>
+  <li onClick={() => navigate("/promotable")}>Promotable</li>
+</ul>
               </div>
             </div>
           </div>
@@ -54,18 +54,25 @@ const Footer = () => {
               <h6 className="fw-bold mb-3">Contact Information</h6>
 
               <p>
-                <i className="bi bi-geo-alt me-2"></i>
-                Dilsukhnagar, Hyderabad, Telangana
-              </p>
+  <i className="bi bi-geo-alt me-2"></i>
+  <a
+    href="https://www.google.com/maps/search/?api=1&query=Piller+No.+1540,+Uco+Bank+Lane,+Dilsukhnagar,+Hyderabad"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="map-link"
+  >
+    Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhnagar, Hyderabad, Telangana 500060
+  </a>
+</p>
 
               <p>
                 <i className="bi bi-envelope me-2"></i>
-                punna.graphics@email.com
+                punnagfx@gmail.com
               </p>
 
               <p>
                 <i className="bi bi-telephone me-2"></i>
-                +91 9052899000
+                +91 9010864897
               </p>
 
               <div className="social-icons">

@@ -375,3 +375,23 @@
   background-color: #f97316;
   color: white;
 }
+.search-box {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+}
+
+.search-box input {
+  width: 70%;
+  padding: 10px 10px 10px 35px; /* space for icon */
+  border-radius: 50px;
+  border: 1px solid #ccc;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  color: #888;
+}

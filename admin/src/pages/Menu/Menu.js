@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import "./Menu.css";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import "./Menu.css";
 
 const API_URL = "https://demotents-dhia.onrender.com";
 
@@ -51,27 +51,7 @@ const Menu = () => {
     }
   };
 
-  // Drag & Drop
-  const handleDragEnd = async (result) => {
-    if (!result.destination) return;
-
-    const items = Array.from(categories);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    setCategories(items);
-
-    try {
-      await fetch(`${API_URL}/api/categories/reorder`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categories: items.map((cat, index) => ({ id: cat.id, order: index })) }),
-      });
-      toast.success("Categories reordered successfully");
-    } catch (err) {
-      toast.error("Failed to reorder categories");
-    }
-  };
+  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -166,6 +146,53 @@ const Menu = () => {
   const closeConfirmDialog = () => {
     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
   };
+ const handleDragEnd = async (result) => {
+  if (!result.destination) return;
+
+  // Only reorder categories that are visible in navbar
+  const visibleCategories = categories.filter(cat => cat.is_visible);
+
+  if (visibleCategories.length === 0) {
+    toast.info("No items in navbar to reorder");
+    return;
+  }
+
+  const items = Array.from(categories);
+
+  const [movedItem] = items.splice(result.source.index, 1);
+  items.splice(result.destination.index, 0, movedItem);
+
+  setCategories(items);
+
+  // Prepare only visible items for navbar reorder
+  const navbarItems = items
+    .filter(item => item.is_visible)
+    .map((item, index) => ({
+      id: item.menu_id,           // ← Important: use menu_id, not category id
+      display_order: index,
+    }));
+
+  if (navbarItems.length === 0) return;
+
+  try {
+    const response = await fetch(`${API_URL}/api/navbar-menu/reorder`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: navbarItems }),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      toast.success("Navbar order saved successfully!");
+    } else {
+      toast.error(result.message || "Failed to save order");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to save navbar order");
+  }
+};
 
   const openEditModal = (category) => {
     setCurrentCategory(category);
@@ -174,37 +201,38 @@ const Menu = () => {
   };
 
   // Toggle Navbar
-  const toggleNavbar = async (category, e) => {
-  e.preventDefault(); // <- prevents the page jump
+ const toggleNavbar = async (category) => {
   try {
     let res;
+
     if (category.is_visible) {
-      res = await fetch(`${API_URL}/api/navbar-menu/${category.menu_id}`, { method: "DELETE" });
+      res = await fetch(`${API_URL}/api/navbar-menu/${category.menu_id}`, {
+        method: "DELETE",
+      });
     } else {
       res = await fetch(`${API_URL}/api/navbar-menu`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category_id: category.id, display_order: 0 }),
+        body: JSON.stringify({
+          category_id: category.id,
+          display_order: 999, // high number so it goes to bottom
+        }),
       });
     }
+
     const result = await res.json();
+
     if (res.ok && result.success) {
       toast.success(category.is_visible ? "Removed from Navbar" : "Added to Navbar");
-      // Instead of refetching all categories, just update the state
-      setCategories(prev =>
-        prev.map(cat =>
-          cat.id === category.id ? { ...cat, is_visible: !cat.is_visible } : cat
-        )
-      );
+      fetchCategories();        // ← Refetch instead of manual state update
     } else {
       toast.error(result.message || "Failed to update navbar");
     }
   } catch (error) {
-    console.error("Toggle navbar error:", error);
+    console.error(error);
     toast.error("Failed to update navbar");
   }
 };
-
   // Pagination
   const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -214,165 +242,136 @@ const Menu = () => {
   if (loading) return <div className="loader-container"><div className="spinner"></div></div>;
 
   return (
-    <div className="admin-cat-container">
-      <ToastContainer  />
+    <div className="menu-container">
+  <ToastContainer />
 
-      {/* Confirm Dialog */}
-      {confirmDialog.isOpen && (
-        <div className="admin-modal-backdrop confirm-dialog-overlay" onClick={closeConfirmDialog}>
-          <div className="confirm-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="confirm-modal-header"><h3>{confirmDialog.title}</h3></div>
-            <div className="confirm-modal-body"><p>{confirmDialog.message}</p></div>
-            <div className="confirm-modal-footer">
-              <button onClick={closeConfirmDialog} className="btn-modern btn-ghost">Cancel</button>
-              <button onClick={confirmDialog.onConfirm} className={`btn-modern btn-${confirmDialog.confirmType}`}>{confirmDialog.confirmText}</button>
-            </div>
-          </div>
+  {/* Confirm Dialog */}
+  {confirmDialog.isOpen && (
+    <div className="menu-modal-backdrop" onClick={closeConfirmDialog}>
+      <div className="menu-confirm-box" onClick={e => e.stopPropagation()}>
+        <div className="menu-confirm-header">
+          <h3>{confirmDialog.title}</h3>
         </div>
-      )}
 
-      {/* Header */}
-      <div className="admin-cat-header">
-        <div className="header-titles">
-          <h1>Navbar Management</h1>
-          <p>Control which categories appear in the main navigation bar.</p>
+        <div className="menu-confirm-body">
+          <p>{confirmDialog.message}</p>
         </div>
-        <button className="admin-btn-primary" onClick={() => setShowAddModal(true)}>Add Category</button>
+
+        <div className="menu-confirm-footer">
+          <button onClick={closeConfirmDialog} className="menu-btn menu-btn-light">
+            Cancel
+          </button>
+          <button onClick={confirmDialog.onConfirm} className="menu-btn menu-btn-danger">
+            {confirmDialog.confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Header */}
+  <div className="menu-header">
+    <div>
+      <h1>Navbar Management</h1>
+      <p>Control which categories appear in the main navigation bar.</p>
+    </div>
+
+    <button className="menu-btn menu-btn-primary" onClick={() => setShowAddModal(true)}>
+      Add Category
+    </button>
+  </div>
+
+  {paginatedCategories.length === 0 ? (
+    <div className="menu-empty">
+      <h3>No categories found</h3>
+      <button className="menu-btn menu-btn-outline" onClick={() => setShowAddModal(true)}>
+        Create First Category
+      </button>
+    </div>
+  ) : (
+    <>
+      {/* TABLE */}
+      <div className="menu-table-wrapper">
+        <table className="menu-table">
+          <thead>
+            <tr>
+              <th>Category Name</th>
+              <th>Description</th>
+              <th>Products</th>
+              <th>Sub-categories</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <DragDropContext onDragEnd={handleDragEnd}>
+  <Droppable droppableId="categories">
+    {(provided) => (
+      <tbody ref={provided.innerRef} {...provided.droppableProps}>
+        {paginatedCategories.map((category, index) => (
+          <Draggable
+            key={category.id}
+            draggableId={category.id.toString()}
+            index={index}
+          >
+            {(provided) => (
+              <tr
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+                {...provided.dragHandleProps}
+              >
+                <td><strong>{category.name}</strong></td>
+                <td>{category.description || '—'}</td>
+                <td>{category.product_count || 0}</td>
+                <td>{category.sub_categories?.length || 'None'}</td>
+
+                <td>
+                  <span className={`menu-status ${category.is_visible ? 'menu-active' : 'menu-inactive'}`}>
+                    {category.is_visible ? '✓ In Navbar' : 'Not in Navbar'}
+                  </span>
+                </td>
+
+                <td className="menu-actions">
+                  <button
+                    onClick={() => toggleNavbar(category)}
+                    className={`menu-action-btn ${category.is_visible ? "menu-remove-btn" : "menu-add-btn"}`}
+                  >
+                    {category.is_visible ? "Remove from Navbar" : "Add to Navbar"}
+                  </button>
+                </td>
+              </tr>
+            )}
+          </Draggable>
+        ))}
+        {provided.placeholder}
+      </tbody>
+    )}
+  </Droppable>
+</DragDropContext>
+        </table>
       </div>
 
-      {paginatedCategories.length === 0 ? (
-        <div className="admin-empty-state">
-          <h3>No categories found</h3>
-          <button className="admin-btn-outline" onClick={() => setShowAddModal(true)}>Create First Category</button>
-        </div>
-      ) : (
-        <>
-          <div className="inventory-table-container">
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <table className="inventory-table">
-                <thead>
-                  <tr>
-                    <th>Category Name</th>
-                    <th>Description</th>
-                    <th>Products</th>
-                    <th>Sub-categories</th>
-                    <th>Navbar Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <Droppable droppableId="categories-droppable">
-                  {(provided) => (
-                    <tbody {...provided.droppableProps} ref={provided.innerRef}>
-                      {paginatedCategories.map((category, index) => (
-                        <Draggable key={category.id} draggableId={category.id.toString()} index={index}>
-                          {(provided, snapshot) => (
-                            <tr
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={snapshot.isDragging ? "dragging-row" : ""}
-                            >
-                              <td><strong>{category.name}</strong></td>
-                              <td>{category.description || '—'}</td>
-                              <td>{category.product_count || 0}</td>
-                              <td>{category.sub_categories?.length > 0 ? category.sub_categories.length : 'None'}</td>
-                              <td>
-                                <span className={`status-badge ${category.is_visible ? 'active' : 'inactive'}`}>
-                                  {category.is_visible ? '✓ In Navbar' : 'Not in Navbar'}
-                                </span>
-                              </td>
-                              <td className="cell-actions">
-                                <div className="action-buttons">
-                                 <button
-  onClick={(e) => toggleNavbar(category, e)}
-  className={`action-btn ${category.is_visible ? "remove-btn" : "add-btn"}`}
->
-  {category.is_visible ? "Remove from Navbar" : "Add to Navbar"}
-</button>
-                                 </div>
-                              </td>
-                            </tr>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </tbody>
-                  )}
-                </Droppable>
-              </table>
-            </DragDropContext>
-          </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="menu-pagination">
+          <button onClick={() => goToPage(currentPage - 1)}>Prev</button>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination-container">
-              <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>Previous</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button key={page} className={currentPage === page ? 'active' : ''} onClick={() => goToPage(page)}>{page}</button>
-              ))}
-              <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
-            </div>
-          )}
-        </>
-      )}
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+            <button
+              key={page}
+              className={currentPage === page ? 'active' : ''}
+              onClick={() => goToPage(page)}
+            >
+              {page}
+            </button>
+          ))}
 
-      {/* ADD MODAL */}
-      {showAddModal && (
-        <div className="admin-modal-backdrop" onClick={() => { setShowAddModal(false); setFormData({ name: '', description: '' }); }}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>Add Category</h2>
-              <button className="close-btn" onClick={() => { setShowAddModal(false); setFormData({ name: '', description: '' }); }}>
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <form onSubmit={handleAddCategory} className="modal-form">
-              <div className="input-group">
-                <label>Name <span className="required-star">*</span></label>
-                <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Luxury Tents" required autoFocus />
-              </div>
-              <div className="input-group">
-                <label>Description <span>(Optional)</span></label>
-                <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Brief description..." rows="3" />
-              </div>
-              <div className="modal-foot">
-                <button type="button" className="admin-btn-ghost" onClick={() => { setShowAddModal(false); setFormData({ name: '', description: '' }); }}>Cancel</button>
-                <button type="submit" className="admin-btn-primary">Save</button>
-              </div>
-            </form>
-          </div>
+          <button onClick={() => goToPage(currentPage + 1)}>Next</button>
         </div>
       )}
-
-      {/* EDIT MODAL */}
-      {showEditModal && (
-        <div className="admin-modal-backdrop" onClick={() => { setShowEditModal(false); setCurrentCategory(null); setFormData({ name: '', description: '' }); }}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-head">
-              <h2>Edit Category</h2>
-              <button className="close-btn" onClick={() => { setShowEditModal(false); setCurrentCategory(null); setFormData({ name: '', description: '' }); }}>
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-            <form onSubmit={handleEditCategory} className="modal-form">
-              <div className="input-group">
-                <label>Name <span className="required-star">*</span></label>
-                <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g. Luxury Tents" required autoFocus />
-              </div>
-              <div className="input-group">
-                <label>Description <span>(Optional)</span></label>
-                <textarea name="description" value={formData.description} onChange={handleInputChange} placeholder="Brief description..." rows="3" />
-              </div>
-              <div className="modal-foot">
-                <button type="button" className="admin-btn-ghost" onClick={() => { setShowEditModal(false); setCurrentCategory(null); setFormData({ name: '', description: '' }); }}>Cancel</button>
-                <button type="submit" className="admin-btn-primary">Save Changes</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-    </div>
+    </>
+  )}
+</div>
   );
 };
 

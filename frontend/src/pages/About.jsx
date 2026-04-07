@@ -1,11 +1,106 @@
 import "./About.css";
+import { useEffect, useState, useRef } from "react";
 
 const About = () => {
+  const [years, setYears] = useState(0);
+  const [events, setEvents] = useState(0);
+  const [commitment, setCommitment] = useState(0);
+
+  const statsRef = useRef(null);
+  const hasAnimated = useRef(false);   // To prevent multiple animations at once
+
+  // Counter Animation Function
+  const startCounter = () => {
+    hasAnimated.current = true;
+
+    // Reset to 0 first
+    setYears(0);
+    setEvents(0);
+    setCommitment(0);
+
+    // Years Counter
+    let yearInterval = setInterval(() => {
+      setYears(prev => {
+        if (prev < 5) return prev + 1;   // Changed to 15 as per your website text
+        clearInterval(yearInterval);
+        return 5;
+      });
+    }, 150);
+
+    // Events Counter
+    let eventInterval = setInterval(() => {
+      setEvents(prev => {
+        if (prev < 500) return prev + 10;
+        clearInterval(eventInterval);
+        return 500;
+      });
+    }, 25);
+
+    // Commitment Counter
+    let commitmentInterval = setInterval(() => {
+      setCommitment(prev => {
+        if (prev < 100) return prev + 2;
+        clearInterval(commitmentInterval);
+        return 100;
+      });
+    }, 25);
+
+    // Clear intervals after animation
+    setTimeout(() => {
+      clearInterval(yearInterval);
+      clearInterval(eventInterval);
+      clearInterval(commitmentInterval);
+    }, 3000);
+  };
+
+  // Intersection Observer - Triggers when section is visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          startCounter();
+        }
+      },
+      {
+        threshold: 0.3,        // Trigger when 30% of section is visible
+        rootMargin: "-50px 0px" // Optional: trigger a bit earlier
+      }
+    );
+
+    const currentRef = statsRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, []);
+
+  // Reset animation when scrolling away (so it can re-trigger when coming back)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (statsRef.current) {
+        const rect = statsRef.current.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+
+        if (!isVisible) {
+          hasAnimated.current = false;   // Reset so it can animate again
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
   return (
     <div className="about-container">
 
       {/* ================= HERO ================= */}
-      <section className="about-hero-modern">
+      
+<section className="about-hero-modern">
         <div className="container text-center">
           <span className="hero-badge">
             ⭐ Trusted Event Infrastructure Experts
@@ -24,7 +119,6 @@ const About = () => {
 <p>We provide professionally crafted wedding and shamiyana tents that combine safety, durability, and elegant presentation, perfect for memorable events and celebrations.</p>
         </div>
       </section>
-
       {/* ================= INTRO ================= */}
       <section id="who-we-are" className="py-5">
         <div className="container">
@@ -57,24 +151,27 @@ If you are searching for the best demo tent manufacturers in Hyderabad or a reli
       </section>
 
       {/* ================= STATS ================= */}
-      <section className="bg-white py-5">
+     <section 
+        ref={statsRef} 
+        className="bg-white py-5"
+      >
         <div className="container">
           <div className="row text-center g-4">
             <div className="col-md-4">
               <div className="stat-box">
-                <h3>10+</h3>
+                <h3>{years}+</h3>
                 <span>Years of Experience</span>
               </div>
             </div>
             <div className="col-md-4">
               <div className="stat-box">
-                <h3>500+</h3>
+                <h3>{events}+</h3>
                 <span>Events Delivered</span>
               </div>
             </div>
             <div className="col-md-4">
               <div className="stat-box">
-                <h3>100%</h3>
+                <h3>{commitment}%</h3>
                 <span>Client Commitment</span>
               </div>
             </div>
@@ -84,31 +181,46 @@ If you are searching for the best demo tent manufacturers in Hyderabad or a reli
 
       {/* ================= SERVICES ================= */}
       <section className="py-5">
-        <div className="container">
-          <h2 className="section-title text-center mb-5">What We Offer</h2>
+  <div className="container">
+    <h2 className="section-title text-center mb-5">What We Offer</h2>
 
-          <div className="row g-4">
-            {[
-              "Elegant & Durable Event Tents",
-              "Outdoor & Promotional Canopies",
-              "Waterproof & Rain-Proof Tents",
-              "Camping & Temporary Shelters",
-              "Professional Installation & Support",
-              "On-Time Event Assistance"
-            ].map((item, index) => (
-              <div key={index} className="col-md-6 col-lg-4">
-                <div className="offer-card h-100">
-                  <h5>{item}</h5>
-                  <p>
-                    Professionally managed solutions designed to meet safety,
-                    durability, and presentation standards.
-                  </p>
-                </div>
-              </div>
-            ))}
+    <div className="row g-4">
+      {[
+        {
+          title: "Elegant & Durable Event Tents",
+          desc: "High-quality tents designed for weddings, corporate events, and large gatherings with a perfect balance of strength and visual appeal."
+        },
+        {
+          title: "Outdoor & Promotional Canopies",
+          desc: "Custom-branded canopies ideal for marketing campaigns, exhibitions, and outdoor promotions to maximize visibility."
+        },
+        {
+          title: "Waterproof & Rain-Proof Tents",
+          desc: "Weather-resistant tents built to handle rain and harsh conditions, ensuring uninterrupted events in any season."
+        },
+        {
+          title: "Camping & Temporary Shelters",
+          desc: "Lightweight and durable shelter solutions suitable for camping, temporary setups, and emergency requirements."
+        },
+        {
+          title: "Professional Installation & Support",
+          desc: "Experienced team providing quick setup, dismantling, and on-site support for smooth event execution."
+        },
+        {
+          title: "On-Time Event Assistance",
+          desc: "Reliable service with strict timelines to ensure your event setup is completed efficiently without delays."
+        }
+      ].map((item, index) => (
+        <div key={index} className="col-md-6 col-lg-4">
+          <div className="offer-card h-100">
+            <h5>{item.title}</h5>
+            <p>{item.desc}</p>
           </div>
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+</section>
 
       {/* ================= VALUES ================= */}
       <section className="about-values py-5">

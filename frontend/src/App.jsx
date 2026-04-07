@@ -16,7 +16,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProductDetails from "./pages/ProductDetails";
 import CategoryProducts from "./pages/CategoryProducts";
 import SubcategoryProducts from "./pages/SubcategoryProducts";
-
+import ScrollToTop from "./components/ScrollToTop";
 // Create Context for global categories
 export const CategoriesContext = createContext();
 
@@ -86,6 +86,7 @@ function App() {
 
       {/* Wrap all page content with conditional class for margin-top */}
       <div className={!isHome ? "page-with-navbar" : ""}>
+           <ScrollToTop />
         <Routes>
           <Route
             path="/"
@@ -97,6 +98,7 @@ function App() {
               </>
             }
           />
+          
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/booking-policy" element={<BookingPolicy />} />

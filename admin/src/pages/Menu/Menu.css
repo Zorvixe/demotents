@@ -1,309 +1,184 @@
 /* ===========================
-   Admin Container
+   CONTAINER
 =========================== */
-.admin-cat-container {
+.menu-container {
   padding: 20px;
-  font-family: 'Roboto', sans-serif;
-  color: #333;
-  background-color: #f9f9f9;
+  width: 100%;
+  background: #f5f7fb;
+  font-family: "Segoe UI", sans-serif;
 }
 
 /* ===========================
-   Header Section
+   HEADER
 =========================== */
-.admin-cat-header {
+.menu-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
-.header-titles h1 {
-  font-size: 28px;
+.menu-header h1 {
   margin: 0;
+  font-size: 26px;
 }
 
-.header-titles p {
+.menu-header p {
   font-size: 14px;
   color: #666;
-  margin: 4px 0 0 0;
 }
 
 /* ===========================
-   Buttons
+   BUTTONS
 =========================== */
-.admin-btn-primary {
-  background-color: #0d6efd;
-  color: #fff;
-  border: none;
+.menu-btn {
   padding: 8px 16px;
-  border-radius: 5px;
+  border-radius: 6px;
+  border: none;
   cursor: pointer;
-  font-size: 14px;
-  transition: 0.3s;
 }
 
-.admin-btn-primary:hover {
-  background-color: #0b5ed7;
+.menu-btn-primary {
+  background: #0d6efd;
+  color: white;
 }
 
-.admin-btn-outline {
-  background-color: transparent;
+.menu-btn-outline {
   border: 1px solid #0d6efd;
   color: #0d6efd;
-  padding: 8px 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: 0.3s;
+  background: transparent;
 }
 
-.admin-btn-outline:hover {
-  background-color: #0d6efd;
-  color: #fff;
+.menu-btn-light {
+  background: #eee;
 }
 
-.admin-btn-ghost {
-  background-color: #eee;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-right: 10px;
-}
-
-.admin-btn-ghost:hover {
-  background-color: #ddd;
+.menu-btn-danger {
+  background: #dc3545;
+  color: white;
 }
 
 /* ===========================
-   Empty State
+   TABLE
 =========================== */
-.admin-empty-state {
-  text-align: center;
-  padding: 50px 0;
-  background-color: #fff;
-  border-radius: 10px;
-}
-
-.admin-empty-state h3 {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-
-.admin-empty-state p {
-  color: #555;
-  margin-bottom: 20px;
-}
-
-/* ===========================
-   Inventory Table
-=========================== */
-.inventory-table-container {
-  overflow-x: auto;
-  background-color: #fff;
+.menu-table-wrapper {
+  background: white;
   border-radius: 10px;
   padding: 10px;
+  overflow-x: auto;
 }
 
-.inventory-table {
+.menu-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 700px;
+  min-width: 900px;
 }
 
-.inventory-table th,
-.inventory-table td {
+.menu-table th {
+  background: #f1f3f5;
+  padding: 12px;
   text-align: left;
-  padding: 12px 10px;
+}
+
+.menu-table td {
+  padding: 14px 10px;
   border-bottom: 1px solid #eee;
-  font-size: 14px;
 }
-
-.inventory-table th {
-  background-color: #f5f5f5;
-  font-weight: 500;
-}
-
-.cell-actions {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 5px;
-}
-
-.action-btn {
-  padding: 5px 10px;
-  border-radius: 5px;
-  border: none;
-  font-size: 12px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.add-btn {
-  background-color: #198754;
-  color: #fff;
-}
-
-.add-btn:hover {
-  background-color: #157347;
-}
-
-.remove-btn {
-  background-color: #dc3545;
-  color: #fff;
-}
-
-.remove-btn:hover {
-  background-color: #bb2d3b;
-  margin-bottom: 50px;
-}
-.inventory-table td, 
-.inventory-table th {
-  scroll-behavior: smooth; /* prevents sudden jumps */
-}
-
 
 /* ===========================
-   Status Badge
+   STATUS
 =========================== */
-.status-badge {
-  display: inline-block;
-  padding: 4px 8px;
+.menu-status {
+  padding: 5px 10px;
+  border-radius: 6px;
   font-size: 12px;
-  border-radius: 5px;
-  font-weight: 500;
 }
 
-.status-badge.active {
-  background-color: #d1e7dd;
+.menu-active {
+  background: #d1e7dd;
   color: #0f5132;
 }
 
-.status-badge.inactive {
-  background-color: #f8d7da;
+.menu-inactive {
+  background: #f8d7da;
   color: #842029;
 }
 
 /* ===========================
-   Pagination
+   ACTION BUTTON
 =========================== */
-.pagination-container {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  gap: 5px;
+.menu-actions {
+  text-align: center;
 }
 
-.pagination-container button {
-  padding: 6px 12px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  background-color: #fff;
+.menu-action-btn {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: none;
+  min-width: 170px;
   cursor: pointer;
-  font-size: 14px;
-  transition: 0.3s;
 }
 
-.pagination-container button:hover:not(:disabled) {
-  background-color: #0d6efd;
-  color: #fff;
+.menu-add-btn {
+  background: #198754;
+  color: white;
 }
 
-.pagination-container button.active {
-  background-color: #0d6efd;
-  color: #fff;
-  border-color: #0d6efd;
-}
-
-.pagination-container button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.menu-remove-btn {
+  background: #dc3545;
+  color: white;
 }
 
 /* ===========================
-   Modals
+   PAGINATION
 =========================== */
-.admin-modal-backdrop {
+.menu-pagination {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.menu-pagination button {
+  margin: 3px;
+  padding: 6px 10px;
+}
+
+.menu-pagination .active {
+  background: #0d6efd;
+  color: white;
+}
+
+/* ===========================
+   MODAL
+=========================== */
+.menu-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.4);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
 }
 
-.admin-modal {
-  background-color: #fff;
-  width: 400px;
-  max-width: 90%;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.2);
-}
-
-.modal-head {
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f5f5f5;
-}
-
-.modal-head h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.close-btn {
-  background: transparent;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.modal-form {
+.menu-confirm-box {
+  background: white;
   padding: 20px;
+  border-radius: 10px;
+  width: 350px;
 }
 
-.input-group {
-  margin-bottom: 15px;
-}
-
-.input-group label {
-  display: block;
-  font-weight: 500;
-  margin-bottom: 5px;
-  font-size: 14px;
-}
-
-.input-group input,
-.input-group textarea {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-.input-group textarea {
-  resize: none;
-}
-
-.modal-foot {
+.menu-confirm-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 10px;
+  gap: 10px;
 }
-.dragging-row {
-  background-color: #f0f8ff; 
+
+/* ===========================
+   EMPTY STATE
+=========================== */
+.menu-empty {
+  text-align: center;
+  padding: 40px;
 }
