@@ -86,7 +86,6 @@
   left: 100%;          
   display: none;
   background-color: #1a1a1a;
-  min-width: 180px;
 }
 
 .dropdown-submenu:hover > .dropdown-menu {

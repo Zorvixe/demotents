@@ -129,8 +129,8 @@ const CategoryProducts = () => {
 
   if (loading) {
     return (
-      <div className="category-loader-container">
-        <div className="category-loader-ring"></div>
+       <div className="global-loader">
+        <div className="spinner"></div>
       </div>
     );
   }

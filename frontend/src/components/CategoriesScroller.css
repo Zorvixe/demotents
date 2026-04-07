@@ -1,18 +1,15 @@
-/* CategoriesScroller.css - Independent Row Scroll (Amazon/Flipkart Style) */
+/* CategoriesScroller.css - Fixed 2-Rows Only Layout */
 
 /* Base Section Styles */
 .popular-products-section {
-  background: #ffffff;
   padding: 2rem 0;
 }
 
 .categories-container {
   width: 100%;
-  max-width: 1500px;
   margin: 0 auto;
   padding-left: 30px !important;
   padding-right: 30px !important;
-  position: relative;
 }
 
 /* Typography */
@@ -31,78 +28,60 @@
 }
 
 /* =========================================
-   CAROUSEL WRAPPER & INDIVIDUAL TRACKS
+   FIXED 2-ROW GRID - WILL NOT GROW BEYOND
    ========================================= */
-.categories-carousel-wrapper {
-  position: relative;
-  margin-bottom: 20px; /* Space between the two rows */
-  padding: 0 10px; /* Protect buttons from clipping outside the screen */
-}
-
-.categories-scroll-track {
-  display: flex;
+.categories-grid {
+  display: grid;
   gap: 20px;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  padding: 10px 5px; /* Adds padding to not cut off box-shadows */
-  
-  /* Hide scrollbars for a clean app-like look */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  margin: 20px 0 10px;
+  /* CRITICAL: Fixed height to prevent growing beyond 2 rows */
+  max-height: none;
 }
 
-.categories-scroll-track::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+/* Two rows only - explicit constraint */
+.categories-grid.two-rows-only {
+  /* The grid will automatically limit to 2 rows */
+  grid-auto-rows: auto;
+  /* Prevent extra rows */
+  grid-auto-flow: row;
 }
 
-/* =========================================
-   CAROUSEL NAVIGATION BUTTONS (AMAZON STYLE)
-   ========================================= */
-.amz-scroll-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  width: 44px;
-  height: 90px; /* Tall rectangular button like Amazon desktop */
-  background: #ffffff;
-  border: 1px solid #d5d9d9;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #0f1111;
-  transition: all 0.2s ease;
-  opacity: 0.95;
+/* Desktop: 5 columns × 2 rows = exactly 10 items max */
+@media (min-width: 992px) {
+  .categories-grid.two-rows-only {
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, auto);
+  }
 }
 
-.amz-scroll-btn:hover {
-  background: #f7fafa;
-  border-color: #c7c7c7;
-  opacity: 1;
+/* Tablet landscape: 4 columns × 2 rows = exactly 8 items max */
+@media (min-width: 769px) and (max-width: 991px) {
+  .categories-grid.two-rows-only {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, auto);
+  }
 }
 
-.amz-scroll-btn:active {
-  background: #f0f2f2;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transform: translateY(-50%) scale(0.98);
+/* Tablet portrait: 3 columns × 2 rows = exactly 6 items max */
+@media (min-width: 481px) and (max-width: 768px) {
+  .categories-grid.two-rows-only {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 16px;
+  }
 }
 
-.amz-scroll-btn.left {
-  left: -15px; /* Pull it slightly outside the track */
+/* Mobile: 2 columns × 2 rows = exactly 4 items max */
+@media (max-width: 480px) {
+  .categories-grid.two-rows-only {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 12px;
+  }
 }
 
-.amz-scroll-btn.right {
-  right: -15px;
-}
-
-/* =========================================
-   CATEGORY CARD
-   ========================================= */
+/* Category Card */
 .category-card {
-  flex: 0 0 240px; /* Force strict width for horizontal scrolling */
   background: #ffffff;
   border-radius: 8px;
   overflow: hidden;
@@ -125,7 +104,7 @@
 .image-wrapper {
   position: relative;
   width: 100%;
-  padding-bottom: 85%; /* Flatter rectangular ratio */
+  padding-bottom: 75%; /* 4:3 aspect ratio – balanced for all devices */
   background-color: #f8f8f8;
   overflow: hidden;
   border-bottom: 1px solid #f0f0f0;
@@ -170,14 +149,12 @@
 
 .category-count {
   display: inline-block;
-  color: #007185; /* Amazon Link Blue */
+  color: #007185;
   font-size: 0.75rem;
   font-weight: 400;
 }
 
-/* =========================================
-   VIEW ALL BUTTON
-   ========================================= */
+/* View All Button */
 .view-all-btn {
   background: transparent;
   color: #0f1111;
@@ -189,7 +166,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   background-color: #ffffff;
-  box-shadow: 0 2px 5px rgba(15,17,17,.15);
+  box-shadow: 0 2px 5px rgba(15, 17, 17, 0.15);
   margin-top: 10px;
 }
 
@@ -198,9 +175,7 @@
   border-color: #c7c7c7;
 }
 
-/* =========================================
-   LOADERS & FALLBACKS
-   ========================================= */
+/* Loaders & Fallbacks */
 .image-loader {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
@@ -238,50 +213,24 @@
   justify-content: center;
 }
 
-/* =========================================
-   RESPONSIVE LAYOUT
-   ========================================= */
-@media (max-width: 991px) {
-  .category-card {
-    flex: 0 0 200px; /* Slightly smaller cards on tablet */
-  }
-}
-
+/* Mobile specific adjustments */
 @media (max-width: 768px) {
   .categories-container {
     padding-left: 15px !important;
     padding-right: 15px !important;
   }
 
-  .amz-scroll-btn {
-    display: none; /* Hide scroll buttons on mobile, allow natural swipe */
-  }
-
-  .categories-carousel-wrapper {
-    padding: 0; /* Remove side padding on mobile */
-    margin-bottom: 12px; /* Less space between rows on mobile */
-  }
-
-  .categories-scroll-track {
-    gap: 12px;
-    padding: 10px 0;
-  }
-
-  .category-card {
-    flex: 0 0 160px; /* Smaller cards for mobile */
-  }
-
   .image-wrapper {
-    padding-bottom: 100%; /* Go back to 1:1 square on mobile */
+    padding-bottom: 100%; /* Square on mobile */
   }
 }
 
 @media (max-width: 480px) {
-  .category-card {
-    flex: 0 0 140px; /* Very compact on small phones */
-  }
-  
   .category-name {
     font-size: 0.85rem;
+  }
+
+  .card-content {
+    padding: 8px;
   }
 }

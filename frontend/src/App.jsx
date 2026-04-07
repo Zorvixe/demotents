@@ -114,10 +114,10 @@ function App() {
       </div>
 
       <div className="social-fixed">
-        <a className="whatsapp" href="https://wa.me/919052899000" target="_blank" rel="noreferrer">
+        <a className="whatsapp" href="https://wa.me/901086489" target="_blank" rel="noreferrer">
           <i className="bi bi-whatsapp"></i>
         </a>
-        <a className="phone" href="tel:+919052899000">
+        <a className="phone" href="tel:+901086489">
           <i className="bi bi-telephone-fill"></i>
         </a>
         <a className="instagram" href="https://instagram.com" target="_blank" rel="noreferrer">

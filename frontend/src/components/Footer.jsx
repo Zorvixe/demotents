@@ -54,6 +54,7 @@ const Footer = () => {
               <h6 className="fw-bold mb-3">Contact Information</h6>
 
               <p>
+<<<<<<< HEAD
   <i className="bi bi-geo-alt me-2"></i>
   <a
     href="https://www.google.com/maps/search/?api=1&query=Piller+No.+1540,+Uco+Bank+Lane,+Dilsukhnagar,+Hyderabad"
@@ -64,6 +65,11 @@ const Footer = () => {
     Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhnagar, Hyderabad, Telangana 500060
   </a>
 </p>
+=======
+                <i className="bi bi-geo-alt me-2"></i>
+                Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhngar, Dilsukhnagar, Hyderabad, Telangana 500060
+              </p>
+>>>>>>> dfb106d890ab5ac284dac7821b7ddd262d971741
 
               <p>
                 <i className="bi bi-envelope me-2"></i>
@@ -77,9 +83,9 @@ const Footer = () => {
 
               <div className="social-icons">
                 <a href="#"><i className="bi bi-facebook"></i></a>
-                <a href="#"><i className="bi bi-whatsapp"></i></a>
+                <a href="https://wa.me/919010864897"><i className="bi bi-whatsapp"></i></a>
                 <a href="#"><i className="bi bi-instagram"></i></a>
-                <a href="tel:+919052899000">
+                <a href="tel:+919010864897">
                   <i className="bi bi-telephone-fill"></i>
                 </a>
               </div>

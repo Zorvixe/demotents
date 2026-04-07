@@ -65,19 +65,6 @@ const ConnectSection = () => {
         </div>
       </div>
 
-      <div
-        className="connect-right"
-        data-aos="fade-left"
-        data-aos-duration="1200"
-        data-aos-easing="ease-out-cubic"
-        data-aos-once="true"
-      >
-        <h3>TELL US WHAT YOU NEED</h3>
-        <input type="text" placeholder="Enter Tent Type / Service" data-aos="fade-up" data-aos-delay="100" data-aos-once="true" />
-        <input type="text" placeholder="Enter your mobile number" data-aos="fade-up" data-aos-delay="200" data-aos-once="true" />
-        <button data-aos="fade-up" data-aos-delay="300" data-aos-once="true">Submit Requirement</button>
-      </div>
-
     </div>
   );
 };

@@ -127,10 +127,7 @@ const Navbar = () => {
                   <li className="nav-item dropdown dropdown-hover">
                     <span
                       className="nav-link d-flex align-items-center gap-1"
-                      onClick={() => handleNavigation("/category", { 
-                        categoryId: item.id, 
-                        categoryName: item.name 
-                      })}
+                      
                       style={{ cursor: "pointer" }}
                     >
                       {item.name.toUpperCase()}
