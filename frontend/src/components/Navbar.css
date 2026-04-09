@@ -394,3 +394,8 @@
   transform: translateY(-50%);
   color: #888;
 }
+.dropdown-menu,
+.dropdown-menu.show {
+  background-color: #111 !important;
+  --bs-dropdown-bg: #111 !important;
+}
