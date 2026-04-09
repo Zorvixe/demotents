@@ -199,8 +199,7 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 1024 * 1024 * 1024 } // 1GB
+  fileFilter
 });
 // Update static file serving
 app.use('/uploads', express.static(uploadsDir));
