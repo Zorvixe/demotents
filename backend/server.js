@@ -218,14 +218,6 @@ function slugify(text) {
     .replace(/-+$/, '');            // trim - from end
 }
 
-let baseSlug = slugify(name);
-let finalSlug = baseSlug;
-let counter = 1;
-while (await pool.query('SELECT id FROM products WHERE slug = $1', [finalSlug]).rows.length > 0) {
-  finalSlug = `${baseSlug}-${counter++}`;
-}
-// Store finalSlug in the database
-
 // ... (your existing code continues)
 
 // Helper function to delete files
@@ -1021,7 +1013,6 @@ app.post('/api/products', upload.fields([
   try {
     await client.query('BEGIN');
 
-    // ✅ Extract all fields from req.body
     const {
       name, description, price, category_id, sub_category_id, sku,
       stock_quantity, is_featured, product_detail, without_print_price,
@@ -1052,19 +1043,30 @@ app.post('/api/products', upload.fields([
       }
     }
 
-    // Insert product
+    // ✅ Generate unique slug
+    let baseSlug = slugify(name);
+    let finalSlug = baseSlug;
+    let counter = 1;
+    while (true) {
+      const existing = await client.query('SELECT id FROM products WHERE slug = $1', [finalSlug]);
+      if (existing.rows.length === 0) break;
+      finalSlug = `${baseSlug}-${counter++}`;
+    }
+
+    // Insert product with slug
     const productResult = await client.query(`
       INSERT INTO products (
         name, description, price, category_id, sub_category_id, main_image_url,
         sku, stock_quantity, is_featured, product_detail, without_print_price,
-        core_price, elite_price, pro_price, cloth_colors, size, product_type
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        core_price, elite_price, pro_price, cloth_colors, size, product_type, slug
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `, [
       name, description || null, parseFloat(price), category_id, sub_category_id || null,
       mainImageUrl, sku || null, parseInt(stock_quantity) || 0, is_featured === 'true',
       product_detail || null, without_print_price || null, core_price || null,
-      elite_price || null, pro_price || null, colorsArray, size || null, product_type || null
+      elite_price || null, pro_price || null, colorsArray, size || null, product_type || null,
+      finalSlug
     ]);
 
     const productId = productResult.rows[0].id;
@@ -1083,9 +1085,7 @@ app.post('/api/products', upload.fields([
 
     await client.query('COMMIT');
 
-    // Fetch complete product with images
     const fullProduct = await getProductWithImages(productId, client);
-
     res.status(201).json({
       success: true,
       message: 'Product added successfully',
@@ -1093,7 +1093,6 @@ app.post('/api/products', upload.fields([
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    // Delete uploaded files because DB operation failed
     uploadedFiles.forEach(file => {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     });
@@ -1215,11 +1214,27 @@ app.put('/api/products/:id', upload.fields([
 
     // Get existing product
     const oldProduct = await client.query(
-      'SELECT main_image_url FROM products WHERE id = $1 FOR UPDATE',
+      'SELECT main_image_url, name FROM products WHERE id = $1 FOR UPDATE',
       [id]
     );
     if (oldProduct.rows.length === 0) throw new Error('Product not found');
     oldMainUrl = oldProduct.rows[0].main_image_url;
+
+    // ✅ Generate new slug if name changed
+    let finalSlug = null;
+    if (name !== undefined && name !== oldProduct.rows[0].name) {
+      let baseSlug = slugify(name);
+      finalSlug = baseSlug;
+      let counter = 1;
+      while (true) {
+        const existing = await client.query(
+          'SELECT id FROM products WHERE slug = $1 AND id != $2',
+          [finalSlug, id]
+        );
+        if (existing.rows.length === 0) break;
+        finalSlug = `${baseSlug}-${counter++}`;
+      }
+    }
 
     // Handle new main image
     let mainImageUrl = oldMainUrl;
@@ -1238,7 +1253,7 @@ app.put('/api/products/:id', upload.fields([
       }
     }
 
-    // Update product
+    // Update product (slug only if changed)
     await client.query(`
       UPDATE products SET
         name = COALESCE($1, name),
@@ -1259,8 +1274,9 @@ app.put('/api/products/:id', upload.fields([
         cloth_colors = $16,
         size = $17,
         product_type = $18,
+        slug = COALESCE($19, slug),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $19
+      WHERE id = $20
     `, [
       name, description, price ? parseFloat(price) : null,
       category_id, sub_category_id || null, mainImageUrl,
@@ -1268,19 +1284,18 @@ app.put('/api/products/:id', upload.fields([
       is_featured === 'true', is_active === 'true',
       product_detail || null, without_print_price || null,
       core_price || null, elite_price || null, pro_price || null,
-      colorsArray, size || null, product_type || null, id
+      colorsArray, size || null, product_type || null,
+      finalSlug,   // may be null
+      id
     ]);
 
     // Handle sub-images: delete existing and insert new ones if provided
     if (req.files?.subImages?.length) {
-      // Get old sub-images to delete later
       const oldSubImages = await client.query(
         'SELECT image_url FROM product_images WHERE product_id = $1',
         [id]
       );
-      // Delete DB records
       await client.query('DELETE FROM product_images WHERE product_id = $1', [id]);
-      // Insert new sub-images
       for (let i = 0; i < req.files.subImages.length; i++) {
         const subUrl = `/uploads/${req.files.subImages[i].filename}`;
         newUploadedFiles.push(req.files.subImages[i].path);
@@ -1293,7 +1308,7 @@ app.put('/api/products/:id', upload.fields([
       // Schedule old sub-image files for deletion after commit
       oldSubImages.rows.forEach(row => {
         const oldPath = path.join(__dirname, row.image_url);
-        if (fs.existsSync(oldPath)) newUploadedFiles.push(oldPath); // will delete later
+        if (fs.existsSync(oldPath)) newUploadedFiles.push(oldPath);
       });
     }
 
@@ -1305,7 +1320,7 @@ app.put('/api/products/:id', upload.fields([
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    // Delete old sub-images (already collected)
+    // Delete old sub-images
     for (const filePath of newUploadedFiles) {
       if (filePath !== req.files?.mainImage?.[0]?.path && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -1320,7 +1335,6 @@ app.put('/api/products/:id', upload.fields([
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    // Delete newly uploaded files (main + sub)
     newUploadedFiles.forEach(file => {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     });
