@@ -199,7 +199,8 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage,
-  fileFilter
+  fileFilter,
+  limits: { fileSize: Infinity } 
 });
 // Update static file serving
 app.use('/uploads', express.static(uploadsDir));

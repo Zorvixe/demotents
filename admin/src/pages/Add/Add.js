@@ -5,10 +5,12 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const API_URL = "https://api.demotents.com" || "http://localhost:5004";
+const MAX_TOTAL_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB
 
 const Add = () => {
     const [mainImage, setMainImage] = useState(null);
     const [subImages, setSubImages] = useState([]);
+    const [totalSubImagesSize, setTotalSubImagesSize] = useState(0);
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
     const [subCategories, setSubCategories] = useState([]);
@@ -41,6 +43,12 @@ const Add = () => {
             setSubCategories([]);
         }
     }, [data.category_id]);
+
+    // Recalculate total size whenever subImages changes
+    useEffect(() => {
+        const total = subImages.reduce((sum, file) => sum + file.size, 0);
+        setTotalSubImagesSize(total);
+    }, [subImages]);
 
     const fetchCategories = async () => {
         try {
@@ -92,30 +100,43 @@ const Add = () => {
         if (e.target.files && e.target.files[0]) {
             setMainImage(e.target.files[0]);
         }
-    }
+    };
 
     const handleSubImagesChange = (e) => {
         if (e.target.files) {
-            const filesArray = Array.from(e.target.files);
+            const newFiles = Array.from(e.target.files);
+            const currentCount = subImages.length;
+            const newCount = currentCount + newFiles.length;
 
-            if (subImages.length + filesArray.length > 10) {
-                toast.error('Maximum 10 sub-images allowed');
+            if (newCount > 10) {
+                toast.error(`Maximum 10 sub‑images allowed. You have ${currentCount} and tried to add ${newFiles.length}.`);
                 return;
             }
 
-            // ✅ File size check removed – any file size accepted
-            setSubImages(prev => [...prev, ...filesArray]);
+            // Calculate new total size
+            const currentTotal = totalSubImagesSize;
+            const addedSize = newFiles.reduce((sum, file) => sum + file.size, 0);
+            const newTotal = currentTotal + addedSize;
+
+            if (newTotal > MAX_TOTAL_SIZE_BYTES) {
+                const currentMB = (currentTotal / (1024 * 1024)).toFixed(2);
+                const addedMB = (addedSize / (1024 * 1024)).toFixed(2);
+                toast.error(`Total image size would exceed 1 GB limit (current ${currentMB} MB + ${addedMB} MB). Please remove some images first.`);
+                return;
+            }
+
+            setSubImages(prev => [...prev, ...newFiles]);
         }
-    }
+    };
 
     const removeSubImage = (index) => {
         setSubImages(prev => prev.filter((_, i) => i !== index));
-    }
+    };
 
     const generateSku = () => {
         const skuPrefix = 'PROD-' + Date.now().toString().slice(-6);
         setData(prev => ({ ...prev, sku: skuPrefix }));
-    }
+    };
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
@@ -213,7 +234,16 @@ const Add = () => {
         } finally {
             setLoading(false);
         }
-    }
+    };
+
+    // Helper to format bytes to MB with 2 decimals
+    const formatSize = (bytes) => {
+        return (bytes / (1024 * 1024)).toFixed(2);
+    };
+
+    const totalMB = formatSize(totalSubImagesSize);
+    const limitMB = formatSize(MAX_TOTAL_SIZE_BYTES);
+    const isOverLimit = totalSubImagesSize > MAX_TOTAL_SIZE_BYTES;
 
     return (
         <div className='add-page-wrapper'>
@@ -272,7 +302,7 @@ const Add = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Additional Images (Max 10)</label>
+                            <label>Additional Images (Max 10, total ≤ 1 GB)</label>
                             <div className="sub-images-upload-zone">
                                 <label htmlFor="subImages" className="sub-images-add-btn">
                                     <span className="plus-icon">+</span>
@@ -291,7 +321,13 @@ const Add = () => {
                                     </div>
                                 )}
                             </div>
-                            <p className="helper-text">{subImages.length} / 10 images selected</p>
+                            <div className="helper-text" style={{ marginTop: '8px' }}>
+                                <span>{subImages.length} / 10 images</span>
+                                <span style={{ marginLeft: '16px', color: isOverLimit ? 'red' : 'inherit' }}>
+                                    Total size: {totalMB} MB / {limitMB} MB
+                                    {isOverLimit && <strong> (exceeds limit!)</strong>}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -457,13 +493,14 @@ const Add = () => {
                         </div>
                     </div>
 
-                    <button type='submit' className='ui-btn-primary' disabled={loading}>
+                    <button type='submit' className='ui-btn-primary' disabled={loading || isOverLimit}>
                         {loading ? 'Saving...' : 'Save Product'}
                     </button>
+                    {isOverLimit && <p className="error-text" style={{color: 'red', marginTop: '8px'}}>Please remove some images – total size exceeds 1 GB.</p>}
                 </div>
             </form>
         </div>
-    )
-}
+    );
+};
 
 export default Add;
