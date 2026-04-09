@@ -18,8 +18,8 @@ const Add = () => {
         category_id: "",
         sub_category_id: "",
         sku: "",
-        price: "",              // ✅ Base price added
-        stock_quantity: 0,      // ✅ Stock quantity added (default 0)
+        price: "",
+        stock_quantity: 0,
         is_featured: false,
         size: "",
         product_type: "",
@@ -103,12 +103,7 @@ const Add = () => {
                 return;
             }
 
-            const oversizedFiles = filesArray.filter(file => file.size > 5 * 1024 * 1024);
-            if (oversizedFiles.length > 0) {
-                toast.error('Some files exceed 5MB limit');
-                return;
-            }
-
+            // ✅ File size check removed – any file size accepted
             setSubImages(prev => [...prev, ...filesArray]);
         }
     }
@@ -126,7 +121,6 @@ const Add = () => {
         event.preventDefault();
         setLoading(true);
 
-        // ✅ Validate required fields including price and stock
         if (!data.name || !data.description || !mainImage || !data.category_id || !data.price || data.stock_quantity === undefined) {
             toast.error('Please fill all required fields (Name, Description, Main Image, Category, Price, Stock)');
             setLoading(false);
@@ -136,8 +130,8 @@ const Add = () => {
         const formData = new FormData();
         formData.append("name", data.name);
         formData.append("description", data.description);
-        formData.append("price", Number(data.price));            // ✅ Base price
-        formData.append("stock_quantity", Number(data.stock_quantity)); // ✅ Stock quantity
+        formData.append("price", Number(data.price));
+        formData.append("stock_quantity", Number(data.stock_quantity));
         formData.append("category_id", data.category_id);
         formData.append("mainImage", mainImage);
         formData.append("size", data.size);
@@ -146,7 +140,6 @@ const Add = () => {
         if (data.sku) formData.append("sku", data.sku);
         formData.append("is_featured", data.is_featured);
 
-        // Type‑specific prices (optional, depending on your backend)
         if (data.product_type === "without_print") {
             const price = Number(data.without_print_price);
             if (isNaN(price)) {
@@ -231,11 +224,7 @@ const Add = () => {
             </div>
 
             <form onSubmit={onSubmitHandler} className="add-form-grid">
-
-                {/* LEFT COLUMN */}
                 <div className="main-column">
-
-                    {/* Basic Info Card */}
                     <div className="ui-card">
                         <div className="card-header">Basic Information</div>
                         <div className="form-group">
@@ -264,7 +253,6 @@ const Add = () => {
                         </div>
                     </div>
 
-                    {/* Media Card */}
                     <div className="ui-card">
                         <div className="card-header">Media</div>
 
@@ -307,7 +295,6 @@ const Add = () => {
                         </div>
                     </div>
 
-                    {/* Pricing & Inventory Card (updated with Price & Stock) */}
                     <div className="ui-card">
                         <div className="card-header">Pricing & Inventory</div>
 
@@ -333,7 +320,6 @@ const Add = () => {
                             </div>
                         </div>
 
-                        {/* ✅ Price field (required) */}
                         <div className="form-group">
                             <label>Base Price <span className="required">*</span></label>
                             <div className="input-prefix">
@@ -352,7 +338,6 @@ const Add = () => {
                             </div>
                         </div>
 
-                        {/* ✅ Stock Quantity field (required) */}
                         <div className="form-group">
                             <label>Stock Quantity <span className="required">*</span></label>
                             <input
@@ -367,7 +352,6 @@ const Add = () => {
                             />
                         </div>
 
-                        {/* Type‑specific pricing (optional) */}
                         {data.product_type === "without_print" && (
                             <div className="form-group price-box">
                                 <label>Without Print Price</label>
@@ -406,9 +390,7 @@ const Add = () => {
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN (SIDEBAR) - unchanged */}
                 <div className="sidebar-column">
-
                     <div className="ui-card">
                         <div className="card-header">Product Status</div>
                         <label className="ui-checkbox-label">
