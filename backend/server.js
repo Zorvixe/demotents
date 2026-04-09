@@ -1717,6 +1717,28 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// GET /api/categories-with-images
+app.get('/api/categories-with-images', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.*,
+        (SELECT main_image_url FROM products 
+         WHERE category_id = c.id AND is_active = true 
+         LIMIT 1) as preview_image
+      FROM categories c
+      WHERE c.is_active = true
+      ORDER BY c.display_order ASC, c.name ASC
+    `);
+    res.json({ success: true, categories: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

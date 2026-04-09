@@ -5,7 +5,9 @@ import { useCategories } from "../App";
 
 const CategoriesScroller = () => {
   const navigate = useNavigate();
-  const { categories, BASE_URL } = useCategories();
+  const [categories, setCategories] = useState([]);
+
+  const { BASE_URL } = useCategories();
 
   // Sort categories by ID (ascending) – oldest first
   const sortedCategories = [...(categories || [])].sort((a, b) => a.id - b.id);
@@ -70,6 +72,14 @@ const CategoriesScroller = () => {
       state: { categoryId: category.id, categoryName: category.name },
     });
   };
+
+  useEffect(() => {
+  fetch(`${BASE_URL}/api/categories-with-images`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) setCategories(data.categories);
+    });
+}, []);
 
   if (!sortedCategories || sortedCategories.length === 0) {
     return (
