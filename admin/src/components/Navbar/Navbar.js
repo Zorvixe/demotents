@@ -1,11 +1,12 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom';
 import './Navbar.css'
-import tentLogo from "../../assets/tent_logo.avif";
 import profileImg from "../../assets/profile.jpg";
 
 
 
 const Navbar = () => {
+  const navigate = useNavigate();
   return (
     <div className='navbar'>
  <div className="navbar-brand m-0 text-center" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
