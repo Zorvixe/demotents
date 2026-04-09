@@ -272,13 +272,9 @@ const Menu = () => {
   {/* Header */}
   <div className="menu-header">
     <div>
-      <h1>Navbar Management</h1>
+      <h1>Navbar</h1>
       <p>Control which categories appear in the main navigation bar.</p>
     </div>
-
-    <button className="menu-btn menu-btn-primary" onClick={() => setShowAddModal(true)}>
-      Add Category
-    </button>
   </div>
 
   {paginatedCategories.length === 0 ? (
@@ -336,7 +332,7 @@ const Menu = () => {
                     onClick={() => toggleNavbar(category)}
                     className={`menu-action-btn ${category.is_visible ? "menu-remove-btn" : "menu-add-btn"}`}
                   >
-                    {category.is_visible ? "Remove from Navbar" : "Add to Navbar"}
+                    {category.is_visible ? "Remove" : "Add to Navbar"}
                   </button>
                 </td>
               </tr>
