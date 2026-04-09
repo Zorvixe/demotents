@@ -7,7 +7,7 @@ export default function AllCategories() {
   const navigate = useNavigate();
   const query = useMemo(() => new URLSearchParams(location.search), [location]);
   const selected = query.get("selected");
-  
+
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,8 +25,8 @@ export default function AllCategories() {
       try {
         setLoading(true);
         setError(null);
-        
-        const res = await fetch(`${API_URL}?includeSubCategories=true`);
+
+        const res = await fetch(`${API_URL}`);
         if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
         const data = await res.json();
 
@@ -36,12 +36,10 @@ export default function AllCategories() {
             name: category.name,
             description: category.description,
             idSlug: category.name.toLowerCase().replace(/\s+/g, '-'),
-            items: category.sub_categories?.map(sub => sub.name) || [],
             preview_image: category.preview_image,
             product_count: category.product_count || 0,
             sub_categories: category.sub_categories || []
           }));
-          
           setCategories(transformedCategories);
           transformedCategories.forEach((s) => {
             const id = s.idSlug;
@@ -103,7 +101,7 @@ export default function AllCategories() {
 
   if (loading) {
     return (
-       <div className="global-loader">
+      <div className="global-loader">
         <div className="spinner"></div>
       </div>
     );
@@ -145,13 +143,13 @@ export default function AllCategories() {
 
   return (
     <div className="modern-cats-page container" style={{ marginTop: "80px", marginBottom: "60px" }}>
-      
+
       <div className="modern-cats-header mb-4">
         <h1 className="cats-main-title">All Categories</h1>
       </div>
 
       <div className="modern-cats-layout">
-        
+
         <aside className="modern-cats-sidebar d-none d-lg-block">
           <div className="sidebar-sticky-wrapper">
             <h3 className="sidebar-heading">Jump to</h3>
@@ -175,14 +173,14 @@ export default function AllCategories() {
             const hasError = imageError[c.id];
 
             return (
-              <section 
-                className="modern-cat-section" 
-                id={c.idSlug} 
-                key={c.id} 
+              <section
+                className="modern-cat-section"
+                id={c.idSlug}
+                key={c.id}
                 ref={refs.current[c.idSlug]}
               >
                 <div className="modern-cat-card" onClick={() => handleCategoryClick(c)}>
-                  
+
                   <div className="modern-cat-image-box">
                     {!isLoaded && (
                       <div className="image-loader-overlay">
@@ -190,8 +188,8 @@ export default function AllCategories() {
                       </div>
                     )}
                     {imgUrl && !hasError && (
-                      <img 
-                        src={imgUrl} 
+                      <img
+                        src={imgUrl}
                         alt={c.name}
                         className="modern-cat-img"
                         style={{ display: isLoaded ? 'block' : 'none' }}
@@ -218,9 +216,9 @@ export default function AllCategories() {
                         {c.product_count || 0} {c.product_count === 1 ? 'Product' : 'Products'}
                       </span>
                     </div>
-                    
+
                     {c.description && <p className="cat-description">{c.description}</p>}
-                    
+
                     {c.sub_categories && c.sub_categories.length > 0 ? (
                       <div className="cat-subcategories">
                         <h4 className="subcat-label">Subcategories:</h4>
@@ -237,9 +235,9 @@ export default function AllCategories() {
                         <p className="no-subcat-text">No subcategories available</p>
                       </div>
                     )}
-                    
+
                     <div className="cat-action-bottom mt-auto pt-3">
-                      <button 
+                      <button
                         className="modern-btn modern-btn-primary w-100 w-sm-auto"
                         onClick={(e) => {
                           e.stopPropagation();

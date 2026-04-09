@@ -387,22 +387,41 @@ app.get('/api/categories', async (req, res) => {
         c.*,
         nm.id as menu_id,
         nm.is_visible,
-        nm.display_order
+        nm.display_order,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', sc.id,
+              'name', sc.name,
+              'description', sc.description,
+              'product_count', (
+                SELECT COUNT(*) FROM products p 
+                WHERE p.sub_category_id = sc.id AND p.is_active = true
+              )
+            ) ORDER BY sc.name
+          ) FILTER (WHERE sc.id IS NOT NULL), '[]'
+        ) as sub_categories,
+        (
+          SELECT COUNT(*) FROM products p 
+          WHERE p.category_id = c.id AND p.is_active = true
+        ) as product_count,
+        (
+          SELECT main_image_url FROM products 
+          WHERE category_id = c.id AND is_active = true 
+          LIMIT 1
+        ) as preview_image
       FROM categories c
       LEFT JOIN navbar_menu nm ON nm.category_id = c.id
+      LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
       WHERE c.is_active = true
-      ORDER BY 
-  COALESCE(nm.display_order, c.display_order) ASC,
-  c.name ASC
+      GROUP BY c.id, nm.id, nm.display_order
+      ORDER BY COALESCE(nm.display_order, c.display_order) ASC, c.name ASC
     `);
 
-    res.json({
-      success: true,
-      categories: result.rows
-    });
+    res.json({ success: true, categories: result.rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
