@@ -35,7 +35,7 @@ const Navbar = () => {
 
   //   fetchNavbarMenu();
   // }, []);
-  const API_URL = "https://demotents-dhia.onrender.com";
+  const API_URL = "https://api.demotents.com";
 
   useEffect(() => {
   const fetchNavbarMenu = async () => {

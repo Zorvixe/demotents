@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import "./Menu.css";
 
-const API_URL = "https://demotents-dhia.onrender.com";
+const API_URL = "https://api.demotents.com";
 
 const Menu = () => {
   const [categories, setCategories] = useState([]);

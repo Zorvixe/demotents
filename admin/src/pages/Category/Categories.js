@@ -3,7 +3,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Categories.css';
 
-const API_URL = "https://demotents-dhia.onrender.com";
+const API_URL = "https://api.demotents.com";
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);

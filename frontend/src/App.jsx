@@ -28,7 +28,7 @@ export const useCategories = () => {
   return context;
 };
 
-const BASE_URL = "https://demotents-dhia.onrender.com";
+const BASE_URL = "https://api.demotents.com";
 
 function App() {
   const location = useLocation();

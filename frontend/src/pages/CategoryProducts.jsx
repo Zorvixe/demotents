@@ -22,7 +22,7 @@ const CategoryProducts = () => {
   const [bannerLoaded, setBannerLoaded] = useState(false);
   const [bannerError, setBannerError] = useState(false);
 
-  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api`;
 
   useEffect(() => {

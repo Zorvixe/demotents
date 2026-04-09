@@ -19,7 +19,7 @@ const SubcategoryProducts = () => {
   const [imageLoaded, setImageLoaded] = useState({});
   const [imageError, setImageError] = useState({});
 
-  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api`;
 
   const generatePath = (name) => {

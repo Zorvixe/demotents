@@ -15,7 +15,7 @@ export default function AllCategories() {
   const [imageError, setImageError] = useState({});
 
   // ✅ Same BASE_URL as CategoriesScroller
-  const BASE_URL = "https://demotents-dhia.onrender.com";
+  const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api/categories`;
 
   const refs = useRef({});

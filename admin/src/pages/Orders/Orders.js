@@ -3,7 +3,7 @@ import "./Orders.css";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const API_URL = "https://demotents-dhia.onrender.com" || "http://localhost:5004";
+const API_URL = "https://api.demotents.com" || "http://localhost:5004";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
