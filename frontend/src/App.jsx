@@ -86,7 +86,7 @@ function App() {
 
       {/* Wrap all page content with conditional class for margin-top */}
       <div className={!isHome ? "page-with-navbar" : ""}>
-           <ScrollToTop />
+        <ScrollToTop />
         <Routes>
           <Route
             path="/"
@@ -98,14 +98,13 @@ function App() {
               </>
             }
           />
-          
+
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/booking-policy" element={<BookingPolicy />} />
           <Route path="/terms" element={<TermsConditions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/product/:productId" element={<ProductDetails />} />
-          <Route path="/categories" element={<AllCategories />} />
+          <Route path="/product/:productSlug" element={<ProductDetails />} />          <Route path="/categories" element={<AllCategories />} />
           <Route path="/category/:categorySlug" element={<CategoryProducts />} />
           <Route path="/subcategory/:subcategoryId" element={<SubcategoryProducts />} />
         </Routes>

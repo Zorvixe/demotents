@@ -106,9 +106,10 @@ const CategoryProducts = () => {
   const handleBannerLoad = () => setBannerLoaded(true);
   const handleBannerError = () => setBannerError(true);
 
-  const openModal = (product) => {
-    navigate(`/product/${product.id}`, { state: { product } });
-  };
+ const openModal = (product) => {
+  const slug = product.slug || product.id;
+  navigate(`/product/${slug}`, { state: { product } });
+};
 
   // Helper to display correct price based on print type
   const getDisplayPrice = (product) => {

@@ -4,6 +4,8 @@ import "./ProductDetails.css";
 
 const ProductDetails = () => {
   const { productId } = useParams();
+  const { productSlug } = useParams();
+
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ const ProductDetails = () => {
       try {
         setLoading(true);
         setError(null);
-        const productRes = await fetch(`${API_URL}/products/${productId}`);
+        const productRes = await fetch(`${API_URL}/products/${productSlug}`);
         if (!productRes.ok) throw new Error(`Failed to fetch product: ${productRes.status}`);
         const productData = await productRes.json();
 
@@ -286,7 +288,7 @@ const ProductDetails = () => {
         {/* RIGHT – PRODUCT DETAILS (unchanged except minor fixes) */}
         <div className="col-lg-7 col-md-6 ecom-info-section">
           <div className="ecom-product-info">
-            <h1 className="ecom-product-title">{capitalizeFirstLetter(product.name)}</h1>   
+            <h1 className="ecom-product-title">{capitalizeFirstLetter(product.name)}</h1>
             <div className="ecom-rating-box">
               <span className="ecom-stars">
                 <i className="bi bi-star-fill"></i>

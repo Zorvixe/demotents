@@ -50,7 +50,7 @@ const initDatabase = async () => {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
 `);
-console.log("✅ Carousel table initialized");
+    console.log("✅ Carousel table initialized");
     await pool.query(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
@@ -125,7 +125,7 @@ console.log("✅ Carousel table initialized");
       )
     `);
 
-   console.log("✅ Navbar menu table initialized");
+    console.log("✅ Navbar menu table initialized");
 
     // ✅ THIS WAS MISSING
     await pool.query(`
@@ -146,6 +146,28 @@ console.log("✅ Carousel table initialized");
         SET image_url = regexp_replace(image_url, '^https?://[^/]+', '')
         WHERE image_url LIKE 'http%';
     `);
+
+
+
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_email VARCHAR(255),
+    phone VARCHAR(50),
+    address TEXT,
+    items JSONB NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'Pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+
+    await pool.query(`ALTER TABLE products  ADD COLUMN IF NOT EXISTS slug VARCHAR(255) UNIQUE;
+      CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
+      `);
+
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
     console.error("❌ Database initialization error:", error);
@@ -153,45 +175,56 @@ console.log("✅ Carousel table initialized");
 };
 
 
-// ... (your existing code above)
 
 // Update storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
+    let folder = uploadsDir;
+    if (file.fieldname === 'video') folder = path.join(uploadsDir, 'videos');
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+    cb(null, folder);
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const prefix = file.fieldname === 'video' ? 'video-' : 'product-';
+    cb(null, prefix + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-// ADD THIS SECTION HERE:
-// Initialize multer middleware
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) cb(null, true);
+  else if (file.mimetype.startsWith('video/')) cb(null, true);
+  else cb(new Error('Only image or video files allowed'), false);
+};
+
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 11 // 1 main image + 10 sub-images
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
-    }
-  }
+  storage,
+  fileFilter,
+  limits: { fileSize: 1024 * 1024 * 1024 } // 1GB
 });
-
 // Update static file serving
 app.use('/uploads', express.static(uploadsDir));
+
+
+function slugify(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // replace spaces with -
+    .replace(/[^\w\-]+/g, '')       // remove all non-word chars
+    .replace(/\-\-+/g, '-')         // replace multiple - with single -
+    .replace(/^-+/, '')             // trim - from start
+    .replace(/-+$/, '');            // trim - from end
+}
+
+let baseSlug = slugify(name);
+let finalSlug = baseSlug;
+let counter = 1;
+while (await pool.query('SELECT id FROM products WHERE slug = $1', [finalSlug]).rows.length > 0) {
+  finalSlug = `${baseSlug}-${counter++}`;
+}
+// Store finalSlug in the database
 
 // ... (your existing code continues)
 
@@ -982,146 +1015,97 @@ app.post('/api/products', upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
 ]), async (req, res) => {
+  const client = await pool.connect();
+  let uploadedFiles = [];
+
   try {
+    await client.query('BEGIN');
+
+    // ✅ Extract all fields from req.body
     const {
-      name,
-      description,
-      price,
-      category_id,
-      sub_category_id,
-      sku,
-      stock_quantity,
-      is_featured,
-      without_print_price,
-      core_price,
-      elite_price,
-      pro_price,
-      cloth_colors,
-      size,
-      product_type
+      name, description, price, category_id, sub_category_id, sku,
+      stock_quantity, is_featured, product_detail, without_print_price,
+      core_price, elite_price, pro_price, cloth_colors, size, product_type
     } = req.body;
 
-    if (!req.files || !req.files.mainImage || req.files.mainImage.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Main image is required'
-      });
+    // Validation
+    if (!req.files?.mainImage?.[0]) {
+      throw new Error('Main image is required');
     }
-
     if (!name || !price || !category_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name, price, and category are required'
-      });
+      throw new Error('Name, price, and category are required');
     }
 
-    // ✅ Store relative URL (no BASE_URL)
+    // Collect uploaded file paths for rollback
+    if (req.files.mainImage) uploadedFiles.push(req.files.mainImage[0].path);
+    if (req.files.subImages) uploadedFiles.push(...req.files.subImages.map(f => f.path));
+
     const mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
 
-    const client = await pool.connect();
-
-    try {
-      await client.query('BEGIN');
-
-      let finalSku = sku;
-      if (!finalSku) {
-        const skuPrefix = 'PROD-' + Date.now().toString().slice(-6);
-        finalSku = skuPrefix;
+    // Parse array fields
+    let colorsArray = null;
+    if (cloth_colors) {
+      try {
+        colorsArray = JSON.parse(cloth_colors);
+      } catch {
+        colorsArray = cloth_colors.split(',').map(c => c.trim());
       }
-
-      let colorsArray = null;
-      if (cloth_colors) {
-        try {
-          colorsArray = JSON.parse(cloth_colors);
-        } catch (e) {
-          colorsArray = cloth_colors.split(',').map(c => c.trim());
-        }
-      }
-
-      const productResult = await client.query(
-        `INSERT INTO products (
-          name, description, price, category_id, sub_category_id, 
-          main_image_url, sku, stock_quantity, is_featured,
-          without_print_price, core_price, elite_price, pro_price, cloth_colors,
-          size, product_type
-        ) 
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) 
-        RETURNING *`,
-        [
-          name,
-          description,
-          parseFloat(price),
-          category_id,
-          sub_category_id || null,
-          mainImageUrl,
-          finalSku,
-          parseInt(stock_quantity) || 0,
-          is_featured === 'true',
-          without_print_price || null,
-          core_price || null,
-          elite_price || null,
-          pro_price || null,
-          colorsArray,
-          size || null,
-          product_type || null
-        ]
-      );
-
-      const product = productResult.rows[0];
-
-      // Insert sub-images with relative URLs
-      if (req.files.subImages && req.files.subImages.length > 0) {
-        for (let i = 0; i < req.files.subImages.length; i++) {
-          await client.query(
-            'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
-            [product.id, `/uploads/${req.files.subImages[i].filename}`, i]
-          );
-        }
-      }
-
-      await client.query('COMMIT');
-
-      const fullProduct = await getProductWithImages(product.id, client);
-
-      res.status(201).json({
-        success: true,
-        message: 'Product added successfully',
-        product: fullProduct
-      });
-    } catch (error) {
-      await client.query('ROLLBACK');
-
-      const allFiles = [
-        ...(req.files.mainImage || []),
-        ...(req.files.subImages || [])
-      ];
-      const filePaths = allFiles.map(file => file.path);
-      deleteFiles(filePaths);
-      throw error;
-    } finally {
-      client.release();
     }
+
+    // Insert product
+    const productResult = await client.query(`
+      INSERT INTO products (
+        name, description, price, category_id, sub_category_id, main_image_url,
+        sku, stock_quantity, is_featured, product_detail, without_print_price,
+        core_price, elite_price, pro_price, cloth_colors, size, product_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      RETURNING *
+    `, [
+      name, description || null, parseFloat(price), category_id, sub_category_id || null,
+      mainImageUrl, sku || null, parseInt(stock_quantity) || 0, is_featured === 'true',
+      product_detail || null, without_print_price || null, core_price || null,
+      elite_price || null, pro_price || null, colorsArray, size || null, product_type || null
+    ]);
+
+    const productId = productResult.rows[0].id;
+
+    // Insert sub-images
+    if (req.files.subImages) {
+      for (let i = 0; i < req.files.subImages.length; i++) {
+        const subUrl = `/uploads/${req.files.subImages[i].filename}`;
+        await client.query(
+          `INSERT INTO product_images (product_id, image_url, display_order)
+           VALUES ($1, $2, $3)`,
+          [productId, subUrl, i]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Fetch complete product with images
+    const fullProduct = await getProductWithImages(productId, client);
+
+    res.status(201).json({
+      success: true,
+      message: 'Product added successfully',
+      product: fullProduct
+    });
   } catch (error) {
-    console.error('Error adding product:', error);
-    if (error.code === '23505') {
-      return res.status(400).json({
-        success: false,
-        message: 'SKU already exists'
-      });
-    }
-    if (error.code === '23503') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid category ID'
-      });
-    }
+    await client.query('ROLLBACK');
+    // Delete uploaded files because DB operation failed
+    uploadedFiles.forEach(file => {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    });
+    console.error('Product creation error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error adding product'
+      message: error.message || 'Failed to add product'
     });
+  } finally {
+    client.release();
   }
 });
-
 // 12. Get All Products
 // Inside GET /api/products, after extracting query params
 app.get('/api/products', async (req, res) => {
@@ -1180,28 +1164,32 @@ app.get('/api/products', async (req, res) => {
 });
 
 // 13. Get Single Product
-app.get('/api/products/:id', async (req, res) => {
+app.get('/api/products/:identifier', async (req, res) => {
   try {
-    const { id } = req.params;
-    const product = await getProductWithImages(id);
+    const { identifier } = req.params;
+    let product;
 
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
+    // Check if identifier is numeric (ID) or string (slug)
+    if (/^\d+$/.test(identifier)) {
+      product = await getProductWithImages(parseInt(identifier));
+    } else {
+      const result = await pool.query(
+        `SELECT * FROM products WHERE slug = $1`,
+        [identifier]
+      );
+      if (result.rows.length) {
+        product = await getProductWithImages(result.rows[0].id);
+      }
     }
 
-    res.json({
-      success: true,
-      product
-    });
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.json({ success: true, product });
   } catch (error) {
-    console.error('Error fetching product:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching product'
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error fetching product' });
   }
 });
 
@@ -1210,165 +1198,139 @@ app.put('/api/products/:id', upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
 ]), async (req, res) => {
+  const client = await pool.connect();
+  let newUploadedFiles = [];
+  let oldMainUrl = null;
+
   try {
+    await client.query('BEGIN');
+
     const { id } = req.params;
     const {
-      name,
-      description,
-      price,
-      category_id,
-      sub_category_id,
-      sku,
-      stock_quantity,
-      is_featured,
-      is_active,
-      size,
-      product_type,
-      without_print_price,
-      core_price,
-      elite_price,
-      pro_price,
-      cloth_colors
+      name, description, price, category_id, sub_category_id, sku,
+      stock_quantity, is_featured, is_active, product_detail,
+      without_print_price, core_price, elite_price, pro_price,
+      cloth_colors, size, product_type
     } = req.body;
 
-    const client = await pool.connect();
+    // Get existing product
+    const oldProduct = await client.query(
+      'SELECT main_image_url FROM products WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    if (oldProduct.rows.length === 0) throw new Error('Product not found');
+    oldMainUrl = oldProduct.rows[0].main_image_url;
 
-    try {
-      await client.query('BEGIN');
+    // Handle new main image
+    let mainImageUrl = oldMainUrl;
+    if (req.files?.mainImage?.[0]) {
+      mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
+      newUploadedFiles.push(req.files.mainImage[0].path);
+    }
 
-      const currentProduct = await client.query(
-        'SELECT main_image_url, sku FROM products WHERE id = $1',
+    // Parse array field
+    let colorsArray = null;
+    if (cloth_colors) {
+      try {
+        colorsArray = JSON.parse(cloth_colors);
+      } catch {
+        colorsArray = cloth_colors.split(',').map(c => c.trim());
+      }
+    }
+
+    // Update product
+    await client.query(`
+      UPDATE products SET
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        price = COALESCE($3, price),
+        category_id = COALESCE($4, category_id),
+        sub_category_id = $5,
+        main_image_url = $6,
+        sku = COALESCE($7, sku),
+        stock_quantity = COALESCE($8, stock_quantity),
+        is_featured = COALESCE($9, is_featured),
+        is_active = COALESCE($10, is_active),
+        product_detail = $11,
+        without_print_price = $12,
+        core_price = $13,
+        elite_price = $14,
+        pro_price = $15,
+        cloth_colors = $16,
+        size = $17,
+        product_type = $18,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $19
+    `, [
+      name, description, price ? parseFloat(price) : null,
+      category_id, sub_category_id || null, mainImageUrl,
+      sku, stock_quantity ? parseInt(stock_quantity) : null,
+      is_featured === 'true', is_active === 'true',
+      product_detail || null, without_print_price || null,
+      core_price || null, elite_price || null, pro_price || null,
+      colorsArray, size || null, product_type || null, id
+    ]);
+
+    // Handle sub-images: delete existing and insert new ones if provided
+    if (req.files?.subImages?.length) {
+      // Get old sub-images to delete later
+      const oldSubImages = await client.query(
+        'SELECT image_url FROM product_images WHERE product_id = $1',
         [id]
       );
-
-      if (currentProduct.rows.length === 0) {
-        throw new Error('Product not found');
-      }
-
-      let mainImageUrl = currentProduct.rows[0].main_image_url;
-
-      // Update main image if new one is uploaded – store relative URL
-      if (req.files?.mainImage?.[0]) {
-        if (mainImageUrl) {
-          const oldImagePath = path.join(__dirname, mainImageUrl);
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-          }
-        }
-        mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
-      }
-
-      const updateFields = [];
-      const values = [];
-      let paramIndex = 1;
-
-      if (name !== undefined) { updateFields.push(`name = $${paramIndex}`); values.push(name); paramIndex++; }
-      if (description !== undefined) { updateFields.push(`description = $${paramIndex}`); values.push(description); paramIndex++; }
-      if (price !== undefined) { updateFields.push(`price = $${paramIndex}`); values.push(parseFloat(price)); paramIndex++; }
-      if (category_id !== undefined) { updateFields.push(`category_id = $${paramIndex}`); values.push(category_id); paramIndex++; }
-      if (sub_category_id !== undefined) { updateFields.push(`sub_category_id = $${paramIndex}`); values.push(sub_category_id || null); paramIndex++; }
-      if (sku !== undefined && sku !== currentProduct.rows[0].sku) {
-        updateFields.push(`sku = $${paramIndex}`);
-        values.push(sku);
-        paramIndex++;
-      }
-      if (stock_quantity !== undefined) { updateFields.push(`stock_quantity = $${paramIndex}`); values.push(parseInt(stock_quantity)); paramIndex++; }
-      if (is_featured !== undefined) { updateFields.push(`is_featured = $${paramIndex}`); values.push(is_featured === 'true'); paramIndex++; }
-      if (is_active !== undefined) { updateFields.push(`is_active = $${paramIndex}`); values.push(is_active === 'true'); paramIndex++; }
-      if (mainImageUrl !== currentProduct.rows[0].main_image_url) {
-        updateFields.push(`main_image_url = $${paramIndex}`);
-        values.push(mainImageUrl);
-        paramIndex++;
-      }
-      if (size !== undefined) { updateFields.push(`size = $${paramIndex}`); values.push(size); paramIndex++; }
-      if (product_type !== undefined) { updateFields.push(`product_type = $${paramIndex}`); values.push(product_type); paramIndex++; }
-      if (without_print_price !== undefined) { updateFields.push(`without_print_price = $${paramIndex}`); values.push(without_print_price || null); paramIndex++; }
-      if (core_price !== undefined) { updateFields.push(`core_price = $${paramIndex}`); values.push(core_price || null); paramIndex++; }
-      if (elite_price !== undefined) { updateFields.push(`elite_price = $${paramIndex}`); values.push(elite_price || null); paramIndex++; }
-      if (pro_price !== undefined) { updateFields.push(`pro_price = $${paramIndex}`); values.push(pro_price || null); paramIndex++; }
-      if (cloth_colors !== undefined) {
-        let colorsArray = null;
-        if (cloth_colors) {
-          try {
-            colorsArray = JSON.parse(cloth_colors);
-          } catch (e) {
-            colorsArray = cloth_colors.split(',').map(c => c.trim());
-          }
-        }
-        updateFields.push(`cloth_colors = $${paramIndex}`);
-        values.push(colorsArray);
-        paramIndex++;
-      }
-
-      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-      if (updateFields.length > 0) {
-        values.push(id);
-        const query = `
-          UPDATE products 
-          SET ${updateFields.join(', ')} 
-          WHERE id = $${paramIndex} 
-          RETURNING *
-        `;
-        await client.query(query, values);
-      }
-
-      // Add new sub-images with relative URLs
-      if (req.files?.subImages?.length > 0) {
-        const orderResult = await client.query(
-          'SELECT COALESCE(MAX(display_order), 0) as max_order FROM product_images WHERE product_id = $1',
-          [id]
+      // Delete DB records
+      await client.query('DELETE FROM product_images WHERE product_id = $1', [id]);
+      // Insert new sub-images
+      for (let i = 0; i < req.files.subImages.length; i++) {
+        const subUrl = `/uploads/${req.files.subImages[i].filename}`;
+        newUploadedFiles.push(req.files.subImages[i].path);
+        await client.query(
+          `INSERT INTO product_images (product_id, image_url, display_order)
+           VALUES ($1, $2, $3)`,
+          [id, subUrl, i]
         );
-        let nextOrder = orderResult.rows[0].max_order + 1;
-
-        for (const file of req.files.subImages) {
-          await client.query(
-            'INSERT INTO product_images (product_id, image_url, display_order) VALUES ($1, $2, $3)',
-            [id, `/uploads/${file.filename}`, nextOrder++]
-          );
-        }
       }
-
-      await client.query('COMMIT');
-
-      const updatedProduct = await getProductWithImages(id, client);
-
-      res.json({
-        success: true,
-        message: 'Product updated successfully',
-        product: updatedProduct
+      // Schedule old sub-image files for deletion after commit
+      oldSubImages.rows.forEach(row => {
+        const oldPath = path.join(__dirname, row.image_url);
+        if (fs.existsSync(oldPath)) newUploadedFiles.push(oldPath); // will delete later
       });
-    } catch (error) {
-      await client.query('ROLLBACK');
-
-      const allFiles = [
-        ...(req.files?.mainImage || []),
-        ...(req.files?.subImages || [])
-      ];
-      const filePaths = allFiles.map(file => file?.path).filter(Boolean);
-      deleteFiles(filePaths);
-      throw error;
-    } finally {
-      client.release();
     }
+
+    await client.query('COMMIT');
+
+    // After successful commit, delete old main image (if replaced)
+    if (req.files?.mainImage?.[0] && oldMainUrl && oldMainUrl !== mainImageUrl) {
+      const oldPath = path.join(__dirname, oldMainUrl);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    // Delete old sub-images (already collected)
+    for (const filePath of newUploadedFiles) {
+      if (filePath !== req.files?.mainImage?.[0]?.path && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    const updatedProduct = await getProductWithImages(id, client);
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      product: updatedProduct
+    });
   } catch (error) {
-    console.error('Error updating product:', error);
-    if (error.code === '23505') {
-      return res.status(400).json({
-        success: false,
-        message: 'SKU already exists'
-      });
-    }
-    if (error.code === '23503') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid category ID'
-      });
-    }
+    await client.query('ROLLBACK');
+    // Delete newly uploaded files (main + sub)
+    newUploadedFiles.forEach(file => {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    });
+    console.error('Product update error:', error);
     res.status(500).json({
       success: false,
-      message: 'Error updating product'
+      message: error.message || 'Failed to update product'
     });
+  } finally {
+    client.release();
   }
 });
 

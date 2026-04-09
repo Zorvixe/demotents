@@ -91,9 +91,10 @@ const SubcategoryProducts = () => {
     setImageLoaded(prev => ({ ...prev, [productId]: true }));
   };
 
-  const openModal = (product) => {
-    navigate(`/product/${product.id}`, { state: { product } });
-  };
+ const openModal = (product) => {
+  const slug = product.slug || product.id;
+  navigate(`/product/${slug}`, { state: { product } });
+};
 
   const getDisplayPrice = (product) => {
     if (printType === "without-print") {
