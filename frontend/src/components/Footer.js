@@ -39,10 +39,10 @@ const Footer = () => {
               <div className="col-6">
                 <h6 className="fw-bold mb-3 mt-4">Our Services</h6>
                 <ul className="list-unstyled footer-links">
-  <li onClick={() => navigate("/canopy")}>Canopy</li>
-  <li onClick={() => navigate("/gazebo")}>Gazebo</li>
-  <li onClick={() => navigate("/rollup-standee")}>Roll up Standee</li>
-  <li onClick={() => navigate("/promotable")}>Promotable</li>
+<li onClick={() => navigate("/subcategory/1?type=without-print")}>Canopy</li>
+<li onClick={() => navigate("/subcategory/4?type=without-print")}>Gazebo</li>
+<li onClick={() => navigate("/subcategory/6?type=without-print")}>Roll up Standee</li>
+<li onClick={() => navigate("/subcategory/7?type=without-print")}>Promotable</li>
 </ul>
               </div>
             </div>
