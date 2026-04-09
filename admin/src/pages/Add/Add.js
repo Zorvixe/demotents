@@ -5,7 +5,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const API_URL = "https://api.demotents.com" || "http://localhost:5004";
-const MAX_TOTAL_SIZE_BYTES = 1024 * 1024 * 1024; // 1 GB
+const MAX_TOTAL_SIZE_BYTES = 800 * 1024 * 1024; // 800 MB (frontend limit, backend allows up to 1GB)
 
 const Add = () => {
     const [mainImage, setMainImage] = useState(null);
@@ -121,7 +121,7 @@ const Add = () => {
             if (newTotal > MAX_TOTAL_SIZE_BYTES) {
                 const currentMB = (currentTotal / (1024 * 1024)).toFixed(2);
                 const addedMB = (addedSize / (1024 * 1024)).toFixed(2);
-                toast.error(`Total image size would exceed 1 GB limit (current ${currentMB} MB + ${addedMB} MB). Please remove some images first.`);
+                toast.error(`Total image size would exceed 800 MB limit (current ${currentMB} MB + ${addedMB} MB). Please remove some images first.`);
                 return;
             }
 
@@ -302,7 +302,7 @@ const Add = () => {
                         </div>
 
                         <div className="form-group">
-                            <label>Additional Images (Max 10, total ≤ 1 GB)</label>
+                            <label>Additional Images (Max 10, total ≤ 800 MB)</label>
                             <div className="sub-images-upload-zone">
                                 <label htmlFor="subImages" className="sub-images-add-btn">
                                     <span className="plus-icon">+</span>
@@ -325,7 +325,7 @@ const Add = () => {
                                 <span>{subImages.length} / 10 images</span>
                                 <span style={{ marginLeft: '16px', color: isOverLimit ? 'red' : 'inherit' }}>
                                     Total size: {totalMB} MB / {limitMB} MB
-                                    {isOverLimit && <strong> (exceeds limit!)</strong>}
+                                    {isOverLimit && <strong> (exceeds 800 MB limit!)</strong>}
                                 </span>
                             </div>
                         </div>
@@ -496,7 +496,7 @@ const Add = () => {
                     <button type='submit' className='ui-btn-primary' disabled={loading || isOverLimit}>
                         {loading ? 'Saving...' : 'Save Product'}
                     </button>
-                    {isOverLimit && <p className="error-text" style={{color: 'red', marginTop: '8px'}}>Please remove some images – total size exceeds 1 GB.</p>}
+                    {isOverLimit && <p className="error-text" style={{color: 'red', marginTop: '8px'}}>Please remove some images – total size exceeds 800 MB.</p>}
                 </div>
             </form>
         </div>
