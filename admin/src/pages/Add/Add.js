@@ -97,7 +97,7 @@ const Add = () => {
     const handleSubImagesChange = (e) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files);
-            
+
             if (subImages.length + filesArray.length > 10) {
                 toast.error('Maximum 10 sub-images allowed');
                 return;
@@ -188,7 +188,7 @@ const Add = () => {
             const colorsArray = data.cloth_colors.split(",").map(c => c.trim());
             formData.append("cloth_colors", JSON.stringify(colorsArray));
         }
-        
+
         subImages.forEach((image) => {
             formData.append("subImages", image);
         });
@@ -225,16 +225,16 @@ const Add = () => {
     return (
         <div className='add-page-wrapper'>
             <ToastContainer position="top-right" autoClose={3000} />
-            
+
             <div className="add-header">
                 <h2>Add New Product</h2>
             </div>
 
             <form onSubmit={onSubmitHandler} className="add-form-grid">
-                
+
                 {/* LEFT COLUMN */}
                 <div className="main-column">
-                    
+
                     {/* Basic Info Card */}
                     <div className="ui-card">
                         <div className="card-header">Basic Information</div>
@@ -267,14 +267,14 @@ const Add = () => {
                     {/* Media Card */}
                     <div className="ui-card">
                         <div className="card-header">Media</div>
-                        
+
                         <div className="form-group">
                             <label>Main Product Image <span className="required">*</span></label>
                             <div className="main-image-upload-zone">
                                 <label htmlFor="mainImage" className="upload-label">
-                                    <img 
-                                        src={mainImage ? URL.createObjectURL(mainImage) : uploadImg} 
-                                        alt="Upload main" 
+                                    <img
+                                        src={mainImage ? URL.createObjectURL(mainImage) : uploadImg}
+                                        alt="Upload main"
                                         className={mainImage ? "preview-img" : "placeholder-img"}
                                     />
                                     {!mainImage && <span>Click to upload main image</span>}
@@ -291,7 +291,7 @@ const Add = () => {
                                     <span>Add Media</span>
                                 </label>
                                 <input onChange={handleSubImagesChange} type="file" id='subImages' hidden multiple accept="image/*" />
-                                
+
                                 {subImages.length > 0 && (
                                     <div className="sub-images-gallery">
                                         {subImages.map((image, index) => (
@@ -310,7 +310,7 @@ const Add = () => {
                     {/* Pricing & Inventory Card (updated with Price & Stock) */}
                     <div className="ui-card">
                         <div className="card-header">Pricing & Inventory</div>
-                        
+
                         <div className="grid-2-col">
                             <div className="form-group">
                                 <label>SKU (Stock Keeping Unit)</label>
@@ -373,7 +373,7 @@ const Add = () => {
                                 <label>Without Print Price</label>
                                 <div className="input-prefix">
                                     <span>$</span>
-                                    <input type="text" name="without_print_price" value={data.without_print_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00"/>
+                                    <input type="text" name="without_print_price" value={data.without_print_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" />
                                 </div>
                             </div>
                         )}
@@ -408,7 +408,7 @@ const Add = () => {
 
                 {/* RIGHT COLUMN (SIDEBAR) - unchanged */}
                 <div className="sidebar-column">
-                    
+
                     <div className="ui-card">
                         <div className="card-header">Product Status</div>
                         <label className="ui-checkbox-label">
@@ -452,13 +452,15 @@ const Add = () => {
                         <div className="card-header">Variants & Options</div>
                         <div className="form-group">
                             <label>Size <span className="required">*</span></label>
-                            <select name="size" value={data.size} onChange={onChangeHandler} className="ui-input" required>
-                                <option value="">Select Size</option>
-                                <option value="4x4">4x4</option>
-                                <option value="6x6">6x6</option>
-                                <option value="10x10">10x10</option>
-                                <option value="10x20">10x20</option>
-                            </select>
+                            <input
+                                type="text"
+                                name="size"
+                                value={data.size}
+                                onChange={onChangeHandler}
+                                placeholder="Enter size (e.g. 10x10, 12x12, Custom)"
+                                className="ui-input"
+                                required
+                            />
                         </div>
                         <div className="form-group">
                             <label>Cloth Colors</label>
