@@ -228,6 +228,7 @@ const ProductDetails = () => {
         <div className="col-lg-5 col-md-6 ecom-gallery-section">
           <div className="ecom-gallery-layout">
             {/* Thumbnails */}
+            {/* Thumbnails */}
             {allImages.length > 1 && (
               <div className="ecom-thumbnail-col">
                 {allImages.map((img, index) => {
@@ -238,8 +239,7 @@ const ProductDetails = () => {
                     <div
                       key={index}
                       className={`ecom-thumb-box ${activeImg === thumbUrl ? "active" : ""}`}
-                      onMouseEnter={() => setActiveImg(thumbUrl)}
-                      onClick={() => setActiveImg(thumbUrl)}
+                      onClick={() => setActiveImg(thumbUrl)}   // ← only onClick, no onMouseEnter
                     >
                       {!isLoaded && thumbUrl && !hasError && (
                         <div className="ecom-thumb-loader"><div className="ecom-spinner-small"></div></div>
@@ -427,7 +427,7 @@ const ProductDetails = () => {
       {/* RELATED PRODUCTS */}
       {relatedProducts.length > 0 && (
         <div className="ecom-related-section">
-          <h2 className="ecom-related-heading">Customers who viewed this item also viewed</h2>
+          <h2 className="ecom-related-heading">Also Like</h2>
           <div className="ecom-related-scroller">
             <div className="ecom-related-track">
               {relatedProducts.map((item) => {
