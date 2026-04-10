@@ -99,19 +99,14 @@ const Add = () => {
             const newFiles = Array.from(e.target.files);
             const currentCount = subImages.length;
             const newCount = currentCount + newFiles.length;
-            if (newCount > 10) {
-                toast.error(`Maximum 10 sub‑images allowed. You have ${currentCount} and tried to add ${newFiles.length}.`);
+
+            // Keep only the count limit, remove size check
+            if (newCount > 50) {  // You can increase this limit too
+                toast.error(`Maximum 50 sub‑images allowed. You have ${currentCount} and tried to add ${newFiles.length}.`);
                 return;
             }
-            const currentTotal = totalSubImagesSize;
-            const addedSize = newFiles.reduce((sum, file) => sum + file.size, 0);
-            const newTotal = currentTotal + addedSize;
-            if (newTotal > MAX_TOTAL_SIZE_BYTES) {
-                const currentMB = (currentTotal / (1024 * 1024)).toFixed(2);
-                const addedMB = (addedSize / (1024 * 1024)).toFixed(2);
-                toast.error(`Total image size would exceed 800 MB limit (current ${currentMB} MB + ${addedMB} MB). Please remove some images first.`);
-                return;
-            }
+
+            // Remove all size validation code
             setSubImages(prev => [...prev, ...newFiles]);
         }
     };
@@ -270,10 +265,7 @@ const Add = () => {
                                 )}
                             </div>
                             <div className="helper-text" style={{ marginTop: '8px' }}>
-                                <span>{subImages.length} / 10 images</span>
-                                <span style={{ marginLeft: '16px', color: isOverLimit ? 'red' : 'inherit' }}>
-                                    Total size: {totalMB} MB / {limitMB} MB {isOverLimit && <strong> (exceeds 800 MB limit!)</strong>}
-                                </span>
+                                <span>{subImages.length} images selected</span>
                             </div>
                         </div>
                     </div>
@@ -346,8 +338,13 @@ const Add = () => {
                         <div className="form-group"><label>Size <span className="required">*</span></label><input type="text" name="size" value={data.size} onChange={onChangeHandler} placeholder="Enter size (e.g. 10x10, 12x12, Custom)" className="ui-input" required /></div>
                         <div className="form-group"><label>Cloth Colors</label><input type="text" name="cloth_colors" value={data.cloth_colors} onChange={onChangeHandler} placeholder="Red, Blue, Green (comma separated)" className="ui-input" /></div>
                     </div>
-                    <button type='submit' className='ui-btn-primary' disabled={loading || isOverLimit}>{loading ? 'Saving...' : 'Save Product'}</button>
-                    {isOverLimit && <p className="error-text" style={{color: 'red', marginTop: '8px'}}>Please remove some images – total size exceeds 800 MB.</p>}
+                    <button
+                        type='submit'
+                        className='ui-btn-primary'
+                        disabled={loading}  // Remove || isOverLimit
+                    >
+                        {loading ? 'Saving...' : 'Save Product'}
+                    </button>
                 </div>
             </form>
         </div>

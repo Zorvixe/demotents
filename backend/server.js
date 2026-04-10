@@ -16,8 +16,8 @@ const bcrypt = require('bcrypt');
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-// Debug: List all routes (add temporarily)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));// Debug: List all routes (add temporarily)
 app.get('/debug-routes', (req, res) => {
   const routes = [];
   app._router.stack.forEach((r) => {
@@ -301,7 +301,10 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: Infinity }
+  limits: { 
+    fileSize: Infinity,  // No size limit
+    files: 100          // Allow up to 100 files (or adjust as needed)
+  }
 });
 // Update static file serving
 app.use('/uploads', express.static(uploadsDir));
@@ -1224,7 +1227,7 @@ app.get('/api/products/:identifier', async (req, res) => {
 // Updated POST product with UUID generation
 app.post('/api/products', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
-  { name: 'subImages', maxCount: 10 }
+  { name: 'subImages', maxCount: 100 }  // Increase from 10 to 100
 ]), async (req, res) => {
   const client = await pool.connect();
   let uploadedFiles = [];
