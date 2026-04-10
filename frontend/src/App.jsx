@@ -102,7 +102,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/booking-policy" element={<BookingPolicy />} />
-          <Route path="/terms" element={<TermsConditions />} />
+          <Route path="/terms-conditions" element={<TermsConditions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/product/:productSlug" element={<ProductDetails />} />          <Route path="/categories" element={<AllCategories />} />
           <Route path="/category/:categorySlug" element={<CategoryProducts />} />

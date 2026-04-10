@@ -193,8 +193,8 @@ const About = () => {
       <section className="values-section">
         <div className="container">
           <div className="text-center mb-5">
-            <h4 className="section-subtitle text-white-50">Our Core Pillars</h4>
-            <h2 className="section-title text-white">The DemoTents Commitment</h2>
+            <h4 className="section-subtitle">Our Core Pillars</h4>
+            <h2 className="section-title">The DemoTents Commitment</h2>
           </div>
 
           <div className="values-grid">

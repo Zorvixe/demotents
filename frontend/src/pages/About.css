@@ -189,7 +189,7 @@
 }
 
 .value-card-modern p {
-  color: #cbd5e1;
+  color: #3c3c3d;
   line-height: 1.6;
   margin: 0;
 }
@@ -254,7 +254,6 @@
 
 .btn-outline-modern:hover {
   background: var(--primary-color);
-  color: #ffffff;
 }
 
 /* ================= RESPONSIVE DESIGN ================= */

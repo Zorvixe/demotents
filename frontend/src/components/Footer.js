@@ -14,7 +14,7 @@ const Footer = () => {
           <div className="col-lg-4 mb-4">
             <div className="company-info">
               <a onClick={() => navigate("/")} role="button">
-                 <h1 className = "Logo-Text">Demotents.com</h1>
+                <h1 className="Logo-Text">Demotents.com</h1>
               </a>
 
               <p className="company-description mb-3">
@@ -37,13 +37,13 @@ const Footer = () => {
               </div>
 
               <div className="col-6">
-                <h6 className="fw-bold mb-3 mt-4">Our Services</h6>
+                <h6 className="fw-bold mb-3 mt-4">Useful Links</h6>
                 <ul className="list-unstyled footer-links">
-<li onClick={() => navigate("/subcategory/1?type=without-print")}>Canopy</li>
-<li onClick={() => navigate("/subcategory/4?type=without-print")}>Gazebo</li>
-<li onClick={() => navigate("/subcategory/6?type=without-print")}>Roll up Standee</li>
-<li onClick={() => navigate("/subcategory/7?type=without-print")}>Promotable</li>
-</ul>
+                  <li onClick={() => navigate("/privacy-policy")}>Privacy Policy</li>
+                  <li onClick={() => navigate("/terms-conditions")}>Terms & Conditions</li>
+                  <li onClick={() => navigate("/booking-policy")}>Booking Policy</li>
+                  <li onClick={() => navigate("/contact")}>Contact Us</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -54,16 +54,16 @@ const Footer = () => {
               <h6 className="fw-bold mb-3">Contact Information</h6>
 
               <p>
-  <i className="bi bi-geo-alt me-2"></i>
-  <a
-    href="https://www.google.com/maps/search/?api=1&query=Piller+No.+1540,+Uco+Bank+Lane,+Dilsukhnagar,+Hyderabad"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="map-link"
-  >
-    Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhnagar, Hyderabad, Telangana 500060
-  </a>
-</p>
+                <i className="bi bi-geo-alt me-2"></i>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Piller+No.+1540,+Uco+Bank+Lane,+Dilsukhnagar,+Hyderabad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="map-link"
+                >
+                  Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhnagar, Hyderabad, Telangana 500060
+                </a>
+              </p>
 
               <p>
                 <i className="bi bi-envelope me-2"></i>
@@ -90,8 +90,8 @@ const Footer = () => {
 
         {/* Footer bottom */}
         <div className="footer-bottom text-center mt-4">
-           <p>© {new Date().getFullYear()} <a className="sitename" href='/'>Demo Tents</a> . Developed by <a className="sitename" href='https://www.zorvixetechnologies.com'>Zorvixe Technologies</a></p>
-    
+          <p>© {new Date().getFullYear()} <a className="sitename" href='/'>Demo Tents</a> . Developed by <a className="sitename" href='https://www.zorvixetechnologies.com'>Zorvixe Technologies</a></p>
+
         </div>
       </div>
     </footer>
