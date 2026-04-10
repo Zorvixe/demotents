@@ -354,7 +354,21 @@ const List = () => {
                 </div>
                 <div className="form-section">
                   <div className="section-header-flex"><h4 className="section-title">Pricing & Options</h4><div className="featured-toggle"><span className="toggle-label-text">Featured Product</span><div className="toggle-switch"><input type="checkbox" id="featured-edit" name="is_featured" checked={editForm.is_featured} onChange={handleFormChange} /><label htmlFor="featured-edit" className="toggle-label"></label></div></div></div>
-                  <div className="grid-2-col-inner"><div className="form-group"><label>Base Price <span className="required">*</span></label><div className="input-with-prefix"><span className="prefix">$</span><input type="number" name="price" value={editForm.price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" /></div></div><div className="form-group"><label>Size <span className="required">*</span></label><select name="size" value={editForm.size} onChange={handleFormChange} className="edit-input" required><option value="">Select Size</option><option value="4x4">4x4</option><option value="6x6">6x6</option><option value="10x10">10x10</option><option value="10x20">10x20</option></select></div></div>
+                  <div className="grid-2-col-inner"><div className="form-group"><label>Base Price <span className="required">*</span></label><div className="input-with-prefix"><span className="prefix">$</span><input type="number" name="price" value={editForm.price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" /></div></div>
+                    {/* REPLACE the <select> block with this */}
+                    <div className="form-group">
+                      <label>Size <span className="required">*</span></label>
+                      <input
+                        type="text"
+                        name="size"
+                        value={editForm.size}
+                        onChange={handleFormChange}
+                        className="edit-input"
+                        placeholder="Enter size (e.g. 10x10, 12x12, Custom)"
+                        required
+                      />
+                    </div>
+                  </div>
                   <div className="form-group"><label>Product Type <span className="required">*</span></label><select name="product_type" value={editForm.product_type} onChange={handleFormChange} className="edit-input" required><option value="">Select Type</option><option value="without_print">Without Print</option><option value="customization">With Customization</option></select></div>
                   {editForm.product_type === 'without_print' && <div className="form-group bg-light p-3 rounded mt-2"><label>Without Print Price</label><div className="input-with-prefix"><span className="prefix">$</span><input type="number" name="without_print_price" value={editForm.without_print_price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" /></div></div>}
                   {editForm.product_type === 'customization' && <div className="grid-3-col bg-light p-3 rounded mt-2"><div className="form-group m-0"><label>Core Price</label><input type="number" name="core_price" value={editForm.core_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div><div className="form-group m-0"><label>Elite Price</label><input type="number" name="elite_price" value={editForm.elite_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div><div className="form-group m-0"><label>Pro Price</label><input type="number" name="pro_price" value={editForm.pro_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div></div>}

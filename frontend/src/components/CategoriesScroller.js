@@ -12,21 +12,20 @@ const CategoriesScroller = () => {
   // Sort categories by ID (ascending) – oldest first
   const sortedCategories = [...(categories || [])].sort((a, b) => a.id - b.id);
 
-  // Calculate how many items fit in 2 rows based on screen size
+  // Calculate how many items fit in 3 rows based on screen size
   const getMaxCategoriesToShow = () => {
     // Get grid column count based on current screen width
     if (typeof window !== 'undefined') {
       const width = window.innerWidth;
-      let columnsPerRow = 5; // Default desktop columns
+      let columnsPerRow = 4; // Default desktop columns (4 items per row makes images bigger)
 
-      if (width <= 480) columnsPerRow = 2;
-      else if (width <= 768) columnsPerRow = 3;
-      else if (width <= 991) columnsPerRow = 4;
-      else columnsPerRow = 5;
+      if (width <= 480) columnsPerRow = 2; // Mobile
+      else if (width <= 768) columnsPerRow = 3; // Tablet
+      else columnsPerRow = 4; // Large and Extra Large Screens
 
-      return columnsPerRow * 2; // 2 rows maximum
+      return columnsPerRow * 3; // 3 rows maximum
     }
-    return 10; // Default: 5 columns × 2 rows
+    return 12; // Default: 4 columns × 3 rows
   };
 
   // State for responsive calculation
@@ -42,7 +41,7 @@ const CategoriesScroller = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Limit categories to only 2 rows worth
+  // Limit categories to only 3 rows worth
   const displayedCategories = sortedCategories.slice(0, maxCategories);
 
   // Track image loading state per category
@@ -74,17 +73,17 @@ const CategoriesScroller = () => {
   };
 
   useEffect(() => {
-  fetch(`${BASE_URL}/api/categories-with-images`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) setCategories(data.categories);
-    });
-}, []);
+    fetch(`${BASE_URL}/api/categories-with-images`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setCategories(data.categories);
+      });
+  }, [BASE_URL]);
 
   if (!sortedCategories || sortedCategories.length === 0) {
     return (
       <section className="popular-products-section py-5">
-        <div className="container-fluid px-4 text-center">
+        <div className="container-fluid categories-container text-center">
           <h2 className="section-title">POPULAR CATEGORIES</h2>
           <p className="section-subtitle">Explore our tent collections</p>
           <div className="empty-state py-5"><p>No categories available yet.</p></div>
@@ -96,13 +95,13 @@ const CategoriesScroller = () => {
   return (
     <section className="popular-products-section py-4">
       <div className="container-fluid categories-container">
-        <div className="text-center mb-3">
+        <div className="text-center mb-4">
           <h2 className="section-title">POPULAR CATEGORIES</h2>
           <p className="section-subtitle">Explore our tent collections</p>
         </div>
 
-        {/* Fixed height grid container - will NOT exceed 2 rows */}
-        <div className="categories-grid two-rows-only">
+        {/* Fixed height grid container - will NOT exceed 3 rows */}
+        <div className="categories-grid three-rows-only">
           {displayedCategories.map((cat) => {
             const imgUrl = getCategoryImage(cat);
             const isLoaded = imageLoaded[cat.id];
@@ -132,18 +131,17 @@ const CategoriesScroller = () => {
                     </div>
                   )}
                 </div>
-                <div className="card-content">
+                <div className="card-content text-center">
                   <h4 className="category-name">{cat.name}</h4>
-
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Show "View All" button ONLY if there are more categories beyond 2 rows */}
+        {/* Show "View All" button ONLY if there are more categories beyond 3 rows */}
         {sortedCategories.length > maxCategories && (
-          <div className="text-center mt-3">
+          <div className="text-center mt-4">
             <button className="view-all-btn" onClick={() => navigate("/categories")}>
               View All Categories ({sortedCategories.length - maxCategories} more)
             </button>
