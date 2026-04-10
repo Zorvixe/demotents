@@ -5,9 +5,15 @@ const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = process.env.PORT || 5004;
+
+// Seed default admin if not exists
+const bcrypt = require('bcrypt');
+const defaultUsername = 'DemoTents';
+const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
 
 // Middleware
 app.use(cors());
@@ -34,6 +40,35 @@ const pool = new Pool({
     rejectUnauthorized: false,
   },
 });
+
+const existingAdmin = await pool.query(
+  'SELECT id FROM admin_users WHERE username = $1',
+  [defaultUsername]
+);
+if (existingAdmin.rows.length === 0) {
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+  await pool.query(
+    'INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)',
+    [defaultUsername, hashedPassword]
+  );
+  console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
+}
+
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.admin = decoded; // { id, username }
+    next();
+  } catch (error) {
+    return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+  }
+};
 
 // Initialize database tables
 const initDatabase = async () => {
@@ -174,12 +209,64 @@ const initDatabase = async () => {
       CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
       `);
 
+
+    // ========== Admin users table ==========
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS admin_users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+    console.log("✅ Admin users table initialized");
+
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
     console.error("❌ Database initialization error:", error);
   }
 };
 
+
+// ==================== ADMIN LOGIN ====================
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Username and password required' });
+    }
+
+    const result = await pool.query(
+      'SELECT id, username, password_hash FROM admin_users WHERE username = $1',
+      [username]
+    );
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const admin = result.rows[0];
+    const validPassword = await bcrypt.compare(password, admin.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { id: admin.id, username: admin.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      token,
+      admin: { id: admin.id, username: admin.username }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 
 // Update storage configuration
@@ -1091,10 +1178,10 @@ app.get('/api/products/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
     let product;
-    
+
     // Check if identifier is UUID format (8-4-4-4-12 pattern)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    
+
     if (uuidRegex.test(identifier)) {
       // Fetch by UUID
       const result = await pool.query(
@@ -1114,11 +1201,11 @@ app.get('/api/products/:identifier', async (req, res) => {
         product = await getProductWithImages(result.rows[0].id);
       }
     }
-    
+
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
-    
+
     res.json({ success: true, product });
   } catch (error) {
     console.error(error);
@@ -1213,7 +1300,7 @@ app.post('/api/products', upload.fields([
     const fullProduct = await getProductWithImages(productId, client);
     // Add uuid to response
     fullProduct.uuid = productUuid;
-    
+
     res.status(201).json({
       success: true,
       message: 'Product added successfully',
@@ -1804,6 +1891,10 @@ app.use((err, req, res, next) => {
     message: 'Internal server error'
   });
 });
+
+
+// All routes after this line require authentication
+app.use('/api', verifyToken); // protects every /api/* route except the ones defined before this line
 
 // Initialize database and start server
 initDatabase().then(() => {
