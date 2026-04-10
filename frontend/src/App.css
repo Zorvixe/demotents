@@ -12,7 +12,7 @@ body {
 .social-fixed {
   position: fixed;
   top: 350px;                
-  left: 4px;               
+  right: 4px;               
   display: flex;
   flex-direction: column;
   gap: 14px;

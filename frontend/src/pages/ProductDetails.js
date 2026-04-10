@@ -133,7 +133,7 @@ const ProductDetails = () => {
 
   const handleRelatedProductClick = (relatedProduct) => {
     window.scrollTo(0, 0);
-    navigate(`/product/${relatedProduct.id}`);
+    navigate(`/product/${relatedProduct.id}/${relatedProduct.slug || ""}`);
   };
 
   useEffect(() => {
@@ -208,6 +208,31 @@ const ProductDetails = () => {
     ...(product.main_image_url ? [product.main_image_url] : []),
     ...(product.sub_images?.map(img => img.image_url) || [])
   ].filter(Boolean);
+
+
+  // ✅ WhatsApp Share Function
+  const shareOnWhatsApp = () => {
+    const baseUrl = window.location.origin;
+
+    // Build SEO-friendly product URL
+    const productUrl = `${baseUrl}/product/${product.id}/${product.slug || ""}`;
+
+    const message = `Hello 👋,
+
+I'm interested in this product:
+
+🛍️ ${product.name}
+🔗 ${productUrl}
+
+Please share more details.`;
+
+    const encodedMessage = encodeURIComponent(message);
+
+    window.open(
+      `https://wa.me/919010864897?text=${encodedMessage}`,
+      "_blank"
+    );
+  };
 
   return (
     <div className="ecom-product-page container py-4">
@@ -407,10 +432,11 @@ const ProductDetails = () => {
                 </select>
               </div>
               <div className="ecom-action-buttons">
-                <button className="ecom-btn-amz-yellow">
+                <button className="ecom-btn-amz-yellow" onClick={shareOnWhatsApp}>
                   <i className="bi bi-whatsapp"></i> Enquire on WhatsApp
                 </button>
-                <button className="ecom-btn-amz-orange">
+
+                <button className="ecom-btn-amz-orange" onClick={() => window.location.href = "tel:+919010864897"}>
                   <i className="bi bi-telephone"></i> Call to Buy Now
                 </button>
               </div>
