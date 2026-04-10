@@ -1,3 +1,4 @@
+// App.js - Updated Route
 import React, { useEffect, useState, createContext, useContext } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import "./App.css";
@@ -17,6 +18,7 @@ import ProductDetails from "./pages/ProductDetails";
 import CategoryProducts from "./pages/CategoryProducts";
 import SubcategoryProducts from "./pages/SubcategoryProducts";
 import ScrollToTop from "./components/ScrollToTop";
+
 // Create Context for global categories
 export const CategoriesContext = createContext();
 
@@ -104,7 +106,13 @@ function App() {
           <Route path="/booking-policy" element={<BookingPolicy />} />
           <Route path="/terms-conditions" element={<TermsConditions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/product/:productSlug" element={<ProductDetails />} />          <Route path="/categories" element={<AllCategories />} />
+          
+          {/* Updated route with UUID and slug */}
+          <Route path="/product/:uuid/:productSlug" element={<ProductDetails />} />
+          {/* Also support old slug-only URLs for backward compatibility */}
+          <Route path="/product/:productSlug" element={<ProductDetails />} />
+          
+          <Route path="/categories" element={<AllCategories />} />
           <Route path="/category/:categorySlug" element={<CategoryProducts />} />
           <Route path="/subcategory/:subcategoryId" element={<SubcategoryProducts />} />
         </Routes>

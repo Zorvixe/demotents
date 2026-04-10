@@ -93,7 +93,9 @@ const SubcategoryProducts = () => {
 
  const openModal = (product) => {
   const slug = product.slug || product.id;
-  navigate(`/product/${slug}`, { state: { product } });
+  const uuid = product.uuid;
+  // Navigate with UUID and slug
+  navigate(`/product/${uuid}/${slug}`, { state: { product } });
 };
 
   const getDisplayPrice = (product) => {

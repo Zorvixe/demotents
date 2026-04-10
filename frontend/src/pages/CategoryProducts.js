@@ -106,9 +106,11 @@ const CategoryProducts = () => {
   const handleBannerLoad = () => setBannerLoaded(true);
   const handleBannerError = () => setBannerError(true);
 
- const openModal = (product) => {
+const openModal = (product) => {
   const slug = product.slug || product.id;
-  navigate(`/product/${slug}`, { state: { product } });
+  const uuid = product.uuid;
+  // Navigate with UUID and slug
+  navigate(`/product/${uuid}/${slug}`, { state: { product } });
 };
 
   // Helper to display correct price based on print type

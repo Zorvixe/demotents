@@ -97,6 +97,12 @@ const initDatabase = async () => {
       )
     `);
 
+    // Add to your initDatabase() function
+    await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL
+      `);
+
     await pool.query(`
       ALTER TABLE products 
       ADD COLUMN IF NOT EXISTS product_detail VARCHAR(50),
@@ -200,7 +206,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: Infinity } 
+  limits: { fileSize: Infinity }
 });
 // Update static file serving
 app.use('/uploads', express.static(uploadsDir));
@@ -1021,109 +1027,7 @@ const getProductWithImages = async (productId, client = pool) => {
   };
 };
 
-// 11. Add Product with multiple images
-app.post('/api/products', upload.fields([
-  { name: 'mainImage', maxCount: 1 },
-  { name: 'subImages', maxCount: 10 }
-]), async (req, res) => {
-  const client = await pool.connect();
-  let uploadedFiles = [];
 
-  try {
-    await client.query('BEGIN');
-
-    const {
-      name, description, price, category_id, sub_category_id, sku,
-      stock_quantity, is_featured, product_detail, without_print_price,
-      core_price, elite_price, pro_price, cloth_colors, size, product_type
-    } = req.body;
-
-    // Validation
-    if (!req.files?.mainImage?.[0]) {
-      throw new Error('Main image is required');
-    }
-    if (!name || !price || !category_id) {
-      throw new Error('Name, price, and category are required');
-    }
-
-    // Collect uploaded file paths for rollback
-    if (req.files.mainImage) uploadedFiles.push(req.files.mainImage[0].path);
-    if (req.files.subImages) uploadedFiles.push(...req.files.subImages.map(f => f.path));
-
-    const mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
-
-    // Parse array fields
-    let colorsArray = null;
-    if (cloth_colors) {
-      try {
-        colorsArray = JSON.parse(cloth_colors);
-      } catch {
-        colorsArray = cloth_colors.split(',').map(c => c.trim());
-      }
-    }
-
-    // ✅ Generate unique slug
-    let baseSlug = slugify(name);
-    let finalSlug = baseSlug;
-    let counter = 1;
-    while (true) {
-      const existing = await client.query('SELECT id FROM products WHERE slug = $1', [finalSlug]);
-      if (existing.rows.length === 0) break;
-      finalSlug = `${baseSlug}-${counter++}`;
-    }
-
-    // Insert product with slug
-    const productResult = await client.query(`
-      INSERT INTO products (
-        name, description, price, category_id, sub_category_id, main_image_url,
-        sku, stock_quantity, is_featured, product_detail, without_print_price,
-        core_price, elite_price, pro_price, cloth_colors, size, product_type, slug
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-      RETURNING *
-    `, [
-      name, description || null, parseFloat(price), category_id, sub_category_id || null,
-      mainImageUrl, sku || null, parseInt(stock_quantity) || 0, is_featured === 'true',
-      product_detail || null, without_print_price || null, core_price || null,
-      elite_price || null, pro_price || null, colorsArray, size || null, product_type || null,
-      finalSlug
-    ]);
-
-    const productId = productResult.rows[0].id;
-
-    // Insert sub-images
-    if (req.files.subImages) {
-      for (let i = 0; i < req.files.subImages.length; i++) {
-        const subUrl = `/uploads/${req.files.subImages[i].filename}`;
-        await client.query(
-          `INSERT INTO product_images (product_id, image_url, display_order)
-           VALUES ($1, $2, $3)`,
-          [productId, subUrl, i]
-        );
-      }
-    }
-
-    await client.query('COMMIT');
-
-    const fullProduct = await getProductWithImages(productId, client);
-    res.status(201).json({
-      success: true,
-      message: 'Product added successfully',
-      product: fullProduct
-    });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    uploadedFiles.forEach(file => {
-      if (fs.existsSync(file)) fs.unlinkSync(file);
-    });
-    console.error('Product creation error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to add product'
-    });
-  } finally {
-    client.release();
-  }
-});
 // 12. Get All Products
 // Inside GET /api/products, after extracting query params
 app.get('/api/products', async (req, res) => {
@@ -1182,15 +1086,26 @@ app.get('/api/products', async (req, res) => {
 });
 
 // 13. Get Single Product
+// Updated GET product by UUID or slug
 app.get('/api/products/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
     let product;
-
-    // Check if identifier is numeric (ID) or string (slug)
-    if (/^\d+$/.test(identifier)) {
-      product = await getProductWithImages(parseInt(identifier));
+    
+    // Check if identifier is UUID format (8-4-4-4-12 pattern)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (uuidRegex.test(identifier)) {
+      // Fetch by UUID
+      const result = await pool.query(
+        `SELECT * FROM products WHERE uuid = $1`,
+        [identifier]
+      );
+      if (result.rows.length) {
+        product = await getProductWithImages(result.rows[0].id);
+      }
     } else {
+      // Fetch by slug
       const result = await pool.query(
         `SELECT * FROM products WHERE slug = $1`,
         [identifier]
@@ -1199,15 +1114,123 @@ app.get('/api/products/:identifier', async (req, res) => {
         product = await getProductWithImages(result.rows[0].id);
       }
     }
-
+    
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found' });
     }
-
+    
     res.json({ success: true, product });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Error fetching product' });
+  }
+});
+
+// Updated POST product with UUID generation
+app.post('/api/products', upload.fields([
+  { name: 'mainImage', maxCount: 1 },
+  { name: 'subImages', maxCount: 10 }
+]), async (req, res) => {
+  const client = await pool.connect();
+  let uploadedFiles = [];
+
+  try {
+    await client.query('BEGIN');
+
+    const {
+      name, description, price, category_id, sub_category_id, sku,
+      stock_quantity, is_featured, product_detail, without_print_price,
+      core_price, elite_price, pro_price, cloth_colors, size, product_type
+    } = req.body;
+
+    // Validation
+    if (!req.files?.mainImage?.[0]) {
+      throw new Error('Main image is required');
+    }
+    if (!name || !price || !category_id) {
+      throw new Error('Name, price, and category are required');
+    }
+
+    // Collect uploaded file paths for rollback
+    if (req.files.mainImage) uploadedFiles.push(req.files.mainImage[0].path);
+    if (req.files.subImages) uploadedFiles.push(...req.files.subImages.map(f => f.path));
+
+    const mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
+
+    // Parse array fields
+    let colorsArray = null;
+    if (cloth_colors) {
+      try {
+        colorsArray = JSON.parse(cloth_colors);
+      } catch {
+        colorsArray = cloth_colors.split(',').map(c => c.trim());
+      }
+    }
+
+    // Generate unique slug
+    let baseSlug = slugify(name);
+    let finalSlug = baseSlug;
+    let counter = 1;
+    while (true) {
+      const existing = await client.query('SELECT id FROM products WHERE slug = $1', [finalSlug]);
+      if (existing.rows.length === 0) break;
+      finalSlug = `${baseSlug}-${counter++}`;
+    }
+
+    // Generate UUID (will be auto-generated by PostgreSQL if DEFAULT set)
+    const productResult = await client.query(`
+      INSERT INTO products (
+        name, description, price, category_id, sub_category_id, main_image_url,
+        sku, stock_quantity, is_featured, product_detail, without_print_price,
+        core_price, elite_price, pro_price, cloth_colors, size, product_type, slug
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      RETURNING *
+    `, [
+      name, description || null, parseFloat(price), category_id, sub_category_id || null,
+      mainImageUrl, sku || null, parseInt(stock_quantity) || 0, is_featured === 'true',
+      product_detail || null, without_print_price || null, core_price || null,
+      elite_price || null, pro_price || null, colorsArray, size || null, product_type || null,
+      finalSlug
+    ]);
+
+    const productId = productResult.rows[0].id;
+    const productUuid = productResult.rows[0].uuid;
+
+    // Insert sub-images
+    if (req.files.subImages) {
+      for (let i = 0; i < req.files.subImages.length; i++) {
+        const subUrl = `/uploads/${req.files.subImages[i].filename}`;
+        await client.query(
+          `INSERT INTO product_images (product_id, image_url, display_order)
+           VALUES ($1, $2, $3)`,
+          [productId, subUrl, i]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    const fullProduct = await getProductWithImages(productId, client);
+    // Add uuid to response
+    fullProduct.uuid = productUuid;
+    
+    res.status(201).json({
+      success: true,
+      message: 'Product added successfully',
+      product: fullProduct
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    uploadedFiles.forEach(file => {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    });
+    console.error('Product creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to add product'
+    });
+  } finally {
+    client.release();
   }
 });
 

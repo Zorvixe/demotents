@@ -1,11 +1,10 @@
+// ProductDetails.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./ProductDetails.css";
 
 const ProductDetails = () => {
-  const { productId } = useParams();
-  const { productSlug } = useParams();
-
+  const { uuid, productSlug } = useParams(); // Now receiving both uuid and slug
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +76,14 @@ const ProductDetails = () => {
       try {
         setLoading(true);
         setError(null);
-        const productRes = await fetch(`${API_URL}/products/${productSlug}`);
+        
+        // Use UUID if available, otherwise use slug
+        const identifier = uuid || productSlug;
+        if (!identifier) {
+          throw new Error('Product identifier is missing');
+        }
+        
+        const productRes = await fetch(`${API_URL}/products/${identifier}`);
         if (!productRes.ok) throw new Error(`Failed to fetch product: ${productRes.status}`);
         const productData = await productRes.json();
 
@@ -87,6 +93,11 @@ const ProductDetails = () => {
           if (product.main_image_url) {
             const mainUrl = getImageUrl(product.main_image_url);
             setActiveImg(mainUrl);
+          }
+
+          // Update URL to include both UUID and slug if we only had UUID
+          if (uuid && product.slug && !productSlug) {
+            navigate(`/product/${product.uuid}/${product.slug}`, { replace: true });
           }
 
           if (product.category_id) {
@@ -114,7 +125,7 @@ const ProductDetails = () => {
       }
     };
     fetchProductDetails();
-  }, [productId]);
+  }, [uuid, productSlug, navigate]);
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
@@ -133,7 +144,8 @@ const ProductDetails = () => {
 
   const handleRelatedProductClick = (relatedProduct) => {
     window.scrollTo(0, 0);
-    navigate(`/product/${relatedProduct.id}/${relatedProduct.slug || ""}`);
+    // Navigate with UUID and slug
+    navigate(`/product/${relatedProduct.uuid}/${relatedProduct.slug || ""}`);
   };
 
   useEffect(() => {
@@ -209,13 +221,11 @@ const ProductDetails = () => {
     ...(product.sub_images?.map(img => img.image_url) || [])
   ].filter(Boolean);
 
-
-  // ✅ WhatsApp Share Function
+  // WhatsApp Share Function with UUID URL
   const shareOnWhatsApp = () => {
     const baseUrl = window.location.origin;
-
-    // Build SEO-friendly product URL
-    const productUrl = `${baseUrl}/product/${product.id}/${product.slug || ""}`;
+    // Build SEO-friendly product URL with UUID and slug
+    const productUrl = `${baseUrl}/product/${product.uuid}/${product.slug || ""}`;
 
     const message = `Hello 👋,
 
@@ -253,7 +263,6 @@ Please share more details.`;
         <div className="col-lg-5 col-md-6 ecom-gallery-section">
           <div className="ecom-gallery-layout">
             {/* Thumbnails */}
-            {/* Thumbnails */}
             {allImages.length > 1 && (
               <div className="ecom-thumbnail-col">
                 {allImages.map((img, index) => {
@@ -264,7 +273,7 @@ Please share more details.`;
                     <div
                       key={index}
                       className={`ecom-thumb-box ${activeImg === thumbUrl ? "active" : ""}`}
-                      onClick={() => setActiveImg(thumbUrl)}   // ← only onClick, no onMouseEnter
+                      onClick={() => setActiveImg(thumbUrl)}
                     >
                       {!isLoaded && thumbUrl && !hasError && (
                         <div className="ecom-thumb-loader"><div className="ecom-spinner-small"></div></div>
@@ -310,7 +319,7 @@ Please share more details.`;
           </div>
         </div>
 
-        {/* RIGHT – PRODUCT DETAILS (unchanged except minor fixes) */}
+        {/* RIGHT – PRODUCT DETAILS */}
         <div className="col-lg-7 col-md-6 ecom-info-section">
           <div className="ecom-product-info">
             <h1 className="ecom-product-title">{capitalizeFirstLetter(product.name)}</h1>
