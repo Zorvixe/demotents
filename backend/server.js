@@ -41,34 +41,7 @@ const pool = new Pool({
   },
 });
 
-const existingAdmin = await pool.query(
-  'SELECT id FROM admin_users WHERE username = $1',
-  [defaultUsername]
-);
-if (existingAdmin.rows.length === 0) {
-  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-  await pool.query(
-    'INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)',
-    [defaultUsername, hashedPassword]
-  );
-  console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
-}
 
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.admin = decoded; // { id, username }
-    next();
-  } catch (error) {
-    return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
-  }
-};
 
 // Initialize database tables
 const initDatabase = async () => {
@@ -228,6 +201,36 @@ const initDatabase = async () => {
 };
 
 
+const existingAdmin = await pool.query(
+  'SELECT id FROM admin_users WHERE username = $1',
+  [defaultUsername]
+);
+if (existingAdmin.rows.length === 0) {
+  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+  await pool.query(
+    'INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)',
+    [defaultUsername, hashedPassword]
+  );
+  console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
+}
+
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.admin = decoded; // { id, username }
+    next();
+  } catch (error) {
+    return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+  }
+};
+
+
 // ==================== ADMIN LOGIN ====================
 app.post('/api/admin/login', async (req, res) => {
   try {
@@ -341,7 +344,7 @@ app.get('/api/carousel', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch carousel' });
   }
 });
-app.post('/api/carousel', upload.single('image'), async (req, res) => {
+app.post('/api/carousel', verifyToken, upload.single('image'), async (req, res) => {
   try {
     const { title, subtitle, display_order } = req.body;
 
@@ -363,7 +366,7 @@ app.post('/api/carousel', upload.single('image'), async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to add carousel item' });
   }
 });
-app.put('/api/carousel/:id', upload.single('image'), async (req, res) => {
+app.put('/api/carousel/:id', verifyToken, upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, subtitle, display_order, is_active } = req.body;
@@ -405,7 +408,7 @@ app.put('/api/carousel/:id', upload.single('image'), async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update carousel' });
   }
 });
-app.delete('/api/carousel/:id', async (req, res) => {
+app.delete('/api/carousel/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM carousel WHERE id = $1 RETURNING *', [id]);
@@ -421,7 +424,7 @@ app.delete('/api/carousel/:id', async (req, res) => {
 // ==================== CATEGORY ROUTES ====================
 
 // 1. Create Category
-app.post('/api/categories', async (req, res) => {
+app.post('/api/categories', verifyToken, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -567,7 +570,7 @@ app.get('/api/categories/:id', async (req, res) => {
 });
 
 // 4. Update Category
-app.put('/api/categories/:id', async (req, res) => {
+app.put('/api/categories/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, is_active } = req.body;
@@ -658,7 +661,7 @@ app.put('/api/categories/:id', async (req, res) => {
 });
 
 // 5. Delete Category
-app.delete('/api/categories/:id', async (req, res) => {
+app.delete('/api/categories/:id', verifyToken, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -749,7 +752,7 @@ app.get('/api/navbar-menu', async (req, res) => {
 });
 
 // POST - Add to Navbar  ← This is the one failing
-app.post('/api/navbar-menu', async (req, res) => {
+app.post('/api/navbar-menu', verifyToken, async (req, res) => {
   try {
     const { category_id, display_order = 0 } = req.body;
 
@@ -780,7 +783,7 @@ app.post('/api/navbar-menu', async (req, res) => {
 });
 
 // DELETE - Remove from Navbar
-app.delete('/api/navbar-menu/:id', async (req, res) => {
+app.delete('/api/navbar-menu/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -804,7 +807,7 @@ app.delete('/api/navbar-menu/:id', async (req, res) => {
 // ==================== SUB-CATEGORY ROUTES ====================
 
 // 6. Create Sub-Category
-app.post('/api/sub-categories', async (req, res) => {
+app.post('/api/sub-categories', verifyToken, async (req, res) => {
   try {
     const { name, description, category_id } = req.body;
 
@@ -932,7 +935,7 @@ app.get('/api/sub-categories', async (req, res) => {
 });
 
 // 9. Update Sub-Category
-app.put('/api/sub-categories/:id', async (req, res) => {
+app.put('/api/sub-categories/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, category_id, is_active } = req.body;
@@ -1029,7 +1032,7 @@ app.put('/api/sub-categories/:id', async (req, res) => {
 });
 
 // 10. Delete Sub-Category
-app.delete('/api/sub-categories/:id', async (req, res) => {
+app.delete('/api/sub-categories/:id', verifyToken, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -1214,7 +1217,7 @@ app.get('/api/products/:identifier', async (req, res) => {
 });
 
 // Updated POST product with UUID generation
-app.post('/api/products', upload.fields([
+app.post('/api/products', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
 ]), async (req, res) => {
@@ -1322,7 +1325,7 @@ app.post('/api/products', upload.fields([
 });
 
 // 14. Update Product
-app.put('/api/products/:id', upload.fields([
+app.put('/api/products/:id', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
 ]), async (req, res) => {
@@ -1478,7 +1481,7 @@ app.put('/api/products/:id', upload.fields([
 });
 
 // 15. Delete Product Image
-app.delete('/api/products/:productId/images/:imageId', async (req, res) => {
+app.delete('/api/products/:productId/images/:imageId', verifyToken, async (req, res) => {
   try {
     const { productId, imageId } = req.params;
 
@@ -1521,7 +1524,7 @@ app.delete('/api/products/:productId/images/:imageId', async (req, res) => {
 });
 
 // 16. Delete Product
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/api/products/:id', verifyToken, async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -1569,7 +1572,7 @@ app.delete('/api/products/:id', async (req, res) => {
 // ==================== ORDER ROUTES ====================
 
 // 17. Create Order
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders',  async (req, res) => {
   try {
     const { customerName, customerEmail, phone, address, items, amount } = req.body;
 
@@ -1593,7 +1596,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // 18. Get All Orders
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM orders ORDER BY created_at DESC'
@@ -1612,7 +1615,7 @@ app.get('/api/orders', async (req, res) => {
 });
 
 // 19. Update Order Status
-app.put('/api/orders/:id/status', async (req, res) => {
+app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -1652,7 +1655,7 @@ app.put('/api/orders/:id/status', async (req, res) => {
 });
 
 // 20. Delete Order
-app.delete('/api/orders/:id', async (req, res) => {
+app.delete('/api/orders/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -1720,7 +1723,7 @@ app.get('/api/sub-categories/:id', async (req, res) => {
 
 //reorder
 //  Reorder Categories
-app.put('/api/categories/reorder', async (req, res) => {
+app.put('/api/categories/reorder', verifyToken, async (req, res) => {
   const { categories } = req.body;
 
   if (!categories || !Array.isArray(categories)) {
@@ -1765,7 +1768,7 @@ app.put('/api/categories/reorder', async (req, res) => {
   }
 });
 // Navbar reoerder
-app.put('/api/navbar-menu/reorder', async (req, res) => {
+app.put('/api/navbar-menu/reorder', verifyToken, async (req, res) => {
   const { items } = req.body;
 
   if (!items || !Array.isArray(items)) {
@@ -1798,7 +1801,7 @@ app.put('/api/navbar-menu/reorder', async (req, res) => {
 
 // ==================== STATS ENDPOINT ====================
 
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', verifyToken, async (req, res) => {
   try {
     // Total products
     const productResult = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_active = true');
@@ -1892,9 +1895,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-
-// All routes after this line require authentication
-app.use('/api', verifyToken); // protects every /api/* route except the ones defined before this line
 
 // Initialize database and start server
 initDatabase().then(() => {
