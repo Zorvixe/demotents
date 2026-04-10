@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Set axios default base URL (optional – adjust if your backend runs on a different port)
-  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5004';
+  axios.defaults.baseURL = "https://api.demotents.com" || 'http://localhost:5004';
 
   useEffect(() => {
     if (token) {
