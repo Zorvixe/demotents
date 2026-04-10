@@ -12,8 +12,7 @@ const port = process.env.PORT || 5004;
 
 // Seed default admin if not exists
 const bcrypt = require('bcrypt');
-const defaultUsername = 'DemoTents';
-const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
+
 
 // Middleware
 app.use(cors());
@@ -193,6 +192,24 @@ const initDatabase = async () => {
   )
 `);
     console.log("✅ Admin users table initialized");
+    
+    // ✅ MOVED THIS HERE - Admin user creation after table is created
+    const defaultUsername = 'DemoTents';
+    const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
+    
+    const existingAdmin = await pool.query(
+      'SELECT id FROM admin_users WHERE username = $1',
+      [defaultUsername]
+    );
+    if (existingAdmin.rows.length === 0) {
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      await pool.query(
+        'INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)',
+        [defaultUsername, hashedPassword]
+      );
+      console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
+    }
+
 
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
@@ -201,18 +218,6 @@ const initDatabase = async () => {
 };
 
 
-const existingAdmin = await pool.query(
-  'SELECT id FROM admin_users WHERE username = $1',
-  [defaultUsername]
-);
-if (existingAdmin.rows.length === 0) {
-  const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-  await pool.query(
-    'INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)',
-    [defaultUsername, hashedPassword]
-  );
-  console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
-}
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
