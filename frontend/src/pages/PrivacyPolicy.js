@@ -1,6 +1,13 @@
+import React, { useEffect } from "react";
+
 import "./PrivacyPolicy.css";
 
 const PrivacyPolicy = () => {
+
+    // Set document title for the Home page
+    useEffect(() => {
+      document.title = "Privacy Policy | Demotents";
+    }, []);
   return (
     <div className="privacy-page">
 

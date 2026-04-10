@@ -1,6 +1,13 @@
+import React, { useEffect } from "react";
+
+
 import "./BookingPolicy.css";
 
 const BookingPolicy = () => {
+   // Set document title for the Home page
+    useEffect(() => {
+      document.title = "Booking Policy | Demotents";
+    }, []);
   return (
     <div className="booking-policy-page">
 

@@ -1,6 +1,14 @@
+import React, { useEffect } from "react";
+
+
 import "./Contact.css";
 
 const Contact = () => {
+  useEffect(() => {
+    document.title = "Contact Us | Demotents";
+  }, []);
+
+
   return (
     <div className="contact-page">
 
@@ -29,7 +37,8 @@ const Contact = () => {
                   </div>
                   <div>
                     <h5>Our Location</h5>
-                    <p>Dilsukhnagar, Hyderabad, Telangana</p>
+                    <p>                  Piller No. 1540, Uco Bank Lane, H.No.13-4-129,5-5/101, Sree Gayathri Nivas, Durga Nagar, Dilsukhnagar, Hyderabad, Telangana 500060
+</p>
                   </div>
                 </div>
 
@@ -39,7 +48,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h5>Call Us</h5>
-                    <p>+91 9052899000</p>
+                    <p>+91 9010864897</p>
                   </div>
                 </div>
 
@@ -49,7 +58,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h5>Email</h5>
-                    <p>punna.graphics@email.com</p>
+                    <p>punnagfx@gmail.com</p>
                   </div>
                 </div>
 
@@ -60,8 +69,7 @@ const Contact = () => {
                   <div>
                     <h5>Working Hours</h5>
                     <p>
-                      Mon – Fri: 9:00 – 18:00<br />
-                      Sat – Sun: Closed
+                      9:00 – 18:00<br />
                     </p>
                   </div>
                 </div>

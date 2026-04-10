@@ -54,6 +54,11 @@ const About = () => {
     }, 3000);
   };
 
+  // Set document title for the About page
+  useEffect(() => {
+    document.title = "About Us | Demotents";
+  }, []);
+
   // Intersection Observer - Triggers when section is visible
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -100,8 +105,8 @@ const About = () => {
     <div className="about-container">
 
       {/* ================= HERO ================= */}
-      
-<section className="about-hero-modern">
+
+      <section className="about-hero-modern">
         <div className="container text-center">
           <span className="hero-badge">
             ⭐ Trusted Event Infrastructure Experts
@@ -110,7 +115,7 @@ const About = () => {
           <h1 className="hero-headline">
             Best Demo Tent Manufacturers<br /> in <span className="text-gradient">Hyderabad</span>
           </h1>
-          
+
           <p className="hero-subtext">
             Delivering high-quality tents, canopies, and event infrastructures for weddings, corporate events, roadshows, and promotional campaigns across Telangana for over 15 years.
           </p>
@@ -118,8 +123,8 @@ const About = () => {
       </section>
 
       {/* ================= STATS ================= */}
-     <section 
-        ref={statsRef} 
+      <section
+        ref={statsRef}
         className="bg-white py-5"
       >
         <div className="container">
@@ -148,46 +153,46 @@ const About = () => {
 
       {/* ================= SERVICES ================= */}
       <section className="py-5">
-  <div className="container">
-    <h2 className="section-title text-center mb-5">What We Offer</h2>
+        <div className="container">
+          <h2 className="section-title text-center mb-5">What We Offer</h2>
 
-    <div className="row g-4">
-      {[
-        {
-          title: "Elegant & Durable Event Tents",
-          desc: "High-quality tents designed for weddings, corporate events, and large gatherings with a perfect balance of strength and visual appeal."
-        },
-        {
-          title: "Outdoor & Promotional Canopies",
-          desc: "Custom-branded canopies ideal for marketing campaigns, exhibitions, and outdoor promotions to maximize visibility."
-        },
-        {
-          title: "Waterproof & Rain-Proof Tents",
-          desc: "Weather-resistant tents built to handle rain and harsh conditions, ensuring uninterrupted events in any season."
-        },
-        {
-          title: "Camping & Temporary Shelters",
-          desc: "Lightweight and durable shelter solutions suitable for camping, temporary setups, and emergency requirements."
-        },
-        {
-          title: "Professional Installation & Support",
-          desc: "Experienced team providing quick setup, dismantling, and on-site support for smooth event execution."
-        },
-        {
-          title: "On-Time Event Assistance",
-          desc: "Reliable service with strict timelines to ensure your event setup is completed efficiently without delays."
-        }
-      ].map((item, index) => (
-        <div key={index} className="col-md-6 col-lg-4">
-          <div className="offer-card h-100">
-            <h5>{item.title}</h5>
-            <p>{item.desc}</p>
+          <div className="row g-4">
+            {[
+              {
+                title: "Elegant & Durable Event Tents",
+                desc: "High-quality tents designed for weddings, corporate events, and large gatherings with a perfect balance of strength and visual appeal."
+              },
+              {
+                title: "Outdoor & Promotional Canopies",
+                desc: "Custom-branded canopies ideal for marketing campaigns, exhibitions, and outdoor promotions to maximize visibility."
+              },
+              {
+                title: "Waterproof & Rain-Proof Tents",
+                desc: "Weather-resistant tents built to handle rain and harsh conditions, ensuring uninterrupted events in any season."
+              },
+              {
+                title: "Camping & Temporary Shelters",
+                desc: "Lightweight and durable shelter solutions suitable for camping, temporary setups, and emergency requirements."
+              },
+              {
+                title: "Professional Installation & Support",
+                desc: "Experienced team providing quick setup, dismantling, and on-site support for smooth event execution."
+              },
+              {
+                title: "On-Time Event Assistance",
+                desc: "Reliable service with strict timelines to ensure your event setup is completed efficiently without delays."
+              }
+            ].map((item, index) => (
+              <div key={index} className="col-md-6 col-lg-4">
+                <div className="offer-card h-100">
+                  <h5>{item.title}</h5>
+                  <p>{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      ))}
-    </div>
-  </div>
-</section>
+      </section>
 
       {/* ================= VALUES SECTION ================= */}
       <section className="values-section">

@@ -1,6 +1,15 @@
+import React, { useEffect } from "react";
+
+
 import "./TermsConditions.css";
 
 const TermsConditions = () => {
+
+      // Set document title for the Home page
+      useEffect(() => {
+        document.title = "Terms & Conditions | Demotents";
+      }, []);
+
   return (
     <div className="terms-page">
 
