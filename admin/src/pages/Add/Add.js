@@ -249,7 +249,7 @@ const Add = () => {
                             </div>
                         </div>
                         <div className="form-group">
-                            <label>Additional Images (Max 10, total ≤ 800 MB)</label>
+                            <label>Additional Images</label>
                             <div className="sub-images-upload-zone">
                                 <label htmlFor="subImages" className="sub-images-add-btn"><span className="plus-icon">+</span><span>Add Media</span></label>
                                 <input onChange={handleSubImagesChange} type="file" id='subImages' hidden multiple accept="image/*" />
