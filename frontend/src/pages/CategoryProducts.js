@@ -7,7 +7,7 @@ const CategoryProducts = () => {
   const location = useLocation();
   const { categorySlug } = useParams();
   const queryParams = new URLSearchParams(location.search);
-  const printType = queryParams.get("type"); // "without-print" or "custom"
+  const printType = queryParams.get("type");
 
   const { categoryId, categoryName } = location.state || {};
 
@@ -25,64 +25,84 @@ const CategoryProducts = () => {
   const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api`;
 
-// Replace the fetchProducts function inside CategoryProducts component
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-useEffect(() => {
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+        let finalCategoryId = categoryId;
+        let finalCategoryName = categoryName;
 
-      let finalCategoryId = categoryId;
-      let finalCategoryName = categoryName;
-      let foundCategory = null;
-
-      if (!finalCategoryId) {
-        const categoryRes = await fetch(`${API_URL}/categories`);
-        const categoryData = await categoryRes.json();
-        if (categoryData.success) {
-          foundCategory = categoryData.categories.find(
-            (cat) =>
-              cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
-          );
-          if (foundCategory) {
-            finalCategoryId = foundCategory.id;
-            finalCategoryName = foundCategory.name;
-            setCategoryData(foundCategory);
+        // If no categoryId provided, resolve from slug
+        if (!finalCategoryId) {
+          const categoryRes = await fetch(`${API_URL}/categories`);
+          const categoryDataJson = await categoryRes.json();
+          if (categoryDataJson.success) {
+            const foundCategory = categoryDataJson.categories.find(
+              (cat) => cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
+            );
+            if (foundCategory) {
+              finalCategoryId = foundCategory.id;
+              finalCategoryName = foundCategory.name;
+              setCategoryData(foundCategory);
+            }
           }
         }
+
+        if (!finalCategoryId) {
+          throw new Error("Category not found");
+        }
+
+        // Build URL with proper filters
+        let url = `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`;
+        if (printType === "without-print" || printType === "custom") {
+          url += `&type=${printType}`;
+        }
+
+        console.log("🔍 Fetching products from:", url);
+        const productRes = await fetch(url);
+
+        if (!productRes.ok) {
+          throw new Error(`Failed to fetch products: ${productRes.status}`);
+        }
+
+        const productData = await productRes.json();
+        if (productData.success) {
+          console.log(`✅ Loaded ${productData.products.length} products for category ${finalCategoryName}`);
+          setProducts(productData.products);
+          
+          // If no products found, try to fetch subcategories and their products (optional)
+          if (productData.products.length === 0) {
+            console.warn("⚠️ No products found directly. Checking subcategories...");
+            const subcatRes = await fetch(`${API_URL}/categories/${finalCategoryId}/sub-categories`);
+            const subcatData = await subcatRes.json();
+            if (subcatData.success && subcatData.sub_categories.length > 0) {
+              // Fetch products from each subcategory
+              const subcatProductPromises = subcatData.sub_categories.map(sc =>
+                fetch(`${API_URL}/products?sub_category_id=${sc.id}&is_active=true`).then(r => r.json())
+              );
+              const subcatResults = await Promise.all(subcatProductPromises);
+              const allSubcatProducts = subcatResults.flatMap(res => res.success ? res.products : []);
+              if (allSubcatProducts.length > 0) {
+                console.log(`✅ Found ${allSubcatProducts.length} products in subcategories`);
+                setProducts(allSubcatProducts);
+              }
+            }
+          }
+        } else {
+          setError(productData.message || "Failed to load products");
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load products. Please try again.");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      if (!finalCategoryId) throw new Error("Category not found");
-
-      // Build URL – add type only if it's a valid filter
-      let url = `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`;
-      if (printType === "without-print" || printType === "custom") {
-        url += `&type=${printType}`;
-      }
-
-      console.log("🔍 Fetching products from:", url); // Debug
-
-      const productRes = await fetch(url);
-      if (!productRes.ok) throw new Error(`Failed to fetch products: ${productRes.status}`);
-
-      const productData = await productRes.json();
-      if (productData.success) {
-        console.log(`✅ Loaded ${productData.products.length} products`);
-        setProducts(productData.products);
-      } else {
-        setError(productData.message || "Failed to load products");
-      }
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError("Failed to load products. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchProducts();
-}, [categorySlug, categoryId, categoryName, printType]);
+    fetchProducts();
+  }, [categorySlug, categoryId, categoryName, printType]);
 
   const getCategoryBannerImage = () => {
     if (categoryData && categoryData.preview_image) {

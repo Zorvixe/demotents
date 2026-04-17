@@ -1130,6 +1130,7 @@ const getProductWithImages = async (productId, client = pool) => {
 // Inside GET /api/products, after extracting query params
 // Replace your existing GET /api/products route with this:
 
+// Replace your existing GET /api/products route with this:
 app.get('/api/products', async (req, res) => {
   try {
     const { category_id, sub_category_id, type, is_active } = req.query;
@@ -1138,7 +1139,8 @@ app.get('/api/products', async (req, res) => {
       SELECT 
         p.*, 
         c.name as category_name,
-        sc.name as sub_category_name
+        sc.name as sub_category_name,
+        (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) as sub_images_count
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
@@ -1147,34 +1149,42 @@ app.get('/api/products', async (req, res) => {
     const values = [];
     let paramIndex = 1;
 
+    // ✅ If category_id is provided, include products that belong to this category
+    //    either directly (p.category_id) OR through any subcategory under this category
     if (category_id) {
-      baseQuery += ` AND p.category_id = $${paramIndex}`;
+      baseQuery += ` AND (
+        p.category_id = $${paramIndex} 
+        OR p.sub_category_id IN (
+          SELECT id FROM sub_categories WHERE category_id = $${paramIndex}
+        )
+      )`;
       values.push(category_id);
       paramIndex++;
     }
+
     if (sub_category_id) {
       baseQuery += ` AND p.sub_category_id = $${paramIndex}`;
       values.push(sub_category_id);
       paramIndex++;
     }
+
+    // Only show active products for public API
     if (is_active === 'true') {
       baseQuery += ` AND p.is_active = true`;
     }
 
-    // ✅ FIX: Only apply type filter if the parameter is explicitly provided
+    // Apply type filter only if explicitly provided
     if (type === 'without-print') {
       baseQuery += ` AND p.without_print_price IS NOT NULL`;
     } else if (type === 'custom') {
       baseQuery += ` AND (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL)`;
     }
-    // If type is anything else (e.g., null, undefined, ''), do NOT add any price filter
 
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
     
-    // Debug log to see how many products are returned
-    console.log(`📦 Products query returned ${result.rows.length} products. Filters: category=${category_id}, subcat=${sub_category_id}, type=${type}`);
+    console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
       success: true,
