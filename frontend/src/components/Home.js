@@ -42,8 +42,8 @@ const Home = () => {
           >
             <div className="hero-overlay"></div>
             <div className="hero-center-content container text-center text-white d-flex flex-column justify-content-center align-items-center h-100">
-              <h3 className="fw-bold">Best Demo Tent Manufacturers in Hyderabad</h3>
-              <p>Design | Print | Stich | Deliver</p>
+              <h1 className="hero-title fw-bold">Best Demo Tent Manufacturers in Hyderabad</h1>
+              <p className="hero-subtitle">Design | Print | Stich | Deliver</p>
             </div>
           </div>
 

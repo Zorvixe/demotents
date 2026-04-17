@@ -47,18 +47,22 @@
   font-family: "Poppins", sans-serif;
 }
 
-/* New Title Size (smaller & sharper) */
+/* Hero Title - Larger & More Impactful */
 .hero-title {
-  font-size: 2.4rem;   /* reduced from 3rem */
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: clamp(2rem, 5vw, 4rem); 
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  color: #ffffff !important;
 }
 
-/* Subtitle Reduced & Soft tone */
+/* Hero Subtitle - Proportional to Title */
 .hero-subtitle {
-  font-size: 1.05rem;  /* reduced from 1.3rem */
-  margin-top: 8px;
-  opacity: 0.9;
+  font-size: clamp(1rem, 2vw, 1.8rem);
+  margin-top: 15px;
+  font-weight: 400;
+  opacity: 1; /* Pure white, no opacity reduction */
+  color: #ffffff !important;
 }
 
 /* CTA button refined */
@@ -148,11 +152,11 @@
 /* Extra Large Screens (Desktops 1400px+) */
 @media (min-width: 1400px) {
   .hero-title {
-    font-size: 2.8rem;
+    font-size: 4.5rem;
   }
 
   .hero-subtitle {
-    font-size: 1.15rem;
+    font-size: 1.8rem;
   }
 
   .carousel-item.hero-slide {
@@ -163,11 +167,11 @@
 /* Large Screens (Laptops & Desktops) */
 @media (max-width: 1200px) {
   .hero-title {
-    font-size: 2.3rem;
+    font-size: 3.5rem;
   }
 
   .hero-subtitle {
-    font-size: 1.05rem;
+    font-size: 1.5rem;
   }
 }
 

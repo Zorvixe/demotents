@@ -112,7 +112,7 @@ const Navbar = () => {
         </div>
 
         <div className={`w-100 mt-2 nav-links ${menuOpen ? "active" : ""}`}>
-          <ul className="navbar-nav d-flex flex-row justify-content-center">
+          <ul className="navbar-nav d-flex flex-row">
             {/* Home */}
             <li className="nav-item" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               <span className="nav-link">HOME</span>

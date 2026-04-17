@@ -113,6 +113,27 @@ const openModal = (product) => {
   navigate(`/product/${uuid}/${slug}`, { state: { product } });
 };
 
+  const shareOnWhatsApp = (product) => {
+    const baseUrl = window.location.origin;
+    const productUrl = `${baseUrl}/product/${product.uuid}/${product.slug || ""}`;
+
+    const message = `Hello 👋,
+
+I'm interested in this product:
+
+🛍️ ${product.name}
+🔗 ${productUrl}
+
+Please share more details.`;
+
+    const encodedMessage = encodeURIComponent(message);
+
+    window.open(
+      `https://wa.me/919010864897?text=${encodedMessage}`,
+      "_blank"
+    );
+  };
+
   // Helper to display correct price based on print type
   const getDisplayPrice = (product) => {
     if (printType === "without-print") {
@@ -285,7 +306,10 @@ const openModal = (product) => {
                       >
                         View Details
                       </button>
-                      <button className="category-btn category-btn-secondary">
+                      <button 
+                        className="category-btn category-btn-secondary"
+                        onClick={() => shareOnWhatsApp(product)}
+                      >
                         Enquire
                       </button>
                     </div>

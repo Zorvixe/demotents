@@ -5,9 +5,25 @@
 .navbar-nav {
   display: flex !important;
   flex-direction: row;
-  flex-wrap: nowrap !important;
+  flex-wrap: wrap !important;
   justify-content: center;
-  overflow: visible;
+  padding: 5px 0;
+  width: 100%;
+  margin: 0;
+  gap: 2px; /* Minimal gap between items */
+}
+
+/* Prevent clipping when items overflow on medium/small desktop screens */
+@media (max-width: 1300px) {
+  .navbar-nav {
+    justify-content: flex-start !important;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+.navbar-nav::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari */
 }
 
 .navbar-nav .nav-item {
@@ -15,12 +31,13 @@
 }
 .Logo-Text {
   font-family: roboto;
-  font-size: 3rem;
+  font-size: clamp(1.8rem, 4vw, 3.5rem); 
   font-weight: bold;
   background: linear-gradient(45deg, #ff6b6b, #fdd835);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: transform 0.3s ease;
+  margin-bottom: 0;
 }
 
 .Logo-Text:hover {
@@ -108,10 +125,10 @@
 /* ===== NAV LINKS ===== */
 .nav-link {
   color: #fff !important;
-  font-size: 13px; /* Slightly smaller for better fit */
-  padding: 8px 12px !important; /* Reduced padding */
-  transition: color 0.3s ease;
-  white-space: nowrap; /* Prevent text wrap within items */
+  font-size: clamp(10px, 0.85vw, 13px); /* Maximum compression */
+  padding: 8px 6px !important; /* Minimal horizontal padding */
+  transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -154,7 +171,15 @@
 
 .search-box input:focus {
   border-color: #ffca28;
-  box-shadow: 0 0 5px rgba(255, 202, 40, 0.5);
+  box-shadow: 0 0 8px rgba(255, 202, 40, 0.6);
+}
+
+@media (min-width: 1400px) {
+  .search-box input {
+    width: 250px;
+    padding: 10px 18px;
+    font-size: 15px;
+  }
 }
 
 .search-box input::placeholder {
@@ -288,7 +313,29 @@
   }
 
   .Logo-Text {
-    font-size: 18px;
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 98% !important; /* Stretch to near-full width */
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .nav-link {
+    font-size: 13px;
+    padding: 8px 10px !important;
+  }
+}
+
+@media (min-width: 1600px) {
+  .container {
+    max-width: 1600px !important;
+  }
+  .nav-link {
+    font-size: 16px;
+    padding: 12px 20px !important;
   }
 }
 
@@ -319,9 +366,6 @@
   gap: 10px; /* 🔥 ADD THIS */
 }
 
-.nav-item .nav-link {
-  margin-left: 10px;
-}
 .show-dropdown {
   display: block !important;
   position: relative;
@@ -401,4 +445,4 @@
 .dropdown-menu.show {
   background-color: #111 !important;
   --bs-dropdown-bg: #111 !important;
-}
+}
