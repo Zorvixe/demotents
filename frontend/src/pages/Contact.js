@@ -5,7 +5,7 @@ import "./Contact.css";
 
 const Contact = () => {
   useEffect(() => {
-    document.title = "Contact Us | Demotents";
+    document.title = "Contact Us | Puna Graphics";
   }, []);
 
 

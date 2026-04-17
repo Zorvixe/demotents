@@ -6,7 +6,7 @@ const PrivacyPolicy = () => {
 
     // Set document title for the Home page
     useEffect(() => {
-      document.title = "Privacy Policy | Demotents";
+      document.title = "Privacy Policy | Puna Graphics";
     }, []);
   return (
     <div className="privacy-page">

@@ -56,7 +56,7 @@ const About = () => {
 
   // Set document title for the About page
   useEffect(() => {
-    document.title = "About Us | Demotents";
+    document.title = "About Us | Puna Graphics";
   }, []);
 
   // Intersection Observer - Triggers when section is visible

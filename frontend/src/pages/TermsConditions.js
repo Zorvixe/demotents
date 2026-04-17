@@ -7,7 +7,7 @@ const TermsConditions = () => {
 
       // Set document title for the Home page
       useEffect(() => {
-        document.title = "Terms & Conditions | Demotents";
+        document.title = "Terms & Conditions | Puna Graphics";
       }, []);
 
   return (

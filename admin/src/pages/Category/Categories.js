@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Categories.css';
@@ -154,7 +155,7 @@ const Categories = () => {
                 <td className="cell-desc"><span className={category.description ? "desc-text" : "text-muted italic"}>{category.description || 'No description provided'}</span></td>
                 <td className="cell-stock"><span className="stock-badge">{category.product_count || 0} products</span></td>
                 <td className="cell-subcats">{category.sub_categories && category.sub_categories.length > 0 ? (<div className="subcat-pill-container">{category.sub_categories.map((subCat) => (<span key={subCat.id} className="subcat-pill" title={`${subCat.product_count || 0} products`}>{subCat.name}</span>))}</div>) : (<span className="text-muted">None</span>)}</td>
-                <td className="cell-actions"><button onClick={() => openEditModal(category)} className="action-btn edit-btn" title="Edit Category">Edit</button><button onClick={() => confirmDeleteCategory(category.id, category.name)} className="action-btn delete-btn" title="Delete Category">Delete</button></td>
+                <td className="cell-actions"><button onClick={() => openEditModal(category)} className="action-btn edit-btn" title="Edit Category"><FaEdit /></button><button onClick={() => confirmDeleteCategory(category.id, category.name)} className="action-btn delete-btn" title="Delete Category"><FaTrash /></button></td>
               </tr>
             ))}
           </tbody></table></div>

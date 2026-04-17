@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 import './List.css';
 
 const List = () => {
@@ -309,6 +310,33 @@ const List = () => {
     }
   };
 
+  const toggleProductStatus = async (product) => {
+    try {
+      const token = getAuthToken();
+      const updatedStatus = !product.is_active;
+      
+      // We use FormData for consistency with handleUpdate
+      const formData = new FormData();
+      formData.append('is_active', updatedStatus);
+
+      const response = await fetch(`${API_URL}/products/${product.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.success) {
+        showNotification(`Product ${updatedStatus ? 'activated' : 'deactivated'} successfully`, 'success');
+        fetchProducts();
+      } else {
+        showNotification(data.message, 'error');
+      }
+    } catch (error) {
+      console.error('Error toggling status:', error);
+      showNotification('Failed to toggle status', 'error');
+    }
+  };
+
   const getCategoryName = (product) => {
     if (product.category_name) return product.category_name;
     const category = categories.find(cat => cat.id === product.category_id);
@@ -422,7 +450,7 @@ const List = () => {
             const imgUrl = getImageUrl(product.main_image_url);
             const isLoaded = imageLoaded[product.id];
             const hasError = imageError[product.id];
-            return (<tr key={product.id} className="inventory-row"><td className="cell-image"><div className="table-thumbnail-wrapper">{!isLoaded && imgUrl && !hasError && <div className="img-placeholder" />}{imgUrl && !hasError ? <img src={imgUrl} alt={product.name} className="table-thumbnail" style={{ display: isLoaded ? 'block' : 'none' }} onLoad={() => handleImageLoad(product.id)} onError={() => handleImageError(product.id)} /> : <div className="table-thumbnail placeholder-empty"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>}</div></td><td className="cell-product"><div className="product-name-cell"><span className="product-title">{product.name}</span>{product.is_featured && <span className="badge-featured">Featured</span>}</div></td><td className="cell-sku">{product.sku ? <span className="sku-badge">{product.sku}</span> : <span className="text-muted">N/A</span>}</td><td className="cell-category"><div className="category-text">{getCategoryName(product)}</div>{getSubCategoryName(product) && <div className="sub-category-text">{getSubCategoryName(product)}</div>}</td><td className="cell-price">₹{parseFloat(product.price).toFixed(2)}</td><td className="cell-stock">{product.stock_quantity > 0 ? <span className="stock-in">{product.stock_quantity} in stock</span> : <span className="stock-out">Out of stock</span>}</td><td className="cell-actions"><button onClick={() => handleEdit(product)} className="action-btn edit-btn" title="Edit Product">Edit</button><button onClick={() => confirmDeleteProduct(product.id)} className="action-btn delete-btn" title="Delete Product">Delete</button></td></tr>);
+            return (<tr key={product.id} className="inventory-row"><td className="cell-image"><div className="table-thumbnail-wrapper">{!isLoaded && imgUrl && !hasError && <div className="img-placeholder" />}{imgUrl && !hasError ? <img src={imgUrl} alt={product.name} className="table-thumbnail" style={{ display: isLoaded ? 'block' : 'none' }} onLoad={() => handleImageLoad(product.id)} onError={() => handleImageError(product.id)} /> : <div className="table-thumbnail placeholder-empty"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>}</div></td><td className="cell-product"><div className="product-name-cell"><span className="product-title">{product.name}</span>{product.is_featured && <span className="badge-featured">Featured</span>}</div></td><td className="cell-sku">{product.sku ? <span className="sku-badge">{product.sku}</span> : <span className="text-muted">N/A</span>}</td><td className="cell-category"><div className="category-text">{getCategoryName(product)}</div>{getSubCategoryName(product) && <div className="sub-category-text">{getSubCategoryName(product)}</div>}</td><td className="cell-price">₹{parseFloat(product.price).toFixed(2)}</td><td className="cell-stock">{product.stock_quantity > 0 ? <span className="stock-in">{product.stock_quantity} in stock</span> : <span className="stock-out">Out of stock</span>}</td><td className="cell-actions"><div className="status-toggle-cell" title={product.is_active ? "Active" : "Inactive"}><div className="toggle-switch small-toggle"><input type="checkbox" id={`active-${product.id}`} checked={product.is_active} onChange={() => toggleProductStatus(product)} /><label htmlFor={`active-${product.id}`} className="toggle-label"></label></div></div><button onClick={() => handleEdit(product)} className="action-btn edit-btn" title="Edit Product"><FaEdit /></button><button onClick={() => confirmDeleteProduct(product.id)} className="action-btn delete-btn" title="Delete Product"><FaTrash /></button></td></tr>);
           })}
         </tbody></table></div>
         {totalPages > 1 && (<div className="pagination-container"><button className="pagination-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>Previous</button><div className="pagination-pages">{Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (<button key={page} className={`pagination-page ${currentPage === page ? 'active' : ''}`} onClick={() => goToPage(page)}>{page}</button>))}</div><button className="pagination-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next</button></div>)}
