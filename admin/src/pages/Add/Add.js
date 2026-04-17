@@ -290,20 +290,20 @@ const Add = () => {
                         </div>
                         <div className="form-group">
                             <label>Base Price <span className="required">*</span></label>
-                            <div className="input-prefix"><span>$</span><input type="number" name="price" value={data.price} onChange={onChangeHandler} className="ui-input" required placeholder="0.00" step="0.01" min="0" /></div>
+                            <div className="input-prefix"><span>₹</span><input type="number" name="price" value={data.price} onChange={onChangeHandler} className="ui-input" required placeholder="0.00" step="0.01" min="0" /></div>
                         </div>
                         <div className="form-group">
                             <label>Stock Quantity <span className="required">*</span></label>
                             <input type="number" name="stock_quantity" value={data.stock_quantity} onChange={onChangeHandler} className="ui-input" required placeholder="0" min="0" />
                         </div>
                         {data.product_type === "without_print" && (
-                            <div className="form-group price-box"><label>Without Print Price</label><div className="input-prefix"><span>$</span><input type="text" name="without_print_price" value={data.without_print_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
+                            <div className="form-group price-box"><label>Without Print Price</label><div className="input-prefix"><span>₹</span><input type="text" name="without_print_price" value={data.without_print_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
                         )}
                         {data.product_type === "customization" && (
                             <div className="grid-3-col price-box">
-                                <div className="form-group"><label>Core Price</label><div className="input-prefix"><span>$</span><input type="text" name="core_price" value={data.core_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
-                                <div className="form-group"><label>Elite Price</label><div className="input-prefix"><span>$</span><input type="text" name="elite_price" value={data.elite_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
-                                <div className="form-group"><label>Pro Price</label><div className="input-prefix"><span>$</span><input type="text" name="pro_price" value={data.pro_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
+                                <div className="form-group"><label>Core Price</label><div className="input-prefix"><span>₹</span><input type="text" name="core_price" value={data.core_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
+                                <div className="form-group"><label>Elite Price</label><div className="input-prefix"><span>₹</span><input type="text" name="elite_price" value={data.elite_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
+                                <div className="form-group"><label>Pro Price</label><div className="input-prefix"><span>₹</span><input type="text" name="pro_price" value={data.pro_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
                             </div>
                         )}
                     </div>

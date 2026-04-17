@@ -3,9 +3,11 @@
   font-size: 14px; 
 }
 .navbar-nav {
-  flex-wrap: wrap;  
-  overflow-x: auto;               
-  white-space: nowrap;
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: nowrap !important;
+  justify-content: center;
+  overflow: visible;
 }
 
 .navbar-nav .nav-item {
@@ -106,9 +108,10 @@
 /* ===== NAV LINKS ===== */
 .nav-link {
   color: #fff !important;
-  font-size: 14px;
-  padding: 10px 16px !important;
+  font-size: 13px; /* Slightly smaller for better fit */
+  padding: 8px 12px !important; /* Reduced padding */
   transition: color 0.3s ease;
+  white-space: nowrap; /* Prevent text wrap within items */
 }
 
 .nav-link:hover {

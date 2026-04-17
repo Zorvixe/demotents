@@ -77,7 +77,7 @@ const Orders = () => {
             <div className="order-details">
               <div className="order-info"><p className="order-customer"><strong>{order.customer_name}</strong></p>{order.customer_email && <p className="order-email">{order.customer_email}</p>}<p className="order-phone"><i className="phone-icon">📱</i> {order.phone}</p><div className="order-address"><p>{order.address}</p></div></div>
               <div className="order-items-section"><h4>Order Items:</h4><ul className="order-items-list">{Array.isArray(order.items) ? order.items.map((item, idx) => (<li key={idx}>{item.name} x {item.quantity}</li>)) : <li>No items details available</li>}</ul></div>
-              <div className="order-meta"><p className="order-date">Ordered: {new Date(order.created_at).toLocaleDateString()}</p><p className="order-amount"><strong>Amount: ${parseFloat(order.amount).toFixed(2)}</strong></p></div>
+              <div className="order-meta"><p className="order-date">Ordered: {new Date(order.created_at).toLocaleDateString()}</p><p className="order-amount"><strong>Amount: ₹{parseFloat(order.amount).toFixed(2)}</strong></p></div>
             </div>
             <div className="order-actions"><div className="order-status"><label>Status:</label><select value={order.status || 'Pending'} onChange={(e) => handleStatusUpdate(order.id, e.target.value)} className="status-select"><option value="Pending">Pending</option><option value="Processing">Processing</option><option value="Shipped">Shipped</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option></select></div><div className="action-buttons"><button onClick={() => handleDeleteOrder(order.id)} className="delete-order-btn">Delete Order</button></div></div>
           </div>

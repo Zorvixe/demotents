@@ -5,7 +5,7 @@ import Navbar from "./Navbar";
 const Home = () => {
   // Set document title for the Home page
   useEffect(() => {
-    document.title = "Home | Demotents";
+    document.title = "Home | Puna Graphics";
   }, []);
 
   return (

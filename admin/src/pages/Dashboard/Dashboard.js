@@ -28,7 +28,7 @@ const Dashboard = () => {
     } finally { setLoading(false); }
   };
 
-  const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
   if (loading) return <div className="loader-container"><div className="spinner"></div></div>;
 
