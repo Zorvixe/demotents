@@ -25,58 +25,64 @@ const CategoryProducts = () => {
   const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api`;
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+// Replace the fetchProducts function inside CategoryProducts component
 
-        let finalCategoryId = categoryId;
-        let finalCategoryName = categoryName;
-        let foundCategory = null;
+useEffect(() => {
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        if (!finalCategoryId) {
-          const categoryRes = await fetch(`${API_URL}/categories`);
-          const categoryData = await categoryRes.json();
-          if (categoryData.success) {
-            foundCategory = categoryData.categories.find(
-              (cat) =>
-                cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
-            );
-            if (foundCategory) {
-              finalCategoryId = foundCategory.id;
-              finalCategoryName = foundCategory.name;
-              setCategoryData(foundCategory);
-            }
+      let finalCategoryId = categoryId;
+      let finalCategoryName = categoryName;
+      let foundCategory = null;
+
+      if (!finalCategoryId) {
+        const categoryRes = await fetch(`${API_URL}/categories`);
+        const categoryData = await categoryRes.json();
+        if (categoryData.success) {
+          foundCategory = categoryData.categories.find(
+            (cat) =>
+              cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
+          );
+          if (foundCategory) {
+            finalCategoryId = foundCategory.id;
+            finalCategoryName = foundCategory.name;
+            setCategoryData(foundCategory);
           }
         }
-
-        if (!finalCategoryId) throw new Error("Category not found");
-
-        // ✅ Build URL with optional type filter
-        let url = `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`;
-        if (printType) {
-          url += `&type=${printType}`;
-        }
-
-        const productRes = await fetch(url);
-
-        if (!productRes.ok)
-          throw new Error(`Failed to fetch products: ${productRes.status}`);
-
-        const productData = await productRes.json();
-        if (productData.success) setProducts(productData.products);
-        else setError(productData.message || "Failed to load products");
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setError("Failed to load products. Please try again.");
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchProducts();
-  }, [categorySlug, categoryId, categoryName, printType]);
+      if (!finalCategoryId) throw new Error("Category not found");
+
+      // Build URL – add type only if it's a valid filter
+      let url = `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`;
+      if (printType === "without-print" || printType === "custom") {
+        url += `&type=${printType}`;
+      }
+
+      console.log("🔍 Fetching products from:", url); // Debug
+
+      const productRes = await fetch(url);
+      if (!productRes.ok) throw new Error(`Failed to fetch products: ${productRes.status}`);
+
+      const productData = await productRes.json();
+      if (productData.success) {
+        console.log(`✅ Loaded ${productData.products.length} products`);
+        setProducts(productData.products);
+      } else {
+        setError(productData.message || "Failed to load products");
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Failed to load products. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchProducts();
+}, [categorySlug, categoryId, categoryName, printType]);
 
   const getCategoryBannerImage = () => {
     if (categoryData && categoryData.preview_image) {

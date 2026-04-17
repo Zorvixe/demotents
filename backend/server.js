@@ -1128,6 +1128,8 @@ const getProductWithImages = async (productId, client = pool) => {
 
 // 12. Get All Products
 // Inside GET /api/products, after extracting query params
+// Replace your existing GET /api/products route with this:
+
 app.get('/api/products', async (req, res) => {
   try {
     const { category_id, sub_category_id, type, is_active } = req.query;
@@ -1159,16 +1161,20 @@ app.get('/api/products', async (req, res) => {
       baseQuery += ` AND p.is_active = true`;
     }
 
-    // ✅ NEW: Filter by print type
+    // ✅ FIX: Only apply type filter if the parameter is explicitly provided
     if (type === 'without-print') {
       baseQuery += ` AND p.without_print_price IS NOT NULL`;
     } else if (type === 'custom') {
       baseQuery += ` AND (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL)`;
     }
+    // If type is anything else (e.g., null, undefined, ''), do NOT add any price filter
 
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
+    
+    // Debug log to see how many products are returned
+    console.log(`📦 Products query returned ${result.rows.length} products. Filters: category=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
       success: true,
