@@ -25,6 +25,9 @@ const CategoryProducts = () => {
   const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api`;
 
+  // Helper to normalise a string to a slug
+  const toSlug = (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -36,25 +39,37 @@ const CategoryProducts = () => {
 
         // If no categoryId provided, resolve from slug
         if (!finalCategoryId) {
+          // Option 1: Try to fetch category by slug if your backend supports it (recommended)
+          // const slugRes = await fetch(`${API_URL}/categories/slug/${categorySlug}`);
+          // if (slugRes.ok) { const data = await slugRes.json(); finalCategoryId = data.category.id; finalCategoryName = data.category.name; setCategoryData(data.category); }
+
+          // Option 2: Fallback – fetch all categories and match robustly
           const categoryRes = await fetch(`${API_URL}/categories`);
           const categoryDataJson = await categoryRes.json();
           if (categoryDataJson.success) {
-            const foundCategory = categoryDataJson.categories.find(
-              (cat) => cat.name.toLowerCase().replace(/\s+/g, "-") === categorySlug
-            );
+            const foundCategory = categoryDataJson.categories.find((cat) => {
+              // Normalise both the stored name and the slug for comparison
+              const normalisedName = toSlug(cat.name);
+              const normalisedSlug = toSlug(categorySlug);
+              return normalisedName === normalisedSlug;
+            });
             if (foundCategory) {
               finalCategoryId = foundCategory.id;
               finalCategoryName = foundCategory.name;
               setCategoryData(foundCategory);
+            } else {
+              throw new Error(`Category "${categorySlug}" not found`);
             }
+          } else {
+            throw new Error("Failed to load categories list");
           }
         }
 
         if (!finalCategoryId) {
-          throw new Error("Category not found");
+          throw new Error("Category ID could not be determined");
         }
 
-        // Build URL with proper filters
+        // Build URL – the backend will include all products from this category and its subcategories
         let url = `${API_URL}/products?category_id=${finalCategoryId}&is_active=true`;
         if (printType === "without-print" || printType === "custom") {
           url += `&type=${printType}`;
@@ -69,33 +84,14 @@ const CategoryProducts = () => {
 
         const productData = await productRes.json();
         if (productData.success) {
-          console.log(`✅ Loaded ${productData.products.length} products for category ${finalCategoryName}`);
+          console.log(`✅ Loaded ${productData.products.length} products for category "${finalCategoryName}"`);
           setProducts(productData.products);
-          
-          // If no products found, try to fetch subcategories and their products (optional)
-          if (productData.products.length === 0) {
-            console.warn("⚠️ No products found directly. Checking subcategories...");
-            const subcatRes = await fetch(`${API_URL}/categories/${finalCategoryId}/sub-categories`);
-            const subcatData = await subcatRes.json();
-            if (subcatData.success && subcatData.sub_categories.length > 0) {
-              // Fetch products from each subcategory
-              const subcatProductPromises = subcatData.sub_categories.map(sc =>
-                fetch(`${API_URL}/products?sub_category_id=${sc.id}&is_active=true`).then(r => r.json())
-              );
-              const subcatResults = await Promise.all(subcatProductPromises);
-              const allSubcatProducts = subcatResults.flatMap(res => res.success ? res.products : []);
-              if (allSubcatProducts.length > 0) {
-                console.log(`✅ Found ${allSubcatProducts.length} products in subcategories`);
-                setProducts(allSubcatProducts);
-              }
-            }
-          }
         } else {
           setError(productData.message || "Failed to load products");
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Failed to load products. Please try again.");
+        setError(err.message || "Failed to load products. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -132,23 +128,20 @@ const CategoryProducts = () => {
   const handleBannerLoad = () => setBannerLoaded(true);
   const handleBannerError = () => setBannerError(true);
 
-const openModal = (product) => {
-  const slug = product.slug || product.id;
-  const uuid = product.uuid;
-  // Navigate with UUID and slug
-  navigate(`/product/${uuid}/${slug}`, { state: { product } });
-};
+  const openModal = (product) => {
+    const slug = product.slug || product.id;
+    const uuid = product.uuid;
+    navigate(`/product/${uuid}/${slug}`, { state: { product } });
+  };
 
-  // Helper to display correct price based on print type
   const getDisplayPrice = (product) => {
     if (printType === "without-print") {
       return product.without_print_price
         ? `₹ ${product.without_print_price.toLocaleString()}`
         : "Price on request";
     } else if (printType === "custom") {
-      // Show tiered prices
       if (product.core_price || product.elite_price || product.pro_price) {
-        return null; // will render tiered pricing
+        return null;
       }
       return product.price ? `₹ ${product.price.toLocaleString()}` : "Price on request";
     } else {
@@ -158,7 +151,7 @@ const openModal = (product) => {
 
   if (loading) {
     return (
-       <div className="global-loader">
+      <div className="global-loader">
         <div className="spinner"></div>
       </div>
     );
@@ -181,11 +174,8 @@ const openModal = (product) => {
     );
   }
 
-  const displayCategoryName =
-    categoryName || (categorySlug ? categorySlug.replace(/-/g, " ") : "Products");
+  const displayCategoryName = categoryName || (categorySlug ? categorySlug.replace(/-/g, " ") : "Products");
   const bannerImageUrl = getCategoryBannerImage();
-
-  // Add type suffix to page title
   const pageTitle = printType === "without-print" 
     ? `${displayCategoryName} - Without Print`
     : printType === "custom"
@@ -194,7 +184,6 @@ const openModal = (product) => {
 
   return (
     <div className="category-wrapper container py-5" style={{ marginTop: "50px" }}>
-      
       <div className="category-banner mb-5">
         {bannerImageUrl && !bannerError ? (
           <>
@@ -229,10 +218,7 @@ const openModal = (product) => {
             return (
               <div key={product.id} className="col-lg-3 col-md-4 col-sm-6 col-12">
                 <div className="category-product-card">
-                  <div
-                    className="category-image-wrapper"
-                    onClick={() => openModal(product)}
-                  >
+                  <div className="category-image-wrapper" onClick={() => openModal(product)}>
                     {!isLoaded && (
                       <div className="image-loader-overlay">
                         <div className="image-spinner"></div>
@@ -266,7 +252,6 @@ const openModal = (product) => {
                   <div className="category-card-body">
                     <div className="category-card-info">
                       <h2 className="category-product-title">{product.name}</h2>
-                      
                       <div className="category-product-meta">
                         {product.sku && <span className="meta-sku">SKU: {product.sku}</span>}
                         {product.cloth_colors && product.cloth_colors.length > 0 && (
@@ -275,7 +260,6 @@ const openModal = (product) => {
                           </span>
                         )}
                       </div>
-
                       <div className="category-pricing-section">
                         {printType === "custom" && (product.core_price || product.elite_price || product.pro_price) ? (
                           <div className="tiered-pricing">
@@ -303,17 +287,11 @@ const openModal = (product) => {
                         )}
                       </div>
                     </div>
-
                     <div className="category-card-actions">
-                      <button
-                        className="category-btn category-btn-primary"
-                        onClick={() => openModal(product)}
-                      >
+                      <button className="category-btn category-btn-primary" onClick={() => openModal(product)}>
                         View Details
                       </button>
-                      <button className="category-btn category-btn-secondary">
-                        Enquire
-                      </button>
+                      <button className="category-btn category-btn-secondary">Enquire</button>
                     </div>
                   </div>
                 </div>

@@ -22,7 +22,7 @@ const List = () => {
 
   const [editForm, setEditForm] = useState({
     name: '', description: '', price: '', category_id: '', sub_category_id: '',
-    stock_quantity: '', is_featured: false, sku: '', size: '', product_type: '',
+    stock_quantity: '', is_featured: false, is_active: true, sku: '', size: '', product_type: '',
     without_print_price: '', core_price: '', elite_price: '', pro_price: '', cloth_colors: '',
   });
   const [mainImageFile, setMainImageFile] = useState(null);
@@ -144,6 +144,7 @@ const List = () => {
       sub_category_id: product.sub_category_id || '',
       stock_quantity: product.stock_quantity || 0,
       is_featured: product.is_featured || false,
+      is_active: product.is_active !== undefined ? product.is_active : true,
       sku: product.sku || '',
       size: product.size || '',
       product_type: product.product_type || '',
@@ -167,7 +168,7 @@ const List = () => {
     setEditingId(null);
     setEditForm({
       name: '', description: '', price: '', category_id: '', sub_category_id: '',
-      stock_quantity: '', is_featured: false, sku: '', size: '', product_type: '',
+      stock_quantity: '', is_featured: false, is_active: true, sku: '', size: '', product_type: '',
       without_print_price: '', core_price: '', elite_price: '', pro_price: '', cloth_colors: '',
     });
     setMainImageFile(null);
@@ -184,7 +185,15 @@ const List = () => {
       if (value) fetchSubCategories(value);
       else setSubCategories([]);
     } else if (name === 'product_type') {
-      setEditForm(prev => ({ ...prev, product_type: value, without_print_price: '', core_price: '', elite_price: '', pro_price: '' }));
+      // When product type changes, clear the opposite price fields
+      setEditForm(prev => ({
+        ...prev,
+        product_type: value,
+        without_print_price: value === 'customization' ? '' : prev.without_print_price,
+        core_price: value === 'without_print' ? '' : prev.core_price,
+        elite_price: value === 'without_print' ? '' : prev.elite_price,
+        pro_price: value === 'without_print' ? '' : prev.pro_price,
+      }));
     } else {
       setEditForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     }
@@ -251,16 +260,32 @@ const List = () => {
   const handleUpdate = async () => {
     try {
       const formData = new FormData();
+      
+      // Helper to convert empty string to null for price fields
+      const prepareValue = (key, value) => {
+        if (key === 'without_print_price' || key === 'core_price' || key === 'elite_price' || key === 'pro_price') {
+          return value === '' ? null : value;
+        }
+        return value;
+      };
+
       Object.keys(editForm).forEach(key => {
-        if (editForm[key] !== null && editForm[key] !== undefined) {
+        const val = editForm[key];
+        if (val !== null && val !== undefined) {
           if (key === 'cloth_colors') {
-            const colorsArray = editForm[key].split(',').map(c => c.trim());
+            const colorsArray = val.split(',').map(c => c.trim()).filter(c => c);
             formData.append(key, JSON.stringify(colorsArray));
+          } else if (key === 'is_active') {
+            formData.append(key, val === true || val === 'true');
           } else {
-            formData.append(key, editForm[key]);
+            const finalVal = prepareValue(key, val);
+            if (finalVal !== null && finalVal !== undefined) {
+              formData.append(key, finalVal);
+            }
           }
         }
       });
+
       if (mainImageFile) formData.append('mainImage', mainImageFile);
       subImageFiles.forEach(file => formData.append('subImages', file));
 
@@ -351,22 +376,22 @@ const List = () => {
                   <div className="grid-2-col-inner mt-4"><div className="form-group"><label>SKU</label><input type="text" name="sku" value={editForm.sku} onChange={handleFormChange} className="edit-input" placeholder="e.g. PROD-01" /></div><div className="form-group"><label>Stock Quantity <span className="required">*</span></label><input type="number" name="stock_quantity" value={editForm.stock_quantity} onChange={handleFormChange} className="edit-input" min="0" /></div></div>
                   <div className="grid-2-col-inner"><div className="form-group"><label>Category <span className="required">*</span></label><select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required><option value="">Select Category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div><div className="form-group"><label>Sub-Category</label><select name="sub_category_id" value={editForm.sub_category_id} onChange={handleFormChange} className="edit-input" disabled={!editForm.category_id}><option value="">Select Sub-Category</option>{subCategories.map(subCat => <option key={subCat.id} value={subCat.id}>{subCat.name}</option>)}</select></div></div>
                   <div className="form-group"><label>Cloth Colors (comma separated)</label><input type="text" name="cloth_colors" value={editForm.cloth_colors} onChange={handleFormChange} placeholder="e.g. Red, Blue, Green" className="edit-input" /></div>
+                  <div className="form-group">
+                    <div className="featured-toggle" style={{ justifyContent: 'space-between' }}>
+                      <span className="toggle-label-text">Active Status</span>
+                      <div className="toggle-switch">
+                        <input type="checkbox" id="is_active_edit" name="is_active" checked={editForm.is_active} onChange={handleFormChange} />
+                        <label htmlFor="is_active_edit" className="toggle-label"></label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="form-section">
                   <div className="section-header-flex"><h4 className="section-title">Pricing & Options</h4><div className="featured-toggle"><span className="toggle-label-text">Featured Product</span><div className="toggle-switch"><input type="checkbox" id="featured-edit" name="is_featured" checked={editForm.is_featured} onChange={handleFormChange} /><label htmlFor="featured-edit" className="toggle-label"></label></div></div></div>
                   <div className="grid-2-col-inner"><div className="form-group"><label>Base Price <span className="required">*</span></label><div className="input-with-prefix"><span className="prefix">₹</span><input type="number" name="price" value={editForm.price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" /></div></div>
-                    {/* REPLACE the <select> block with this */}
                     <div className="form-group">
                       <label>Size <span className="required">*</span></label>
-                      <input
-                        type="text"
-                        name="size"
-                        value={editForm.size}
-                        onChange={handleFormChange}
-                        className="edit-input"
-                        placeholder="Enter size (e.g. 10x10, 12x12, Custom)"
-                        required
-                      />
+                      <input type="text" name="size" value={editForm.size} onChange={handleFormChange} className="edit-input" placeholder="Enter size (e.g. 10x10, 12x12, Custom)" required />
                     </div>
                   </div>
                   <div className="form-group"><label>Product Type <span className="required">*</span></label><select name="product_type" value={editForm.product_type} onChange={handleFormChange} className="edit-input" required><option value="">Select Type</option><option value="without_print">Without Print</option><option value="customization">With Customization</option></select></div>
