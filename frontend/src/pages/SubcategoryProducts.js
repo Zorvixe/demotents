@@ -26,55 +26,52 @@ const SubcategoryProducts = () => {
     return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+ // Replace the fetchData function inside SubcategoryProducts component
 
-        const finalSubcategoryId = subcategoryId || subCategoryId;
-        
-        if (!finalSubcategoryId) {
-          throw new Error("Subcategory not found");
-        }
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // ✅ Build URL with optional type filter
-        let url = `${API_URL}/products?sub_category_id=${finalSubcategoryId}&is_active=true`;
-        if (printType) {
-          url += `&type=${printType}`;
-        }
-
-        const productRes = await fetch(url);
-        
-        if (!productRes.ok) {
-          throw new Error(`Failed to fetch products: ${productRes.status}`);
-        }
-        
-        const productData = await productRes.json();
-
-        if (productData.success) {
-          setProducts(productData.products);
-          
-          const subcatRes = await fetch(`${API_URL}/sub-categories/${finalSubcategoryId}`);
-          if (subcatRes.ok) {
-            const subcatData = await subcatRes.json();
-            if (subcatData.success) {
-              setSubcategoryData(subcatData.sub_category);
-            }
-          }
-        } else {
-          setError(productData.message || "Failed to load products");
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setError("Failed to load products. Please try again.");
-      } finally {
-        setLoading(false);
+      const finalSubcategoryId = subcategoryId || subCategoryId;
+      if (!finalSubcategoryId) {
+        throw new Error("Subcategory not found");
       }
-    };
 
-    fetchData();
-  }, [subcategoryId, subCategoryId, printType]);
+      let url = `${API_URL}/products?sub_category_id=${finalSubcategoryId}&is_active=true`;
+      if (printType === "without-print" || printType === "custom") {
+        url += `&type=${printType}`;
+      }
+
+      console.log("🔍 Fetching subcategory products from:", url); // Debug
+
+      const productRes = await fetch(url);
+      if (!productRes.ok) throw new Error(`Failed to fetch products: ${productRes.status}`);
+
+      const productData = await productRes.json();
+      if (productData.success) {
+        console.log(`✅ Loaded ${productData.products.length} products`);
+        setProducts(productData.products);
+
+        const subcatRes = await fetch(`${API_URL}/sub-categories/${finalSubcategoryId}`);
+        if (subcatRes.ok) {
+          const subcatData = await subcatRes.json();
+          if (subcatData.success) setSubcategoryData(subcatData.sub_category);
+        }
+      } else {
+        setError(productData.message || "Failed to load products");
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("Failed to load products. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [subcategoryId, subCategoryId, printType]);
 
   const getProductImageUrl = (url) => {
     if (!url) return null;

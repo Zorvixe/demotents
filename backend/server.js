@@ -1128,6 +1128,9 @@ const getProductWithImages = async (productId, client = pool) => {
 
 // 12. Get All Products
 // Inside GET /api/products, after extracting query params
+// Replace your existing GET /api/products route with this:
+
+// Replace your existing GET /api/products route with this:
 app.get('/api/products', async (req, res) => {
   try {
     const { category_id, sub_category_id, type, is_active } = req.query;
@@ -1136,7 +1139,8 @@ app.get('/api/products', async (req, res) => {
       SELECT 
         p.*, 
         c.name as category_name,
-        sc.name as sub_category_name
+        sc.name as sub_category_name,
+        (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) as sub_images_count
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
@@ -1145,21 +1149,31 @@ app.get('/api/products', async (req, res) => {
     const values = [];
     let paramIndex = 1;
 
+    // ✅ If category_id is provided, include products that belong to this category
+    //    either directly (p.category_id) OR through any subcategory under this category
     if (category_id) {
-      baseQuery += ` AND p.category_id = $${paramIndex}`;
+      baseQuery += ` AND (
+        p.category_id = $${paramIndex} 
+        OR p.sub_category_id IN (
+          SELECT id FROM sub_categories WHERE category_id = $${paramIndex}
+        )
+      )`;
       values.push(category_id);
       paramIndex++;
     }
+
     if (sub_category_id) {
       baseQuery += ` AND p.sub_category_id = $${paramIndex}`;
       values.push(sub_category_id);
       paramIndex++;
     }
+
+    // Only show active products for public API
     if (is_active === 'true') {
       baseQuery += ` AND p.is_active = true`;
     }
 
-    // ✅ NEW: Filter by print type
+    // Apply type filter only if explicitly provided
     if (type === 'without-print') {
       baseQuery += ` AND p.without_print_price IS NOT NULL`;
     } else if (type === 'custom') {
@@ -1169,6 +1183,8 @@ app.get('/api/products', async (req, res) => {
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
+    
+    console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
       success: true,
@@ -1333,6 +1349,7 @@ app.post('/api/products', verifyToken, upload.fields([
 });
 
 // 14. Update Product
+// 14. Update Product (with empty string → null conversion)
 app.put('/api/products/:id', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
@@ -1352,6 +1369,14 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       cloth_colors, size, product_type
     } = req.body;
 
+    // Helper: convert empty string to null for price fields
+    const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
+
+    const finalWithoutPrint = toNullIfEmpty(without_print_price);
+    const finalCore = toNullIfEmpty(core_price);
+    const finalElite = toNullIfEmpty(elite_price);
+    const finalPro = toNullIfEmpty(pro_price);
+
     // Get existing product
     const oldProduct = await client.query(
       'SELECT main_image_url, name FROM products WHERE id = $1 FOR UPDATE',
@@ -1360,7 +1385,7 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     if (oldProduct.rows.length === 0) throw new Error('Product not found');
     oldMainUrl = oldProduct.rows[0].main_image_url;
 
-    // ✅ Generate new slug if name changed
+    // Generate new slug if name changed
     let finalSlug = null;
     if (name !== undefined && name !== oldProduct.rows[0].name) {
       let baseSlug = slugify(name);
@@ -1389,7 +1414,7 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       try {
         colorsArray = JSON.parse(cloth_colors);
       } catch {
-        colorsArray = cloth_colors.split(',').map(c => c.trim());
+        colorsArray = cloth_colors.split(',').map(c => c.trim()).filter(c => c);
       }
     }
 
@@ -1422,11 +1447,9 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       category_id, sub_category_id || null, mainImageUrl,
       sku, stock_quantity ? parseInt(stock_quantity) : null,
       is_featured === 'true', is_active === 'true',
-      product_detail || null, without_print_price || null,
-      core_price || null, elite_price || null, pro_price || null,
+      product_detail || null, finalWithoutPrint, finalCore, finalElite, finalPro,
       colorsArray, size || null, product_type || null,
-      finalSlug,   // may be null
-      id
+      finalSlug, id
     ]);
 
     // Handle sub-images: delete existing and insert new ones if provided
