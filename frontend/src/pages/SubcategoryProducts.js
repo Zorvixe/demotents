@@ -6,16 +6,19 @@ const SubcategoryProducts = () => {
   const { subcategoryId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+    const { categorySlug } = useParams();
+  
   const queryParams = new URLSearchParams(location.search);
   const printType = queryParams.get("type"); // "without-print" or "custom"
-  
+
   const { subCategoryId, subCategoryName, parentCategoryId, parentCategoryName } = location.state || {};
-  
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [subcategoryData, setSubcategoryData] = useState(null);
-  
+  const [fallbackUsed, setFallbackUsed] = useState(false);
+
   const [imageLoaded, setImageLoaded] = useState({});
   const [imageError, setImageError] = useState({});
 
@@ -26,52 +29,59 @@ const SubcategoryProducts = () => {
     return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
   };
 
- // Replace the fetchData function inside SubcategoryProducts component
+  // Replace the fetchData function inside SubcategoryProducts component
 
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  useEffect(() => {
+    const fetchData = async (ignoreType = false) => {
+      try {
+        setLoading(true);
+        setError(null);
+        setFallbackUsed(false);
 
-      const finalSubcategoryId = subcategoryId || subCategoryId;
-      if (!finalSubcategoryId) {
-        throw new Error("Subcategory not found");
-      }
-
-      let url = `${API_URL}/products?sub_category_id=${finalSubcategoryId}&is_active=true`;
-      if (printType === "without-print" || printType === "custom") {
-        url += `&type=${printType}`;
-      }
-
-      console.log("🔍 Fetching subcategory products from:", url); // Debug
-
-      const productRes = await fetch(url);
-      if (!productRes.ok) throw new Error(`Failed to fetch products: ${productRes.status}`);
-
-      const productData = await productRes.json();
-      if (productData.success) {
-        console.log(`✅ Loaded ${productData.products.length} products`);
-        setProducts(productData.products);
-
-        const subcatRes = await fetch(`${API_URL}/sub-categories/${finalSubcategoryId}`);
-        if (subcatRes.ok) {
-          const subcatData = await subcatRes.json();
-          if (subcatData.success) setSubcategoryData(subcatData.sub_category);
+        const finalSubcategoryId = subcategoryId || subCategoryId;
+        if (!finalSubcategoryId) {
+          throw new Error("Subcategory not found");
         }
-      } else {
-        setError(productData.message || "Failed to load products");
-      }
-    } catch (err) {
-      console.error("Fetch error:", err);
-      setError("Failed to load products. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  fetchData();
-}, [subcategoryId, subCategoryId, printType]);
+        let url = `${API_URL}/products?sub_category_id=${finalSubcategoryId}&is_active=true`;
+        if (!ignoreType && (printType === "without-print" || printType === "custom")) {
+          url += `&type=${printType}`;
+        }
+
+        console.log("🔍 Fetching subcategory products from:", url); // Debug
+
+        const productRes = await fetch(url);
+        if (!productRes.ok) throw new Error(`Failed to fetch products: ${productRes.status}`);
+
+        const productData = await productRes.json();
+        if (productData.success) {
+          // ... fetch
+          if (productData.products.length === 0 && !ignoreType && printType) {
+            setFallbackUsed(true);
+            await fetchData(true);
+            return;
+          }
+          console.log(`✅ Loaded ${productData.products.length} products`);
+          setProducts(productData.products);
+
+          const subcatRes = await fetch(`${API_URL}/sub-categories/${finalSubcategoryId}`);
+          if (subcatRes.ok) {
+            const subcatData = await subcatRes.json();
+            if (subcatData.success) setSubcategoryData(subcatData.sub_category);
+          }
+        } else {
+          setError(productData.message || "Failed to load products");
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError("Failed to load products. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [subcategoryId, subCategoryId, printType]);
 
   const getProductImageUrl = (url) => {
     if (!url) return null;
@@ -88,12 +98,12 @@ useEffect(() => {
     setImageLoaded(prev => ({ ...prev, [productId]: true }));
   };
 
- const openModal = (product) => {
-  const slug = product.slug || product.id;
-  const uuid = product.uuid;
-  // Navigate with UUID and slug
-  navigate(`/product/${uuid}/${slug}`, { state: { product } });
-};
+  const openModal = (product) => {
+    const slug = product.slug || product.id;
+    const uuid = product.uuid;
+    // Navigate with UUID and slug
+    navigate(`/product/${uuid}/${slug}`, { state: { product } });
+  };
 
   const shareOnWhatsApp = (product) => {
     const baseUrl = window.location.origin;
@@ -157,11 +167,11 @@ Please share more details.`;
   }
 
   const displaySubcategoryName = subCategoryName || subcategoryData?.name || "Subcategory";
-  const pageTitle = printType === "without-print" 
+  const pageTitle = printType === "without-print"
     ? `${displaySubcategoryName} - Without Print`
     : printType === "custom"
-    ? `${displaySubcategoryName} - With Customization`
-    : displaySubcategoryName;
+      ? `${displaySubcategoryName} - With Customization`
+      : displaySubcategoryName;
 
   return (
     <div className="category-wrapper container py-5" style={{ marginTop: "50px" }}>
@@ -237,8 +247,8 @@ Please share more details.`;
 
                       {product.description && (
                         <p className="category-product-description">
-                          {product.description.length > 60 
-                            ? `${product.description.substring(0, 60)}...` 
+                          {product.description.length > 60
+                            ? `${product.description.substring(0, 60)}...`
                             : product.description}
                         </p>
                       )}
@@ -278,7 +288,7 @@ Please share more details.`;
                       >
                         View Details
                       </button>
-                      <button 
+                      <button
                         className="category-btn category-btn-secondary"
                         onClick={() => shareOnWhatsApp(product)}
                       >
@@ -298,10 +308,10 @@ Please share more details.`;
               </svg>
               <h3 className="empty-title">No Products Found</h3>
               <p className="empty-subtitle mb-4">No products available for this selection.</p>
-              
+
               <div className="d-flex justify-content-center gap-3 flex-wrap">
                 {parentCategoryName && (
-                  <button 
+                  <button
                     className="category-btn category-btn-secondary px-4"
                     onClick={() => navigate(`/category/${generatePath(parentCategoryName)}`, {
                       state: { categoryId: parentCategoryId, categoryName: parentCategoryName }
@@ -310,7 +320,7 @@ Please share more details.`;
                     View {parentCategoryName}
                   </button>
                 )}
-                <button 
+                <button
                   className="category-btn category-btn-primary px-4"
                   onClick={() => navigate('/categories')}
                 >
