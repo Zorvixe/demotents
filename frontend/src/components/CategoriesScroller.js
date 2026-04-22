@@ -6,47 +6,23 @@ import { useCategories } from "../App";
 const CategoriesScroller = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
-
   const { BASE_URL } = useCategories();
 
-  // Sort categories by ID (ascending) – oldest first
-  const sortedCategories = [...(categories || [])].sort((a, b) => a.id - b.id);
-
-  // Calculate how many items fit in 3 rows based on screen size
-  const getMaxCategoriesToShow = () => {
-    // Get grid column count based on current screen width
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth;
-      let columnsPerRow = 4; // Default desktop columns (4 items per row makes images bigger)
-
-      if (width <= 480) columnsPerRow = 2; // Mobile
-      else if (width <= 768) columnsPerRow = 3; // Tablet
-      else columnsPerRow = 4; // Large and Extra Large Screens
-
-      return columnsPerRow * 3; // 3 rows maximum
-    }
-    return 12; // Default: 4 columns × 3 rows
-  };
-
-  // State for responsive calculation
-  const [maxCategories, setMaxCategories] = useState(getMaxCategoriesToShow());
-
-  // Update on window resize
-  React.useEffect(() => {
-    const handleResize = () => {
-      setMaxCategories(getMaxCategoriesToShow());
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Limit categories to only 3 rows worth
-  const displayedCategories = sortedCategories.slice(0, maxCategories);
-
-  // Track image loading state per category
   const [imageLoaded, setImageLoaded] = useState({});
   const [imageError, setImageError] = useState({});
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/categories`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Show only root categories (no parent)
+          const rootCategories = data.categories.filter(cat => cat.parent_id === null);
+          setCategories(rootCategories);
+        }
+      })
+      .catch(err => console.error("Failed to fetch categories", err));
+  }, [BASE_URL]);
 
   const getCategoryImage = (category) => {
     if (category.preview_image) {
@@ -63,34 +39,14 @@ const CategoriesScroller = () => {
     setImageLoaded(prev => ({ ...prev, [catId]: true }));
   };
 
-  const generatePath = (name) =>
-    name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
+  const generatePath = (name) => name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
   const handleCategoryClick = (category) => {
     navigate(`/category/${generatePath(category.name)}`, {
       state: { categoryId: category.id, categoryName: category.name },
     });
   };
 
-  useEffect(() => {
-    fetch(`${BASE_URL}/api/categories-with-images`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setCategories(data.categories);
-      });
-  }, [BASE_URL]);
-
-  if (!sortedCategories || sortedCategories.length === 0) {
-    return (
-      <section className="popular-products-section py-5">
-        <div className="container-fluid categories-container text-center">
-          <h2 className="section-title">POPULAR CATEGORIES</h2>
-          <p className="section-subtitle">Explore our tent collections</p>
-          <div className="empty-state py-5"><p>No categories available yet.</p></div>
-        </div>
-      </section>
-    );
-  }
+  if (!categories.length) return null;
 
   return (
     <section className="popular-products-section py-4">
@@ -99,22 +55,15 @@ const CategoriesScroller = () => {
           <h2 className="section-title">POPULAR CATEGORIES</h2>
           <p className="section-subtitle">Explore our tent collections</p>
         </div>
-
-        {/* Fixed height grid container - will NOT exceed 3 rows */}
         <div className="categories-grid three-rows-only">
-          {displayedCategories.map((cat) => {
+          {categories.map((cat) => {
             const imgUrl = getCategoryImage(cat);
             const isLoaded = imageLoaded[cat.id];
             const hasError = imageError[cat.id];
-
             return (
               <div key={cat.id} className="category-card" onClick={() => handleCategoryClick(cat)}>
                 <div className="image-wrapper">
-                  {!isLoaded && (
-                    <div className="image-loader">
-                      <div className="spinner"></div>
-                    </div>
-                  )}
+                  {!isLoaded && <div className="image-loader"><div className="spinner"></div></div>}
                   {imgUrl && !hasError && (
                     <img
                       src={imgUrl}
@@ -125,11 +74,7 @@ const CategoriesScroller = () => {
                       onError={() => handleImageError(cat.id)}
                     />
                   )}
-                  {(hasError || !imgUrl) && (
-                    <div className="image-fallback">
-                      <span>No image</span>
-                    </div>
-                  )}
+                  {(hasError || !imgUrl) && <div className="image-fallback"><span>No image</span></div>}
                 </div>
                 <div className="card-content text-center">
                   <h4 className="category-name">{cat.name}</h4>
@@ -138,12 +83,10 @@ const CategoriesScroller = () => {
             );
           })}
         </div>
-
-        {/* Show "View All" button ONLY if there are more categories beyond 3 rows */}
-        {sortedCategories.length > maxCategories && (
+        {categories.length > 12 && (
           <div className="text-center mt-4">
             <button className="view-all-btn" onClick={() => navigate("/categories")}>
-              View All Categories ({sortedCategories.length - maxCategories} more)
+              View All Categories
             </button>
           </div>
         )}

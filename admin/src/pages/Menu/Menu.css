@@ -1,183 +1,314 @@
 /* ===========================
-   CONTAINER
+   BASE SHOPIFY STYLES
 =========================== */
-.menu-container {
-  padding: 20px;
-  width: 100%;
-  font-family: "Segoe UI", sans-serif;
+.shopify-page-container {
+  padding: 32px 20px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  color: #202223;
+  min-height: 100vh;
 }
 
-/* ===========================
-   HEADER
-=========================== */
-.menu-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+.shopify-page-header {
+  margin-bottom: 20px;
 }
 
-.menu-header h1 {
+.shopify-page-header h1 {
+  font-size: 20px;
+  font-weight: 600;
   margin: 0;
-  font-size: 26px;
+  color: #202223;
 }
 
-.menu-header p {
-  font-size: 14px;
-  color: #666;
-}
-
-/* ===========================
-   BUTTONS
-=========================== */
-.menu-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-
-.menu-btn-primary {
-  background: #0d6efd;
-  color: white;
-}
-
-.menu-btn-outline {
-  border: 1px solid #0d6efd;
-  color: #0d6efd;
-  background: transparent;
-}
-
-.menu-btn-light {
-  background: #eee;
-}
-
-.menu-btn-danger {
-  background: #dc3545;
-  color: white;
-}
-
-/* ===========================
-   TABLE
-=========================== */
-.menu-table-wrapper {
-  background: white;
-  border-radius: 10px;
-  padding: 10px;
-  overflow-x: auto;
-}
-
-.menu-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 900px;
-}
-
-.menu-table th {
-  background: #f1f3f5;
-  padding: 12px;
-  text-align: left;
-}
-
-.menu-table td {
-  padding: 14px 10px;
-  border-bottom: 1px solid #eee;
-}
-
-/* ===========================
-   STATUS
-=========================== */
-.menu-status {
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-}
-
-.menu-active {
-  background: #d1e7dd;
-  color: #0f5132;
-}
-
-.menu-inactive {
-  background: #f8d7da;
-  color: #842029;
-}
-
-/* ===========================
-   ACTION BUTTON
-=========================== */
-.menu-actions {
-  text-align: center;
-}
-
-.menu-action-btn {
-  padding: 10px 14px;
-  border-radius: 6px;
-  border: none;
-  min-width: 170px;
-  cursor: pointer;
-}
-
-.menu-add-btn {
-  background: #198754;
-  color: white;
-}
-
-.menu-remove-btn {
-  background: #dc3545;
-  color: white;
-}
-
-/* ===========================
-   PAGINATION
-=========================== */
-.menu-pagination {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.menu-pagination button {
-  margin: 3px;
-  padding: 6px 10px;
-}
-
-.menu-pagination .active {
-  background: #0d6efd;
-  color: white;
-}
-
-/* ===========================
-   MODAL
-=========================== */
-.menu-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.4);
+.shopify-page-loader {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.menu-confirm-box {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  width: 350px;
-}
-
-.menu-confirm-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  height: 50vh;
+  font-size: 16px;
+  color: #6d7175;
+  font-family: -apple-system, sans-serif;
 }
 
 /* ===========================
-   EMPTY STATE
+   SHOPIFY CARD
 =========================== */
-.menu-empty {
+.shopify-card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05), 0 1px 3px 0 rgba(63, 63, 68, 0.15);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.shopify-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.shopify-card-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #202223;
+}
+
+.shopify-card-content {
+  position: relative;
+}
+
+.shopify-card-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e1e3e5;
+  background-color: #fafbfb;
+}
+
+/* ===========================
+   DRAGGABLE MENU ITEMS
+=========================== */
+.shopify-empty-state {
+  padding: 32px 20px;
   text-align: center;
-  padding: 40px;
+  color: #6d7175;
+}
+
+.shopify-menu-root {
+  min-height: 10px;
+}
+
+.shopify-menu-node {
+  background: #fff;
+  position: relative;
+}
+
+.shopify-menu-node.is-dragging {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  border-radius: 4px;
+}
+
+.shopify-menu-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #e1e3e5;
+  background: #fff;
+  transition: background-color 0.15s;
+}
+
+.shopify-menu-row:hover {
+  background-color: #f9fafb;
+}
+
+.shopify-menu-node:last-child > .shopify-menu-row {
+  border-bottom: none;
+}
+
+.drag-handle-container {
+  cursor: grab;
+  color: #8c9196;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-right: 12px;
+}
+
+.drag-handle-container:hover {
+  color: #202223;
+}
+
+.shopify-menu-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.shopify-menu-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #202223;
+}
+
+.shopify-menu-link-preview {
+  font-size: 13px;
+  color: #6d7175;
+  margin-top: 2px;
+}
+
+/* Nesting Styles */
+.shopify-menu-children {
+  min-height: 5px; /* Important to allow drops into empty areas */
+  transition: background-color 0.2s;
+}
+
+.shopify-menu-children.is-dragging-over {
+  background-color: #f4f6f8;
+}
+
+.indentation-spacer {
+  flex-shrink: 0;
+  border-left: 1px solid #e1e3e5;
+  height: 40px;
+  margin-left: -20px; /* Aligns with padding */
+  margin-right: 20px;
+}
+
+/* ===========================
+   BUTTONS & ACTIONS
+=========================== */
+.shopify-menu-actions {
+  display: flex;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.shopify-menu-row:hover .shopify-menu-actions {
+  opacity: 1;
+}
+
+.shopify-btn-link {
+  background: none;
+  border: none;
+  color: #2c6ecb;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.shopify-btn-link.danger {
+  color: #d82c0d;
+}
+
+.shopify-btn-link.add-btn {
+  color: #2c6ecb;
+  font-weight: 500;
+}
+
+/* ===========================
+   MODAL & FORMS (Polaris Style)
+=========================== */
+.shopify-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(32, 34, 35, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.shopify-modal {
+  background: #fff;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 8px;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.shopify-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.shopify-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.shopify-modal-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #6d7175;
+}
+
+.shopify-modal-body {
+  padding: 20px;
+}
+
+.shopify-form-group {
+  margin-bottom: 16px;
+}
+
+.shopify-form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #202223;
+}
+
+.shopify-form-group input,
+.shopify-form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #babfc3;
+  border-radius: 4px;
+  background: #fff;
+  color: #202223;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.shopify-form-group input:focus,
+.shopify-form-group select:focus {
+  outline: none;
+  border-color: #2c6ecb;
+  box-shadow: 0 0 0 1px #2c6ecb;
+}
+
+.shopify-modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #e1e3e5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #fafbfb;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.shopify-btn-outline {
+  background: #fff;
+  border: 1px solid #c9cccf;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #202223;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shopify-btn-outline:hover {
+  background: #f9fafb;
+}
+
+.shopify-btn-primary {
+  background: #008060; /* Classic Shopify Green */
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shopify-btn-primary:hover {
+  background: #006e52;
 }

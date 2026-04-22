@@ -40,52 +40,56 @@ const pool = new Pool({
   },
 });
 
+// Helper: generate unique slug
+const generateSlug = async (name, parentId = null) => {
+  let base = slugify(name);
+  let slug = base;
+  let counter = 1;
+  while (true) {
+    const existing = await pool.query('SELECT id FROM categories WHERE slug = $1', [slug]);
+    if (existing.rows.length === 0) break;
+    slug = `${base}-${counter++}`;
+  }
+  return slug;
+}; 
 
 
-// Initialize database tables
 const initDatabase = async () => {
   try {
+    // 1. Carousel (unchanged)
     await pool.query(`
-  CREATE TABLE IF NOT EXISTS carousel (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255),
-    subtitle TEXT,
-    image_url TEXT NOT NULL,
-    display_order INTEGER DEFAULT 0,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-    console.log("✅ Carousel table initialized");
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS categories (
+      CREATE TABLE IF NOT EXISTS carousel (
         id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL UNIQUE,
-        description TEXT,
+        title VARCHAR(255),
+        subtitle TEXT,
+        image_url TEXT NOT NULL,
+        display_order INTEGER DEFAULT 0,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    await pool.query(`
-  ALTER TABLE categories 
-  ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
-`);
+    console.log("✅ Carousel table initialized");
 
+    // 2. Unified categories table (with parent_id, slug, level)
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS sub_categories (
+      CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) UNIQUE NOT NULL,
         description TEXT,
-        category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+        parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+        level INTEGER DEFAULT 0,
+        display_order INTEGER DEFAULT 0,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(name, category_id)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);`);
+    console.log("✅ Unified categories table initialized");
 
+    // 3. Products table (remove sub_category_id)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -94,71 +98,27 @@ const initDatabase = async () => {
         price DECIMAL(10,2) NOT NULL,
         main_image_url VARCHAR(500),
         category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-        sub_category_id INTEGER REFERENCES sub_categories(id) ON DELETE SET NULL,
         sku VARCHAR(100) UNIQUE,
         stock_quantity INTEGER DEFAULT 0,
         is_featured BOOLEAN DEFAULT false,
         is_active BOOLEAN DEFAULT true,
+        uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
+        product_detail VARCHAR(50),
+        without_print_price NUMERIC,
+        core_price NUMERIC,
+        elite_price NUMERIC,
+        pro_price NUMERIC,
+        cloth_colors TEXT[],
+        size VARCHAR(50),
+        product_type VARCHAR(50),
+        slug VARCHAR(255) UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    console.log("✅ Products table initialized");
 
-    // Add to your initDatabase() function
-    await pool.query(`
-        ALTER TABLE products 
-        ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL
-      `);
-
-    await pool.query(`
-      ALTER TABLE products 
-      ADD COLUMN IF NOT EXISTS product_detail VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS without_print_price NUMERIC,
-      ADD COLUMN IF NOT EXISTS core_price NUMERIC,
-      ADD COLUMN IF NOT EXISTS elite_price NUMERIC,
-      ADD COLUMN IF NOT EXISTS pro_price NUMERIC,
-      ADD COLUMN IF NOT EXISTS cloth_colors TEXT[];
-    `);
-
-    await pool.query(`
-  ALTER TABLE products 
-  ADD COLUMN IF NOT EXISTS size VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS product_type VARCHAR(50)
-`);
-    // Add this inside initDatabase() function
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS navbar_menu (
-        id SERIAL PRIMARY KEY,
-        category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
-        display_order INTEGER NOT NULL DEFAULT 0,
-        is_visible BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(category_id)
-      )
-    `);
-
-    console.log("✅ Navbar menu table initialized");
-
-
-    await pool.query(`CREATE TABLE IF NOT EXISTS menu_items (
-      id SERIAL PRIMARY KEY,
-      parent_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
-      title VARCHAR(255) NOT NULL,
-      type VARCHAR(50) NOT NULL, -- 'category', 'subcategory', 'custom_link', 'print_option'
-      target_id INTEGER NULL,    -- category.id, sub_category.id, or NULL for custom links
-      link_url VARCHAR(500) NULL, -- for custom_link or print_option (e.g., '/category/1?type=without-print')
-      display_order INTEGER NOT NULL DEFAULT 0,
-      is_visible BOOLEAN DEFAULT true,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    `);
-
-    await pool.query(`CREATE INDEX idx_menu_items_parent ON menu_items(parent_id);`);
-    await pool.query(`CREATE INDEX idx_menu_items_order ON menu_items(display_order);`);
-
-    // ✅ THIS WAS MISSING
+    // 4. Product images
     await pool.query(`
       CREATE TABLE IF NOT EXISTS product_images (
         id SERIAL PRIMARY KEY,
@@ -168,73 +128,77 @@ const initDatabase = async () => {
       )
     `);
 
+    // 5. Orders
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id SERIAL PRIMARY KEY,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_email VARCHAR(255),
+        phone VARCHAR(50),
+        address TEXT,
+        items JSONB NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        status VARCHAR(50) DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // 6. Admin users
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("✅ Admin users table initialized");
+
+    // 7. Menu items (no subcategory type)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id SERIAL PRIMARY KEY,
+        parent_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        target_id INTEGER NULL,
+        link_url VARCHAR(500) NULL,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        is_visible BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_items_parent ON menu_items(parent_id);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_items_order ON menu_items(display_order);`);
+    console.log("✅ Menu items table initialized");
+
+    // 8. Create default admin
+    const defaultUsername = 'DemoTents';
+    const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
+    const existingAdmin = await pool.query('SELECT id FROM admin_users WHERE username = $1', [defaultUsername]);
+    if (existingAdmin.rows.length === 0) {
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      await pool.query('INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)', [defaultUsername, hashedPassword]);
+      console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
+    }
+
+    // 9. Fix image URLs (unchanged)
     await pool.query(`
       UPDATE products 
         SET main_image_url = regexp_replace(main_image_url, '^https?://[^/]+', '')
         WHERE main_image_url LIKE 'http%';
-
-        UPDATE product_images 
+      UPDATE product_images 
         SET image_url = regexp_replace(image_url, '^https?://[^/]+', '')
         WHERE image_url LIKE 'http%';
     `);
-
-
-
-    await pool.query(`
-  CREATE TABLE IF NOT EXISTS orders (
-    id SERIAL PRIMARY KEY,
-    customer_name VARCHAR(255) NOT NULL,
-    customer_email VARCHAR(255),
-    phone VARCHAR(50),
-    address TEXT,
-    items JSONB NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    status VARCHAR(50) DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-
-    await pool.query(`ALTER TABLE products  ADD COLUMN IF NOT EXISTS slug VARCHAR(255) UNIQUE;
-      CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
-      `);
-
-
-    // ========== Admin users table ==========
-    await pool.query(`
-  CREATE TABLE IF NOT EXISTS admin_users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`);
-    console.log("✅ Admin users table initialized");
-    
-    // ✅ MOVED THIS HERE - Admin user creation after table is created
-    const defaultUsername = 'DemoTents';
-    const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
-    
-    const existingAdmin = await pool.query(
-      'SELECT id FROM admin_users WHERE username = $1',
-      [defaultUsername]
-    );
-    if (existingAdmin.rows.length === 0) {
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-      await pool.query(
-        'INSERT INTO admin_users (username, password_hash) VALUES ($1, $2)',
-        [defaultUsername, hashedPassword]
-      );
-      console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
-    }
-
 
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
     console.error("❌ Database initialization error:", error);
   }
 };
-
 
 
 const verifyToken = (req, res, next) => {
@@ -253,7 +217,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// Recursive function to build tree
 async function getMenuTree(parentId = null, client = pool) {
   const res = await client.query(
     `SELECT * FROM menu_items 
@@ -264,15 +227,17 @@ async function getMenuTree(parentId = null, client = pool) {
   const items = res.rows;
   for (let item of items) {
     item.children = await getMenuTree(item.id, client);
-    // Enrich with extra data based on type
     if (item.type === 'category' && item.target_id) {
       const cat = await client.query('SELECT name, slug FROM categories WHERE id = $1', [item.target_id]);
       if (cat.rows[0]) {
         item.category_slug = cat.rows[0].slug;
       }
-    } else if (item.type === 'subcategory' && item.target_id) {
-      const sub = await client.query('SELECT name FROM sub_categories WHERE id = $1', [item.target_id]);
-      if (sub.rows[0]) item.subcategory_name = sub.rows[0].name;
+    }
+    // Remove subcategory handling – you may want to convert existing 'subcategory' items:
+    if (item.type === 'subcategory' && item.target_id) {
+      // Optionally, convert to category by fetching the category from old sub_categories
+      // But better to run a one-time migration: update menu_items set type='category' where type='subcategory';
+      console.warn(`Legacy subcategory item found: ${item.id} – please migrate to category type.`);
     }
   }
   return items;
@@ -573,669 +538,146 @@ app.delete('/api/carousel/:id', verifyToken, async (req, res) => {
 });
 // ==================== CATEGORY ROUTES ====================
 
-// 1. Create Category
-app.post('/api/categories', verifyToken, async (req, res) => {
-  try {
-    const { name, description } = req.body;
 
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Category name is required'
-      });
-    }
 
-    // Check if category already exists (case-insensitive)
-    const existingCategory = await pool.query(
-      'SELECT * FROM categories WHERE LOWER(name) = LOWER($1)',
-      [name.trim()]
-    );
-
-    if (existingCategory.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Category name already exists'
-      });
-    }
-
-    const result = await pool.query(
-      'INSERT INTO categories (name, description) VALUES ($1, $2) RETURNING *',
-      [name.trim(), description]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Category created successfully',
-      category: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error creating category:', error);
-
-    if (error.code === '23505') { // Unique violation
-      return res.status(400).json({
-        success: false,
-        message: 'Category name already exists'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Error creating category'
-    });
-  }
-});
-
-// 2. Get All Categories
-app.get('/api/categories', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        c.*,
-        nm.id as menu_id,
-        nm.is_visible,
-        nm.display_order,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', sc.id,
-              'name', sc.name,
-              'description', sc.description,
-              'product_count', (
-                SELECT COUNT(*) FROM products p 
-                WHERE p.sub_category_id = sc.id AND p.is_active = true
-              )
-            ) ORDER BY sc.name
-          ) FILTER (WHERE sc.id IS NOT NULL), '[]'
-        ) as sub_categories,
-        (
-          SELECT COUNT(*) FROM products p 
-          WHERE p.category_id = c.id AND p.is_active = true
-        ) as product_count,
-        (
-          SELECT main_image_url FROM products 
-          WHERE category_id = c.id AND is_active = true 
-          LIMIT 1
-        ) as preview_image
-      FROM categories c
-      LEFT JOIN navbar_menu nm ON nm.category_id = c.id
-      LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
-      WHERE c.is_active = true
-      GROUP BY c.id, nm.id, nm.display_order
-      ORDER BY COALESCE(nm.display_order, c.display_order) ASC, c.name ASC
-    `);
-
-    res.json({ success: true, categories: result.rows });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
 
 // 3. Get Single Category
 app.get('/api/categories/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
     const result = await pool.query(`
-      SELECT c.*, 
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', sc.id,
-              'name', sc.name,
-              'description', sc.description,
-              'is_active', sc.is_active,
-              'product_count', (
-                SELECT COUNT(*) FROM products p 
-                WHERE p.sub_category_id = sc.id AND p.is_active = true
-              )
-            ) ORDER BY sc.name
-          ) FILTER (WHERE sc.id IS NOT NULL),
-          '[]'
-        ) as sub_categories
-      FROM categories c
-      LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
-      WHERE c.id = $1 AND c.is_active = true
-      GROUP BY c.id
+      WITH RECURSIVE cat_tree AS (
+        SELECT * FROM categories WHERE id = $1
+        UNION ALL
+        SELECT c.* FROM categories c
+        JOIN cat_tree ct ON ct.id = c.parent_id
+      )
+      SELECT * FROM cat_tree;
     `, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      category: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error fetching category:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching category'
-    });
+    if (result.rows.length === 0) return res.status(404).json({ success: false });
+    // Build tree for this branch
+    const buildTree = (items, parentId = null) => {
+      return items
+        .filter(item => item.parent_id === parentId)
+        .map(item => ({ ...item, children: buildTree(items, item.id) }));
+    };
+    const tree = buildTree(result.rows);
+    res.json({ success: true, category: tree[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 
-// 4. Update Category
+// GET /api/categories – returns full tree
+app.get('/api/categories', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      WITH RECURSIVE cat_tree AS (
+        SELECT id, name, slug, description, parent_id, level, display_order, is_active,
+               created_at, updated_at, ARRAY[id] AS path
+        FROM categories
+        WHERE parent_id IS NULL AND is_active = true
+        UNION ALL
+        SELECT c.id, c.name, c.slug, c.description, c.parent_id, c.level, c.display_order,
+               c.is_active, c.created_at, c.updated_at, path || c.id
+        FROM categories c
+        JOIN cat_tree ct ON ct.id = c.parent_id
+        WHERE c.is_active = true
+      )
+      SELECT id, name, slug, description, parent_id, level, display_order, is_active,
+             created_at, updated_at, path
+      FROM cat_tree
+      ORDER BY path;
+    `);
+    // Build nested tree
+    const buildTree = (items, parentId = null) => {
+      return items
+        .filter(item => item.parent_id === parentId)
+        .map(item => ({
+          ...item,
+          children: buildTree(items, item.id)
+        }));
+    };
+    const tree = buildTree(result.rows);
+    res.json({ success: true, categories: tree });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+// POST /api/categories – create new category (can be nested)
+app.post('/api/categories', verifyToken, async (req, res) => {
+  const { name, description, parent_id } = req.body;
+  if (!name) return res.status(400).json({ success: false, message: 'Name required' });
+  try {
+    const slug = await generateSlug(name);
+    let level = 0;
+    if (parent_id) {
+      const parent = await pool.query('SELECT level FROM categories WHERE id = $1', [parent_id]);
+      if (parent.rows.length === 0) return res.status(400).json({ success: false, message: 'Invalid parent' });
+      level = parent.rows[0].level + 1;
+    }
+    const result = await pool.query(
+      `INSERT INTO categories (name, slug, description, parent_id, level)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, slug, description || null, parent_id || null, level]
+    );
+    res.status(201).json({ success: true, category: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to create category' });
+  }
+});
+
+// PUT /api/categories/:id – update
 app.put('/api/categories/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const { name, description, is_active } = req.body;
   try {
-    const { id } = req.params;
-    const { name, description, is_active } = req.body;
-
-    // Check if new name already exists (excluding current category)
-    if (name !== undefined) {
-      const existingCategory = await pool.query(
-        'SELECT * FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
-        [name.trim(), id]
-      );
-
-      if (existingCategory.rows.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Category name already exists'
-        });
-      }
-    }
-
-    const updateFields = [];
+    const updates = [];
     const values = [];
-    let paramIndex = 1;
-
+    let idx = 1;
     if (name !== undefined) {
-      updateFields.push(`name = $${paramIndex}`);
-      values.push(name.trim());
-      paramIndex++;
+      updates.push(`name = $${idx++}, slug = $${idx++}`);
+      const newSlug = await generateSlug(name);
+      values.push(name, newSlug);
     }
-
-    if (description !== undefined) {
-      updateFields.push(`description = $${paramIndex}`);
-      values.push(description);
-      paramIndex++;
-    }
-
-    if (is_active !== undefined) {
-      updateFields.push(`is_active = $${paramIndex}`);
-      values.push(is_active);
-      paramIndex++;
-    }
-
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-    if (updateFields.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No fields to update'
-      });
-    }
-
+    if (description !== undefined) updates.push(`description = $${idx++}`), values.push(description);
+    if (is_active !== undefined) updates.push(`is_active = $${idx++}`), values.push(is_active);
+    if (updates.length === 0) return res.status(400).json({ success: false, message: 'No fields' });
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
-    const query = `
-      UPDATE categories 
-      SET ${updateFields.join(', ')} 
-      WHERE id = $${paramIndex} 
-      RETURNING *
-    `;
-
+    const query = `UPDATE categories SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
     const result = await pool.query(query, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Category updated successfully',
-      category: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error updating category:', error);
-
-    if (error.code === '23505') {
-      return res.status(400).json({
-        success: false,
-        message: 'Category name already exists'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Error updating category'
-    });
+    if (result.rows.length === 0) return res.status(404).json({ success: false });
+    res.json({ success: true, category: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 
-// 5. Delete Category
+// DELETE /api/categories/:id – cascade delete (children will be deleted)
 app.delete('/api/categories/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
   const client = await pool.connect();
-
   try {
     await client.query('BEGIN');
-
-    const { id } = req.params;
-
-    // Check if category exists
-    const categoryResult = await client.query(
-      'SELECT * FROM categories WHERE id = $1',
-      [id]
-    );
-
-    if (categoryResult.rows.length === 0) {
+    // Check if any product uses this category
+    const prodCheck = await client.query('SELECT id FROM products WHERE category_id = $1 LIMIT 1', [id]);
+    if (prodCheck.rows.length > 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found'
-      });
+      return res.status(400).json({ success: false, message: 'Category has products, cannot delete' });
     }
-
-    // Check if category has products
-    const productCountResult = await client.query(
-      'SELECT COUNT(*) FROM products WHERE category_id = $1',
-      [id]
-    );
-
-    const productCount = parseInt(productCountResult.rows[0].count);
-
-    if (productCount > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete category. It has ${productCount} product(s) associated.`
-      });
-    }
-
-    // Delete category (cascade will delete sub-categories)
     await client.query('DELETE FROM categories WHERE id = $1', [id]);
-
     await client.query('COMMIT');
-
-    res.json({
-      success: true,
-      message: 'Category deleted successfully'
-    });
-  } catch (error) {
+    res.json({ success: true });
+  } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Error deleting category:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting category'
-    });
-  } finally {
-    client.release();
-  }
-});
-
-// NAVBAR MENU ROUTES
-
-// ==================== NAVBAR MENU ROUTES - FINAL CLEAN BLOCK ====================
-
-// GET - Used by public Navbar component
-app.get('/api/navbar-menu', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        c.id, c.name, c.description,
-        nm.id as menu_id,
-        nm.display_order,
-        COALESCE(
-          json_agg(json_build_object('id', sc.id, 'name', sc.name)) 
-          FILTER (WHERE sc.id IS NOT NULL), '[]'
-        ) as sub_categories
-      FROM navbar_menu nm
-      JOIN categories c ON c.id = nm.category_id
-      LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
-      WHERE nm.is_visible = true AND c.is_active = true
-      GROUP BY c.id, nm.id, nm.display_order
-      ORDER BY nm.display_order ASC, c.name ASC
-    `);
-
-    res.json({ success: true, menu: result.rows || [] });
-  } catch (error) {
-    console.error('Navbar GET error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// POST - Add to Navbar  ← This is the one failing
-app.post('/api/navbar-menu', verifyToken, async (req, res) => {
-  try {
-    const { category_id, display_order = 0 } = req.body;
-
-    if (!category_id) {
-      return res.status(400).json({ success: false, message: 'Category ID is required' });
-    }
-
-    const result = await pool.query(`
-      INSERT INTO navbar_menu (category_id, display_order, is_visible)
-      VALUES ($1, $2, true)
-      ON CONFLICT (category_id) 
-      DO UPDATE SET 
-        is_visible = true, 
-        display_order = EXCLUDED.display_order, 
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING *
-    `, [category_id, display_order]);
-
-    res.status(201).json({
-      success: true,
-      message: 'Category added to navbar',
-      menu_item: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Navbar POST error:', error);
-    res.status(500).json({ success: false, message: 'Failed to add to navbar' });
-  }
-});
-
-// DELETE - Remove from Navbar
-app.delete('/api/navbar-menu/:id', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const result = await pool.query(
-      'UPDATE navbar_menu SET is_visible = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
-      [id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ success: false, message: 'Menu item not found' });
-    }
-
-    res.json({ success: true, message: 'Category removed from navbar' });
-  } catch (error) {
-    console.error('Navbar DELETE error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-
-// ==================== SUB-CATEGORY ROUTES ====================
-
-// 6. Create Sub-Category
-app.post('/api/sub-categories', verifyToken, async (req, res) => {
-  try {
-    const { name, description, category_id } = req.body;
-
-    if (!name || !category_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Sub-category name and category ID are required'
-      });
-    }
-
-    // Check if category exists
-    const categoryResult = await pool.query(
-      'SELECT * FROM categories WHERE id = $1 AND is_active = true',
-      [category_id]
-    );
-
-    if (categoryResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found or inactive'
-      });
-    }
-
-    // Check if sub-category already exists in this category (case-insensitive)
-    const existingSubCategory = await pool.query(
-      'SELECT * FROM sub_categories WHERE LOWER(name) = LOWER($1) AND category_id = $2',
-      [name.trim(), category_id]
-    );
-
-    if (existingSubCategory.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Sub-category name already exists in this category'
-      });
-    }
-
-    const result = await pool.query(
-      'INSERT INTO sub_categories (name, description, category_id) VALUES ($1, $2, $3) RETURNING *',
-      [name.trim(), description, category_id]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Sub-category created successfully',
-      sub_category: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error creating sub-category:', error);
-
-    if (error.code === '23505') {
-      return res.status(400).json({
-        success: false,
-        message: 'Sub-category name already exists in this category'
-      });
-    }
-
-    if (error.code === '23503') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid category ID'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Error creating sub-category'
-    });
-  }
-});
-
-// 7. Get Sub-Categories by Category
-app.get('/api/categories/:categoryId/sub-categories', async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-
-    const result = await pool.query(`
-      SELECT sc.*, 
-        COUNT(p.id) as product_count
-      FROM sub_categories sc
-      LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
-      WHERE sc.category_id = $1 AND sc.is_active = true
-      GROUP BY sc.id
-      ORDER BY sc.name
-    `, [categoryId]);
-
-    res.json({
-      success: true,
-      sub_categories: result.rows
-    });
-  } catch (error) {
-    console.error('Error fetching sub-categories:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching sub-categories'
-    });
-  }
-});
-
-// 8. Get All Sub-Categories
-app.get('/api/sub-categories', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT sc.*, 
-        c.name as category_name,
-        COUNT(p.id) as product_count
-      FROM sub_categories sc
-      JOIN categories c ON c.id = sc.category_id
-      LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
-      WHERE sc.is_active = true AND c.is_active = true
-      GROUP BY sc.id, c.name
-      ORDER BY c.name, sc.name
-    `);
-
-    res.json({
-      success: true,
-      sub_categories: result.rows
-    });
-  } catch (error) {
-    console.error('Error fetching sub-categories:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching sub-categories'
-    });
-  }
-});
-
-// 9. Update Sub-Category
-app.put('/api/sub-categories/:id', verifyToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, description, category_id, is_active } = req.body;
-
-    // Check if new name already exists in the same category
-    if (name !== undefined && category_id !== undefined) {
-      const existingSubCategory = await pool.query(
-        'SELECT * FROM sub_categories WHERE LOWER(name) = LOWER($1) AND category_id = $2 AND id != $3',
-        [name.trim(), category_id, id]
-      );
-
-      if (existingSubCategory.rows.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Sub-category name already exists in this category'
-        });
-      }
-    }
-
-    const updateFields = [];
-    const values = [];
-    let paramIndex = 1;
-
-    if (name !== undefined) {
-      updateFields.push(`name = $${paramIndex}`);
-      values.push(name.trim());
-      paramIndex++;
-    }
-
-    if (description !== undefined) {
-      updateFields.push(`description = $${paramIndex}`);
-      values.push(description);
-      paramIndex++;
-    }
-
-    if (category_id !== undefined) {
-      updateFields.push(`category_id = $${paramIndex}`);
-      values.push(category_id);
-      paramIndex++;
-    }
-
-    if (is_active !== undefined) {
-      updateFields.push(`is_active = $${paramIndex}`);
-      values.push(is_active);
-      paramIndex++;
-    }
-
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-    if (updateFields.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No fields to update'
-      });
-    }
-
-    values.push(id);
-    const query = `
-      UPDATE sub_categories 
-      SET ${updateFields.join(', ')} 
-      WHERE id = $${paramIndex} 
-      RETURNING *
-    `;
-
-    const result = await pool.query(query, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Sub-category not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Sub-category updated successfully',
-      sub_category: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error updating sub-category:', error);
-
-    if (error.code === '23505') {
-      return res.status(400).json({
-        success: false,
-        message: 'Sub-category name already exists in this category'
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Error updating sub-category'
-    });
-  }
-});
-
-// 10. Delete Sub-Category
-app.delete('/api/sub-categories/:id', verifyToken, async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    const { id } = req.params;
-
-    // Check if sub-category exists
-    const subCategoryResult = await client.query(
-      'SELECT * FROM sub_categories WHERE id = $1',
-      [id]
-    );
-
-    if (subCategoryResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({
-        success: false,
-        message: 'Sub-category not found'
-      });
-    }
-
-    // Check if sub-category has products
-    const productCountResult = await client.query(
-      'SELECT COUNT(*) FROM products WHERE sub_category_id = $1',
-      [id]
-    );
-
-    const productCount = parseInt(productCountResult.rows[0].count);
-
-    if (productCount > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete sub-category. It has ${productCount} product(s) associated.`
-      });
-    }
-
-    // Delete sub-category
-    await client.query('DELETE FROM sub_categories WHERE id = $1', [id]);
-
-    await client.query('COMMIT');
-
-    res.json({
-      success: true,
-      message: 'Sub-category deleted successfully'
-    });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error deleting sub-category:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting sub-category'
-    });
+    console.error(err);
+    res.status(500).json({ success: false });
   } finally {
     client.release();
   }
@@ -1244,15 +686,11 @@ app.delete('/api/sub-categories/:id', verifyToken, async (req, res) => {
 
 // ==================== PRODUCT ROUTES ====================
 
-// Helper function to get product with images
 const getProductWithImages = async (productId, client = pool) => {
   const productQuery = await client.query(`
-    SELECT p.*, 
-      c.name as category_name,
-      sc.name as sub_category_name
+    SELECT p.*, c.name as category_name
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
-    LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
     WHERE p.id = $1
   `, [productId]);
 
@@ -1267,77 +705,48 @@ const getProductWithImages = async (productId, client = pool) => {
   };
 };
 
-
 // 12. Get All Products
-// Inside GET /api/products, after extracting query params
-// Replace your existing GET /api/products route with this:
-
-// Replace your existing GET /api/products route with this:
 app.get('/api/products', async (req, res) => {
   try {
-    const { category_id, sub_category_id, type, is_active } = req.query;
+    const { category_id, type, is_active } = req.query;
 
     let baseQuery = `
       SELECT 
         p.*, 
         c.name as category_name,
-        sc.name as sub_category_name,
         (SELECT COUNT(*) FROM product_images WHERE product_id = p.id) as sub_images_count
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
-      LEFT JOIN sub_categories sc ON sc.id = p.sub_category_id
       WHERE 1=1
     `;
     const values = [];
     let paramIndex = 1;
 
-    // ✅ If category_id is provided, include products that belong to this category
-    //    either directly (p.category_id) OR through any subcategory under this category
     if (category_id) {
-      baseQuery += ` AND (
-        p.category_id = $${paramIndex} 
-        OR p.sub_category_id IN (
-          SELECT id FROM sub_categories WHERE category_id = $${paramIndex}
+      // Include products that belong to this category or any descendant category
+      baseQuery += ` AND p.category_id IN (
+        WITH RECURSIVE cat_tree AS (
+          SELECT id FROM categories WHERE id = $${paramIndex}
+          UNION ALL
+          SELECT c.id FROM categories c
+          JOIN cat_tree ct ON ct.id = c.parent_id
         )
+        SELECT id FROM cat_tree
       )`;
       values.push(category_id);
       paramIndex++;
     }
 
-    if (sub_category_id) {
-      baseQuery += ` AND p.sub_category_id = $${paramIndex}`;
-      values.push(sub_category_id);
-      paramIndex++;
-    }
-
-    // Only show active products for public API
-    if (is_active === 'true') {
-      baseQuery += ` AND p.is_active = true`;
-    }
-
-    // Apply type filter only if explicitly provided
-    if (type === 'without-print') {
-      baseQuery += ` AND p.without_print_price IS NOT NULL`;
-    } else if (type === 'custom') {
-      baseQuery += ` AND (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL)`;
-    }
+    if (is_active === 'true') baseQuery += ` AND p.is_active = true`;
+    if (type === 'without-print') baseQuery += ` AND p.without_print_price IS NOT NULL`;
+    else if (type === 'custom') baseQuery += ` AND (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL)`;
 
     baseQuery += ` ORDER BY p.created_at DESC`;
-
     const result = await pool.query(baseQuery, values);
-    
-    console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
-
-    res.json({
-      success: true,
-      products: result.rows
-    });
+    res.json({ success: true, products: result.rows });
   } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching products'
-    });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Error fetching products' });
   }
 });
 
@@ -1394,7 +803,7 @@ app.post('/api/products', verifyToken, upload.fields([
     await client.query('BEGIN');
 
     const {
-      name, description, price, category_id, sub_category_id, sku,
+      name, description, price, category_id, sku,
       stock_quantity, is_featured, product_detail, without_print_price,
       core_price, elite_price, pro_price, cloth_colors, size, product_type
     } = req.body;
@@ -1436,13 +845,13 @@ app.post('/api/products', verifyToken, upload.fields([
     // Generate UUID (will be auto-generated by PostgreSQL if DEFAULT set)
     const productResult = await client.query(`
       INSERT INTO products (
-        name, description, price, category_id, sub_category_id, main_image_url,
+        name, description, price, category_id, main_image_url,
         sku, stock_quantity, is_featured, product_detail, without_print_price,
         core_price, elite_price, pro_price, cloth_colors, size, product_type, slug
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `, [
-      name, description || null, parseFloat(price), category_id, sub_category_id || null,
+      name, description || null, parseFloat(price), category_id,
       mainImageUrl, sku || null, parseInt(stock_quantity) || 0, is_featured === 'true',
       product_detail || null, without_print_price || null, core_price || null,
       elite_price || null, pro_price || null, colorsArray, size || null, product_type || null,
@@ -1505,7 +914,7 @@ app.put('/api/products/:id', verifyToken, upload.fields([
 
     const { id } = req.params;
     const {
-      name, description, price, category_id, sub_category_id, sku,
+      name, description, price, category_id, sku,
       stock_quantity, is_featured, is_active, product_detail,
       without_print_price, core_price, elite_price, pro_price,
       cloth_colors, size, product_type
@@ -1561,38 +970,37 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     }
 
     // Update product (slug only if changed)
-    await client.query(`
-      UPDATE products SET
-        name = COALESCE($1, name),
-        description = COALESCE($2, description),
-        price = COALESCE($3, price),
-        category_id = COALESCE($4, category_id),
-        sub_category_id = $5,
-        main_image_url = $6,
-        sku = COALESCE($7, sku),
-        stock_quantity = COALESCE($8, stock_quantity),
-        is_featured = COALESCE($9, is_featured),
-        is_active = COALESCE($10, is_active),
-        product_detail = $11,
-        without_print_price = $12,
-        core_price = $13,
-        elite_price = $14,
-        pro_price = $15,
-        cloth_colors = $16,
-        size = $17,
-        product_type = $18,
-        slug = COALESCE($19, slug),
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $20
-    `, [
-      name, description, price ? parseFloat(price) : null,
-      category_id, sub_category_id || null, mainImageUrl,
-      sku, stock_quantity ? parseInt(stock_quantity) : null,
-      is_featured === 'true', is_active === 'true',
-      product_detail || null, finalWithoutPrint, finalCore, finalElite, finalPro,
-      colorsArray, size || null, product_type || null,
-      finalSlug, id
-    ]);
+   await client.query(`
+  UPDATE products SET
+    name = COALESCE($1, name),
+    description = COALESCE($2, description),
+    price = COALESCE($3, price),
+    category_id = COALESCE($4, category_id),
+    main_image_url = $5,
+    sku = COALESCE($6, sku),
+    stock_quantity = COALESCE($7, stock_quantity),
+    is_featured = COALESCE($8, is_featured),
+    is_active = COALESCE($9, is_active),
+    product_detail = $10,
+    without_print_price = $11,
+    core_price = $12,
+    elite_price = $13,
+    pro_price = $14,
+    cloth_colors = $15,
+    size = $16,
+    product_type = $17,
+    slug = COALESCE($18, slug),
+    updated_at = CURRENT_TIMESTAMP
+  WHERE id = $19
+`, [
+  name, description, price ? parseFloat(price) : null,
+  category_id, mainImageUrl,
+  sku, stock_quantity ? parseInt(stock_quantity) : null,
+  is_featured === 'true', is_active === 'true',
+  product_detail || null, finalWithoutPrint, finalCore, finalElite, finalPro,
+  colorsArray, size || null, product_type || null,
+  finalSlug, id
+]);
 
     // Handle sub-images: delete existing and insert new ones if provided
     if (req.files?.subImages?.length) {
@@ -1857,42 +1265,6 @@ app.delete('/api/orders/:id', verifyToken, async (req, res) => {
   }
 });
 
-// 21. Get Single Sub-Category
-app.get('/api/sub-categories/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const result = await pool.query(`
-      SELECT sc.*, 
-        c.id as category_id,
-        c.name as category_name,
-        COUNT(p.id) as product_count
-      FROM sub_categories sc
-      LEFT JOIN categories c ON c.id = sc.category_id
-      LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
-      WHERE sc.id = $1 AND sc.is_active = true
-      GROUP BY sc.id, c.id, c.name
-    `, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Sub-category not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      sub_category: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Error fetching sub-category:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching sub-category'
-    });
-  }
-});
 
 //reorder
 //  Reorder Categories
@@ -1940,37 +1312,7 @@ app.put('/api/categories/reorder', verifyToken, async (req, res) => {
     client.release();
   }
 });
-// Navbar reoerder
-app.put('/api/navbar-menu/reorder', verifyToken, async (req, res) => {
-  const { items } = req.body;
 
-  if (!items || !Array.isArray(items)) {
-    return res.status(400).json({ success: false, message: "Invalid data" });
-  }
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    for (const item of items) {
-      await client.query(
-        `UPDATE navbar_menu 
-         SET display_order = $1, updated_at = CURRENT_TIMESTAMP 
-         WHERE id = $2`,
-        [item.display_order, item.id]
-      );
-    }
-
-    await client.query('COMMIT');
-    res.json({ success: true, message: "Navbar reordered successfully" });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error(error);
-    res.status(500).json({ success: false, message: "Failed to reorder" });
-  } finally {
-    client.release();
-  }
-});
 
 // ==================== STATS ENDPOINT ====================
 
@@ -2021,8 +1363,6 @@ app.get('/api/stats', verifyToken, async (req, res) => {
     });
   }
 });
-
-// GET /api/categories-with-images
 app.get('/api/categories-with-images', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -2041,7 +1381,6 @@ app.get('/api/categories-with-images', async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
 
 
 // Error handling middleware
