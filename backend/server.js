@@ -140,6 +140,24 @@ const initDatabase = async () => {
 
     console.log("✅ Navbar menu table initialized");
 
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS menu_items (
+      id SERIAL PRIMARY KEY,
+      parent_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
+      title VARCHAR(255) NOT NULL,
+      type VARCHAR(50) NOT NULL, -- 'category', 'subcategory', 'custom_link', 'print_option'
+      target_id INTEGER NULL,    -- category.id, sub_category.id, or NULL for custom links
+      link_url VARCHAR(500) NULL, -- for custom_link or print_option (e.g., '/category/1?type=without-print')
+      display_order INTEGER NOT NULL DEFAULT 0,
+      is_visible BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    `);
+
+    await pool.query(`CREATE INDEX idx_menu_items_parent ON menu_items(parent_id);`);
+    await pool.query(`CREATE INDEX idx_menu_items_order ON menu_items(display_order);`);
+
     // ✅ THIS WAS MISSING
     await pool.query(`
       CREATE TABLE IF NOT EXISTS product_images (
@@ -235,6 +253,130 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+// Recursive function to build tree
+async function getMenuTree(parentId = null, client = pool) {
+  const res = await client.query(
+    `SELECT * FROM menu_items 
+     WHERE parent_id IS NOT DISTINCT FROM $1 AND is_visible = true 
+     ORDER BY display_order ASC`,
+    [parentId]
+  );
+  const items = res.rows;
+  for (let item of items) {
+    item.children = await getMenuTree(item.id, client);
+    // Enrich with extra data based on type
+    if (item.type === 'category' && item.target_id) {
+      const cat = await client.query('SELECT name, slug FROM categories WHERE id = $1', [item.target_id]);
+      if (cat.rows[0]) {
+        item.category_slug = cat.rows[0].slug;
+      }
+    } else if (item.type === 'subcategory' && item.target_id) {
+      const sub = await client.query('SELECT name FROM sub_categories WHERE id = $1', [item.target_id]);
+      if (sub.rows[0]) item.subcategory_name = sub.rows[0].name;
+    }
+  }
+  return items;
+}
+
+app.get('/api/menu', async (req, res) => {
+  try {
+    const tree = await getMenuTree();
+    res.json({ success: true, menu: tree });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+// Create menu item
+app.post('/api/menu', verifyToken, async (req, res) => {
+  const { parent_id, title, type, target_id, link_url, display_order } = req.body;
+  try {
+    const result = await pool.query(
+      `INSERT INTO menu_items (parent_id, title, type, target_id, link_url, display_order, is_visible)
+       VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
+      [parent_id || null, title, type, target_id || null, link_url || null, display_order || 0]
+    );
+    res.status(201).json({ success: true, item: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to create menu item' });
+  }
+});
+
+// Update menu item
+app.put('/api/menu/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const { parent_id, title, type, target_id, link_url, display_order, is_visible } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE menu_items SET
+        parent_id = COALESCE($1, parent_id),
+        title = COALESCE($2, title),
+        type = COALESCE($3, type),
+        target_id = $4,
+        link_url = $5,
+        display_order = COALESCE($6, display_order),
+        is_visible = COALESCE($7, is_visible),
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $8 RETURNING *`,
+      [parent_id || null, title, type, target_id || null, link_url || null, display_order, is_visible, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, item: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to update' });
+  }
+});
+
+// Delete menu item (cascade will delete children)
+app.delete('/api/menu/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM menu_items WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to delete' });
+  }
+});
+
+// Reorder (drag & drop) – updates display_order for a list of items
+app.post('/api/menu/reorder', verifyToken, async (req, res) => {
+  const { items } = req.body; // [{ id, display_order, parent_id }]
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (const item of items) {
+      await client.query(
+        `UPDATE menu_items SET display_order = $1, parent_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+        [item.display_order, item.parent_id || null, item.id]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Reorder failed' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/api/menu/flat', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM menu_items ORDER BY parent_id NULLS FIRST, display_order ASC`
+    );
+    res.json({ success: true, items: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
 
 // ==================== ADMIN LOGIN ====================
 app.post('/api/admin/login', async (req, res) => {
