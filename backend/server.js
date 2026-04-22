@@ -13,11 +13,12 @@ const port = process.env.PORT || 5004;
 // Seed default admin if not exists
 const bcrypt = require('bcrypt');
 
-
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));// Debug: List all routes (add temporarily)
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Debug: List all routes (add temporarily)
 app.get('/debug-routes', (req, res) => {
   const routes = [];
   app._router.stack.forEach((r) => {
@@ -27,7 +28,6 @@ app.get('/debug-routes', (req, res) => {
   });
   res.json({ routes });
 });
-
 
 // Create absolute paths
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -51,12 +51,23 @@ const generateSlug = async (name, parentId = null) => {
     slug = `${base}-${counter++}`;
   }
   return slug;
-}; 
+};
 
+const slugify = (text) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
 
 const initDatabase = async () => {
   try {
-    // 1. Carousel (unchanged)
+    // 1. Carousel
     await pool.query(`
       CREATE TABLE IF NOT EXISTS carousel (
         id SERIAL PRIMARY KEY,
@@ -89,7 +100,7 @@ const initDatabase = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);`);
     console.log("✅ Unified categories table initialized");
 
-    // 3. Products table (remove sub_category_id)
+    // 3. Products table (NO sub_category_id)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
@@ -184,7 +195,7 @@ const initDatabase = async () => {
       console.log(`✅ Default admin created: ${defaultUsername} / ${defaultPassword}`);
     }
 
-    // 9. Fix image URLs (unchanged)
+    // 9. Fix image URLs
     await pool.query(`
       UPDATE products 
         SET main_image_url = regexp_replace(main_image_url, '^https?://[^/]+', '')
@@ -194,12 +205,19 @@ const initDatabase = async () => {
         WHERE image_url LIKE 'http%';
     `);
 
+    // 10. Migrate any old subcategory references in menu_items (convert to category type)
+    await pool.query(`
+      UPDATE menu_items 
+      SET type = 'category' 
+      WHERE type = 'subcategory'
+    `);
+    console.log("✅ Migrated subcategory menu items to category type");
+
     console.log("✅ Database tables initialized successfully");
   } catch (error) {
     console.error("❌ Database initialization error:", error);
   }
 };
-
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -210,7 +228,7 @@ const verifyToken = (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.admin = decoded; // { id, username }
+    req.admin = decoded;
     next();
   } catch (error) {
     return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
@@ -233,12 +251,6 @@ async function getMenuTree(parentId = null, client = pool) {
         item.category_slug = cat.rows[0].slug;
       }
     }
-    // Remove subcategory handling – you may want to convert existing 'subcategory' items:
-    if (item.type === 'subcategory' && item.target_id) {
-      // Optionally, convert to category by fetching the category from old sub_categories
-      // But better to run a one-time migration: update menu_items set type='category' where type='subcategory';
-      console.warn(`Legacy subcategory item found: ${item.id} – please migrate to category type.`);
-    }
   }
   return items;
 }
@@ -252,7 +264,6 @@ app.get('/api/menu', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 // Create menu item
 app.post('/api/menu', verifyToken, async (req, res) => {
@@ -296,7 +307,7 @@ app.put('/api/menu/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Delete menu item (cascade will delete children)
+// Delete menu item
 app.delete('/api/menu/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -308,9 +319,9 @@ app.delete('/api/menu/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Reorder (drag & drop) – updates display_order for a list of items
+// Reorder menu
 app.post('/api/menu/reorder', verifyToken, async (req, res) => {
-  const { items } = req.body; // [{ id, display_order, parent_id }]
+  const { items } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -383,8 +394,7 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-
-// Update storage configuration
+// Storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let folder = uploadsDir;
@@ -409,27 +419,12 @@ const upload = multer({
   storage,
   fileFilter,
   limits: { 
-    fileSize: Infinity,  // No size limit
-    files: 100          // Allow up to 100 files (or adjust as needed)
+    fileSize: Infinity,
+    files: 100
   }
 });
-// Update static file serving
+
 app.use('/uploads', express.static(uploadsDir));
-
-
-function slugify(text) {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')           // replace spaces with -
-    .replace(/[^\w\-]+/g, '')       // remove all non-word chars
-    .replace(/\-\-+/g, '-')         // replace multiple - with single -
-    .replace(/^-+/, '')             // trim - from start
-    .replace(/-+$/, '');            // trim - from end
-}
-
-// ... (your existing code continues)
 
 // Helper function to delete files
 const deleteFiles = (filePaths) => {
@@ -444,7 +439,7 @@ const deleteFiles = (filePaths) => {
   });
 };
 
-//carousel 
+// ==================== CAROUSEL ROUTES ====================
 app.get('/api/carousel', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -459,6 +454,7 @@ app.get('/api/carousel', async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch carousel' });
   }
 });
+
 app.post('/api/carousel', verifyToken, upload.single('image'), async (req, res) => {
   try {
     const { title, subtitle, display_order } = req.body;
@@ -481,6 +477,7 @@ app.post('/api/carousel', verifyToken, upload.single('image'), async (req, res) 
     res.status(500).json({ success: false, message: 'Failed to add carousel item' });
   }
 });
+
 app.put('/api/carousel/:id', verifyToken, upload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
@@ -523,6 +520,7 @@ app.put('/api/carousel/:id', verifyToken, upload.single('image'), async (req, re
     res.status(500).json({ success: false, message: 'Failed to update carousel' });
   }
 });
+
 app.delete('/api/carousel/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -536,12 +534,10 @@ app.delete('/api/carousel/:id', verifyToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to delete carousel' });
   }
 });
+
 // ==================== CATEGORY ROUTES ====================
 
-
-
-
-// 3. Get Single Category
+// Get Single Category
 app.get('/api/categories/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -555,7 +551,6 @@ app.get('/api/categories/:id', async (req, res) => {
       SELECT * FROM cat_tree;
     `, [id]);
     if (result.rows.length === 0) return res.status(404).json({ success: false });
-    // Build tree for this branch
     const buildTree = (items, parentId = null) => {
       return items
         .filter(item => item.parent_id === parentId)
@@ -590,7 +585,6 @@ app.get('/api/categories', async (req, res) => {
       FROM cat_tree
       ORDER BY path;
     `);
-    // Build nested tree
     const buildTree = (items, parentId = null) => {
       return items
         .filter(item => item.parent_id === parentId)
@@ -607,7 +601,7 @@ app.get('/api/categories', async (req, res) => {
   }
 });
 
-// POST /api/categories – create new category (can be nested)
+// POST /api/categories – create new category
 app.post('/api/categories', verifyToken, async (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name) return res.status(400).json({ success: false, message: 'Name required' });
@@ -659,13 +653,12 @@ app.put('/api/categories/:id', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE /api/categories/:id – cascade delete (children will be deleted)
+// DELETE /api/categories/:id – cascade delete
 app.delete('/api/categories/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // Check if any product uses this category
     const prodCheck = await client.query('SELECT id FROM products WHERE category_id = $1 LIMIT 1', [id]);
     if (prodCheck.rows.length > 0) {
       await client.query('ROLLBACK');
@@ -682,7 +675,6 @@ app.delete('/api/categories/:id', verifyToken, async (req, res) => {
     client.release();
   }
 });
-
 
 // ==================== PRODUCT ROUTES ====================
 
@@ -705,7 +697,7 @@ const getProductWithImages = async (productId, client = pool) => {
   };
 };
 
-// 12. Get All Products
+// Get All Products - FIXED: removed sub_category_id references
 app.get('/api/products', async (req, res) => {
   try {
     const { category_id, type, is_active } = req.query;
@@ -723,7 +715,6 @@ app.get('/api/products', async (req, res) => {
     let paramIndex = 1;
 
     if (category_id) {
-      // Include products that belong to this category or any descendant category
       baseQuery += ` AND p.category_id IN (
         WITH RECURSIVE cat_tree AS (
           SELECT id FROM categories WHERE id = $${paramIndex}
@@ -750,31 +741,21 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// 13. Get Single Product
-// Updated GET product by UUID or slug
+// Get Single Product by UUID or slug
 app.get('/api/products/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
     let product;
 
-    // Check if identifier is UUID format (8-4-4-4-12 pattern)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     if (uuidRegex.test(identifier)) {
-      // Fetch by UUID
-      const result = await pool.query(
-        `SELECT * FROM products WHERE uuid = $1`,
-        [identifier]
-      );
+      const result = await pool.query(`SELECT * FROM products WHERE uuid = $1`, [identifier]);
       if (result.rows.length) {
         product = await getProductWithImages(result.rows[0].id);
       }
     } else {
-      // Fetch by slug
-      const result = await pool.query(
-        `SELECT * FROM products WHERE slug = $1`,
-        [identifier]
-      );
+      const result = await pool.query(`SELECT * FROM products WHERE slug = $1`, [identifier]);
       if (result.rows.length) {
         product = await getProductWithImages(result.rows[0].id);
       }
@@ -791,10 +772,10 @@ app.get('/api/products/:identifier', async (req, res) => {
   }
 });
 
-// Updated POST product with UUID generation
+// POST product
 app.post('/api/products', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
-  { name: 'subImages', maxCount: 100 }  // Increase from 10 to 100
+  { name: 'subImages', maxCount: 100 }
 ]), async (req, res) => {
   const client = await pool.connect();
   let uploadedFiles = [];
@@ -808,7 +789,6 @@ app.post('/api/products', verifyToken, upload.fields([
       core_price, elite_price, pro_price, cloth_colors, size, product_type
     } = req.body;
 
-    // Validation
     if (!req.files?.mainImage?.[0]) {
       throw new Error('Main image is required');
     }
@@ -816,13 +796,11 @@ app.post('/api/products', verifyToken, upload.fields([
       throw new Error('Name, price, and category are required');
     }
 
-    // Collect uploaded file paths for rollback
     if (req.files.mainImage) uploadedFiles.push(req.files.mainImage[0].path);
     if (req.files.subImages) uploadedFiles.push(...req.files.subImages.map(f => f.path));
 
     const mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
 
-    // Parse array fields
     let colorsArray = null;
     if (cloth_colors) {
       try {
@@ -832,7 +810,6 @@ app.post('/api/products', verifyToken, upload.fields([
       }
     }
 
-    // Generate unique slug
     let baseSlug = slugify(name);
     let finalSlug = baseSlug;
     let counter = 1;
@@ -842,7 +819,6 @@ app.post('/api/products', verifyToken, upload.fields([
       finalSlug = `${baseSlug}-${counter++}`;
     }
 
-    // Generate UUID (will be auto-generated by PostgreSQL if DEFAULT set)
     const productResult = await client.query(`
       INSERT INTO products (
         name, description, price, category_id, main_image_url,
@@ -861,7 +837,6 @@ app.post('/api/products', verifyToken, upload.fields([
     const productId = productResult.rows[0].id;
     const productUuid = productResult.rows[0].uuid;
 
-    // Insert sub-images
     if (req.files.subImages) {
       for (let i = 0; i < req.files.subImages.length; i++) {
         const subUrl = `/uploads/${req.files.subImages[i].filename}`;
@@ -876,7 +851,6 @@ app.post('/api/products', verifyToken, upload.fields([
     await client.query('COMMIT');
 
     const fullProduct = await getProductWithImages(productId, client);
-    // Add uuid to response
     fullProduct.uuid = productUuid;
 
     res.status(201).json({
@@ -899,8 +873,7 @@ app.post('/api/products', verifyToken, upload.fields([
   }
 });
 
-// 14. Update Product
-// 14. Update Product (with empty string → null conversion)
+// Update Product
 app.put('/api/products/:id', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
@@ -920,7 +893,6 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       cloth_colors, size, product_type
     } = req.body;
 
-    // Helper: convert empty string to null for price fields
     const toNullIfEmpty = (val) => (val === '' || val === undefined) ? null : val;
 
     const finalWithoutPrint = toNullIfEmpty(without_print_price);
@@ -928,7 +900,6 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     const finalElite = toNullIfEmpty(elite_price);
     const finalPro = toNullIfEmpty(pro_price);
 
-    // Get existing product
     const oldProduct = await client.query(
       'SELECT main_image_url, name FROM products WHERE id = $1 FOR UPDATE',
       [id]
@@ -936,7 +907,6 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     if (oldProduct.rows.length === 0) throw new Error('Product not found');
     oldMainUrl = oldProduct.rows[0].main_image_url;
 
-    // Generate new slug if name changed
     let finalSlug = null;
     if (name !== undefined && name !== oldProduct.rows[0].name) {
       let baseSlug = slugify(name);
@@ -952,14 +922,12 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       }
     }
 
-    // Handle new main image
     let mainImageUrl = oldMainUrl;
     if (req.files?.mainImage?.[0]) {
       mainImageUrl = `/uploads/${req.files.mainImage[0].filename}`;
       newUploadedFiles.push(req.files.mainImage[0].path);
     }
 
-    // Parse array field
     let colorsArray = null;
     if (cloth_colors) {
       try {
@@ -969,40 +937,38 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       }
     }
 
-    // Update product (slug only if changed)
-   await client.query(`
-  UPDATE products SET
-    name = COALESCE($1, name),
-    description = COALESCE($2, description),
-    price = COALESCE($3, price),
-    category_id = COALESCE($4, category_id),
-    main_image_url = $5,
-    sku = COALESCE($6, sku),
-    stock_quantity = COALESCE($7, stock_quantity),
-    is_featured = COALESCE($8, is_featured),
-    is_active = COALESCE($9, is_active),
-    product_detail = $10,
-    without_print_price = $11,
-    core_price = $12,
-    elite_price = $13,
-    pro_price = $14,
-    cloth_colors = $15,
-    size = $16,
-    product_type = $17,
-    slug = COALESCE($18, slug),
-    updated_at = CURRENT_TIMESTAMP
-  WHERE id = $19
-`, [
-  name, description, price ? parseFloat(price) : null,
-  category_id, mainImageUrl,
-  sku, stock_quantity ? parseInt(stock_quantity) : null,
-  is_featured === 'true', is_active === 'true',
-  product_detail || null, finalWithoutPrint, finalCore, finalElite, finalPro,
-  colorsArray, size || null, product_type || null,
-  finalSlug, id
-]);
+    await client.query(`
+      UPDATE products SET
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        price = COALESCE($3, price),
+        category_id = COALESCE($4, category_id),
+        main_image_url = $5,
+        sku = COALESCE($6, sku),
+        stock_quantity = COALESCE($7, stock_quantity),
+        is_featured = COALESCE($8, is_featured),
+        is_active = COALESCE($9, is_active),
+        product_detail = $10,
+        without_print_price = $11,
+        core_price = $12,
+        elite_price = $13,
+        pro_price = $14,
+        cloth_colors = $15,
+        size = $16,
+        product_type = $17,
+        slug = COALESCE($18, slug),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $19
+    `, [
+      name, description, price ? parseFloat(price) : null,
+      category_id, mainImageUrl,
+      sku, stock_quantity ? parseInt(stock_quantity) : null,
+      is_featured === 'true', is_active === 'true',
+      product_detail || null, finalWithoutPrint, finalCore, finalElite, finalPro,
+      colorsArray, size || null, product_type || null,
+      finalSlug, id
+    ]);
 
-    // Handle sub-images: delete existing and insert new ones if provided
     if (req.files?.subImages?.length) {
       const oldSubImages = await client.query(
         'SELECT image_url FROM product_images WHERE product_id = $1',
@@ -1018,7 +984,6 @@ app.put('/api/products/:id', verifyToken, upload.fields([
           [id, subUrl, i]
         );
       }
-      // Schedule old sub-image files for deletion after commit
       oldSubImages.rows.forEach(row => {
         const oldPath = path.join(__dirname, row.image_url);
         if (fs.existsSync(oldPath)) newUploadedFiles.push(oldPath);
@@ -1027,13 +992,11 @@ app.put('/api/products/:id', verifyToken, upload.fields([
 
     await client.query('COMMIT');
 
-    // After successful commit, delete old main image (if replaced)
     if (req.files?.mainImage?.[0] && oldMainUrl && oldMainUrl !== mainImageUrl) {
       const oldPath = path.join(__dirname, oldMainUrl);
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    // Delete old sub-images
     for (const filePath of newUploadedFiles) {
       if (filePath !== req.files?.mainImage?.[0]?.path && fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -1061,7 +1024,7 @@ app.put('/api/products/:id', verifyToken, upload.fields([
   }
 });
 
-// 15. Delete Product Image
+// Delete Product Image
 app.delete('/api/products/:productId/images/:imageId', verifyToken, async (req, res) => {
   try {
     const { productId, imageId } = req.params;
@@ -1079,7 +1042,6 @@ app.delete('/api/products/:productId/images/:imageId', verifyToken, async (req, 
     }
 
     const imageUrl = imageResult.rows[0].image_url;
-    // ✅ Build filesystem path from relative URL
     const imagePath = path.join(__dirname, imageUrl);
 
     if (fs.existsSync(imagePath)) {
@@ -1104,7 +1066,7 @@ app.delete('/api/products/:productId/images/:imageId', verifyToken, async (req, 
   }
 });
 
-// 16. Delete Product
+// Delete Product
 app.delete('/api/products/:id', verifyToken, async (req, res) => {
   const client = await pool.connect();
 
@@ -1122,7 +1084,6 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 
     await client.query('DELETE FROM products WHERE id = $1', [id]);
 
-    // ✅ Delete files using relative URL → absolute path
     imagesToDelete.rows.forEach(row => {
       if (row.image_url) {
         const imagePath = path.join(__dirname, row.image_url);
@@ -1152,8 +1113,8 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 
 // ==================== ORDER ROUTES ====================
 
-// 17. Create Order
-app.post('/api/orders',  async (req, res) => {
+// Create Order
+app.post('/api/orders', async (req, res) => {
   try {
     const { customerName, customerEmail, phone, address, items, amount } = req.body;
 
@@ -1176,7 +1137,7 @@ app.post('/api/orders',  async (req, res) => {
   }
 });
 
-// 18. Get All Orders
+// Get All Orders
 app.get('/api/orders', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
@@ -1195,7 +1156,7 @@ app.get('/api/orders', verifyToken, async (req, res) => {
   }
 });
 
-// 19. Update Order Status
+// Update Order Status
 app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1235,7 +1196,7 @@ app.put('/api/orders/:id/status', verifyToken, async (req, res) => {
   }
 });
 
-// 20. Delete Order
+// Delete Order
 app.delete('/api/orders/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1265,9 +1226,7 @@ app.delete('/api/orders/:id', verifyToken, async (req, res) => {
   }
 });
 
-
-//reorder
-//  Reorder Categories
+// Reorder Categories
 app.put('/api/categories/reorder', verifyToken, async (req, res) => {
   const { categories } = req.body;
 
@@ -1313,31 +1272,25 @@ app.put('/api/categories/reorder', verifyToken, async (req, res) => {
   }
 });
 
-
 // ==================== STATS ENDPOINT ====================
 
 app.get('/api/stats', verifyToken, async (req, res) => {
   try {
-    // Total products
     const productResult = await pool.query('SELECT COUNT(*) as count FROM products WHERE is_active = true');
     const totalProducts = parseInt(productResult.rows[0].count);
 
-    // Total orders
     const orderResult = await pool.query('SELECT COUNT(*) as count FROM orders');
     const totalOrders = parseInt(orderResult.rows[0].count);
 
-    // Total revenue (sum of all order amounts)
     const revenueResult = await pool.query('SELECT COALESCE(SUM(amount), 0) as total FROM orders');
     const totalRevenue = parseFloat(revenueResult.rows[0].total);
 
-    // Total unique customers (distinct email or name – using email if available, else name)
     const customerResult = await pool.query(`
       SELECT COUNT(DISTINCT COALESCE(customer_email, customer_name)) as count 
       FROM orders
     `);
     const totalCustomers = parseInt(customerResult.rows[0].count);
 
-    // Recent 5 orders
     const recentOrders = await pool.query(`
       SELECT id, customer_name, amount, status, created_at 
       FROM orders 
@@ -1363,6 +1316,8 @@ app.get('/api/stats', verifyToken, async (req, res) => {
     });
   }
 });
+
+// Categories with images for frontend
 app.get('/api/categories-with-images', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -1381,7 +1336,6 @@ app.get('/api/categories-with-images', async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -1407,13 +1361,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-
 // Initialize database and start server
 initDatabase().then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
     console.log(`Uploads directory: ${uploadsDir}`);
   });
-
 });
-
