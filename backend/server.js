@@ -110,6 +110,14 @@ const initDatabase = async () => {
         ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL
       `);
 
+
+      // Inside initDatabase(), after the CREATE TABLE IF NOT EXISTS products block
+      await pool.query(`
+        ALTER TABLE products 
+        ADD COLUMN IF NOT EXISTS sub_category_id INTEGER 
+        REFERENCES sub_categories(id) ON DELETE SET NULL
+      `);
+
     await pool.query(`
       ALTER TABLE products 
       ADD COLUMN IF NOT EXISTS product_detail VARCHAR(50),
