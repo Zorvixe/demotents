@@ -35,7 +35,6 @@ const Navbar = () => {
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Helper to generate URL‑friendly slug
   const toSlug = (str) =>
     str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
@@ -98,77 +97,92 @@ const Navbar = () => {
               return (
                 <React.Fragment key={item.id}>
                   {item.sub_categories && item.sub_categories.length > 0 ? (
-                    // Category with subcategories – shows subcategories with print options
+                    // Category with subcategories – show subcategories with print options
                     <li className="nav-item dropdown dropdown-hover">
                       <span className="nav-link d-flex align-items-center gap-1" style={{ cursor: "pointer" }}>
                         {item.name.toUpperCase()}
                         <RiArrowDropDownLine size={20} />
                       </span>
                       <ul className="dropdown-menu">
-                        {item.sub_categories.map((sub, index) => (
-                          <li key={index} className="dropdown-submenu">
-                            <span className="dropdown-item d-flex justify-content-between align-items-center">
-                              {sub.name}
-                              <RiArrowDropDownLine size={18} />
-                            </span>
-                            <ul className="dropdown-menu nested-menu">
-                              <li
-                                onClick={() =>
-                                  handleNavigation(`/subcategory/${sub.id}?type=without-print`, {
-                                    subCategoryId: sub.id,
-                                    subCategoryName: sub.name,
-                                    parentCategoryId: item.id,
-                                    parentCategoryName: item.name,
-                                  })
-                                }
-                              >
-                                <span className="dropdown-item">Without Print</span>
-                              </li>
-                              <li
-                                onClick={() =>
-                                  handleNavigation(`/subcategory/${sub.id}?type=custom`, {
-                                    subCategoryId: sub.id,
-                                    subCategoryName: sub.name,
-                                    parentCategoryId: item.id,
-                                    parentCategoryName: item.name,
-                                  })
-                                }
-                              >
-                                <span className="dropdown-item">With Customization</span>
-                              </li>
-                            </ul>
-                          </li>
-                        ))}
+                        {item.sub_categories.map((sub, index) => {
+                          // Determine which print options to show for this subcategory
+                          const showWithoutPrint = sub.without_print_count > 0;
+                          const showCustom = sub.custom_count > 0;
+                          // If neither, skip this subcategory entirely? (optional)
+                          if (!showWithoutPrint && !showCustom) return null;
+                          return (
+                            <li key={index} className="dropdown-submenu">
+                              <span className="dropdown-item d-flex justify-content-between align-items-center">
+                                {sub.name}
+                                <RiArrowDropDownLine size={18} />
+                              </span>
+                              <ul className="dropdown-menu nested-menu">
+                                {showWithoutPrint && (
+                                  <li
+                                    onClick={() =>
+                                      handleNavigation(`/subcategory/${sub.id}?type=without-print`, {
+                                        subCategoryId: sub.id,
+                                        subCategoryName: sub.name,
+                                        parentCategoryId: item.id,
+                                        parentCategoryName: item.name,
+                                      })
+                                    }
+                                  >
+                                    <span className="dropdown-item">Without Print</span>
+                                  </li>
+                                )}
+                                {showCustom && (
+                                  <li
+                                    onClick={() =>
+                                      handleNavigation(`/subcategory/${sub.id}?type=custom`, {
+                                        subCategoryId: sub.id,
+                                        subCategoryName: sub.name,
+                                        parentCategoryId: item.id,
+                                        parentCategoryName: item.name,
+                                      })
+                                    }
+                                  >
+                                    <span className="dropdown-item">With Customization</span>
+                                  </li>
+                                )}
+                              </ul>
+                            </li>
+                          );
+                        }).filter(Boolean)}
                       </ul>
                     </li>
                   ) : (
-                    // Simple category (no subcategories) – show dropdown with print options
+                    // Simple category (no subcategories) – show dropdown with print options based on category counts
                     <li className="nav-item dropdown dropdown-hover">
                       <span className="nav-link d-flex align-items-center gap-1" style={{ cursor: "pointer" }}>
                         {item.name.toUpperCase()}
                         <RiArrowDropDownLine size={20} />
                       </span>
                       <ul className="dropdown-menu">
-                        <li
-                          onClick={() =>
-                            handleNavigation(`/category/${categorySlug}?type=without-print`, {
-                              categoryId: item.id,
-                              categoryName: item.name,
-                            })
-                          }
-                        >
-                          <span className="dropdown-item">Without Print</span>
-                        </li>
-                        <li
-                          onClick={() =>
-                            handleNavigation(`/category/${categorySlug}?type=custom`, {
-                              categoryId: item.id,
-                              categoryName: item.name,
-                            })
-                          }
-                        >
-                          <span className="dropdown-item">With Customization</span>
-                        </li>
+                        {item.category_without_print_count > 0 && (
+                          <li
+                            onClick={() =>
+                              handleNavigation(`/category/${categorySlug}?type=without-print`, {
+                                categoryId: item.id,
+                                categoryName: item.name,
+                              })
+                            }
+                          >
+                            <span className="dropdown-item">Without Print</span>
+                          </li>
+                        )}
+                        {item.category_custom_count > 0 && (
+                          <li
+                            onClick={() =>
+                              handleNavigation(`/category/${categorySlug}?type=custom`, {
+                                categoryId: item.id,
+                                categoryName: item.name,
+                              })
+                            }
+                          >
+                            <span className="dropdown-item">With Customization</span>
+                          </li>
+                        )}
                       </ul>
                     </li>
                   )}

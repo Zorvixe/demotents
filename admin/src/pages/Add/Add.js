@@ -84,7 +84,7 @@ const Add = () => {
         if (name === "category_id") {
             setData((prev) => ({ ...prev, [name]: value, sub_category_id: "" }));
         } else if (name === "product_type") {
-            setData((prev) => ({ ...prev, product_type: value, without_print_price: "", core_price: "", elite_price: "", pro_price: "" }));
+            setData((prev) => ({ ...prev, product_type: value }));
         } else {
             setData((prev) => ({ ...prev, [name]: value }));
         }
@@ -165,15 +165,26 @@ const Add = () => {
             formData.append("elite_price", elite);
             formData.append("pro_price", pro);
         }
-        if (data.product_type === "without_print" && !data.without_print_price) {
-            toast.error("Please enter Without Print Price");
+        // if (data.product_type === "without_print" && !data.without_print_price) {
+        //     toast.error("Please enter Without Print Price");
+        //     setLoading(false);
+        //     return;
+        // }
+        // if (data.product_type === "customization" && (!data.core_price || !data.elite_price || !data.pro_price)) {
+        //     toast.error("Please fill Core, Elite and Pro prices");
+        //     setLoading(false);
+        //     return;
+        // }
+
+        if (data.product_type === "without_print" && data.without_print_price && isNaN(Number(data.without_print_price))) {
+            toast.error("Without Print Price must be a number");
             setLoading(false);
             return;
         }
-        if (data.product_type === "customization" && (!data.core_price || !data.elite_price || !data.pro_price)) {
-            toast.error("Please fill Core, Elite and Pro prices");
-            setLoading(false);
-            return;
+        if (data.product_type === "customization") {
+            if (data.core_price && isNaN(Number(data.core_price))) { toast.error("Core price must be a number"); return; }
+            if (data.elite_price && isNaN(Number(data.elite_price))) { toast.error("Elite price must be a number"); return; }
+            if (data.pro_price && isNaN(Number(data.pro_price))) { toast.error("Pro price must be a number"); return; }
         }
         if (data.cloth_colors) {
             const colorsArray = data.cloth_colors.split(",").map(c => c.trim());
@@ -280,9 +291,9 @@ const Add = () => {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label>Product Type <span className="required">*</span></label>
-                                <select name="product_type" value={data.product_type} onChange={onChangeHandler} className="ui-input" required>
-                                    <option value="">Select Type</option>
+                                <label>Product Type</label>
+                                <select name="product_type" value={data.product_type} onChange={onChangeHandler} className="ui-input">
+                                    <option value="">Select Type (optional)</option>
                                     <option value="without_print">Without Print</option>
                                     <option value="customization">With Customization</option>
                                 </select>

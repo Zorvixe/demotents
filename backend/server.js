@@ -192,11 +192,11 @@ const initDatabase = async () => {
   )
 `);
     console.log("✅ Admin users table initialized");
-    
+
     // ✅ MOVED THIS HERE - Admin user creation after table is created
     const defaultUsername = 'DemoTents';
     const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
-    
+
     const existingAdmin = await pool.query(
       'SELECT id FROM admin_users WHERE username = $1',
       [defaultUsername]
@@ -301,7 +301,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { 
+  limits: {
     fileSize: Infinity,  // No size limit
     files: 100          // Allow up to 100 files (or adjust as needed)
   }
@@ -733,22 +733,64 @@ app.delete('/api/categories/:id', verifyToken, async (req, res) => {
 // ==================== NAVBAR MENU ROUTES - FINAL CLEAN BLOCK ====================
 
 // GET - Used by public Navbar component
+// GET /api/navbar-menu – with product type counts
 app.get('/api/navbar-menu', async (req, res) => {
   try {
     const result = await pool.query(`
+      WITH category_type_counts AS (
+        SELECT 
+          c.id as category_id,
+          COUNT(CASE WHEN (p.without_print_price IS NOT NULL 
+                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
+                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
+                     THEN 1 END) as without_print_count,
+          COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL
+                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
+                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
+                     THEN 1 END) as custom_count
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
+        GROUP BY c.id
+      ),
+      subcategory_type_counts AS (
+        SELECT 
+          sc.id as subcategory_id,
+          COUNT(CASE WHEN (p.without_print_price IS NOT NULL 
+                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
+                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
+                     THEN 1 END) as without_print_count,
+          COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL
+                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
+                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
+                     THEN 1 END) as custom_count
+        FROM sub_categories sc
+        LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
+        GROUP BY sc.id
+      )
       SELECT 
         c.id, c.name, c.description,
         nm.id as menu_id,
         nm.display_order,
         COALESCE(
-          json_agg(json_build_object('id', sc.id, 'name', sc.name)) 
-          FILTER (WHERE sc.id IS NOT NULL), '[]'
-        ) as sub_categories
+          json_agg(
+            json_build_object(
+              'id', sc.id,
+              'name', sc.name,
+              'without_print_count', COALESCE(stc.without_print_count, 0),
+              'custom_count', COALESCE(stc.custom_count, 0)
+            ) 
+            ORDER BY sc.name
+          ) FILTER (WHERE sc.id IS NOT NULL), '[]'
+        ) as sub_categories,
+        COALESCE(ctc.without_print_count, 0) as category_without_print_count,
+        COALESCE(ctc.custom_count, 0) as category_custom_count
       FROM navbar_menu nm
       JOIN categories c ON c.id = nm.category_id
       LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
+      LEFT JOIN subcategory_type_counts stc ON stc.subcategory_id = sc.id
+      LEFT JOIN category_type_counts ctc ON ctc.category_id = c.id
       WHERE nm.is_visible = true AND c.is_active = true
-      GROUP BY c.id, nm.id, nm.display_order
+      GROUP BY c.id, nm.id, nm.display_order, ctc.without_print_count, ctc.custom_count
       ORDER BY nm.display_order ASC, c.name ASC
     `);
 
@@ -1127,10 +1169,7 @@ const getProductWithImages = async (productId, client = pool) => {
 
 
 // 12. Get All Products
-// Inside GET /api/products, after extracting query params
-// Replace your existing GET /api/products route with this:
 
-// Replace your existing GET /api/products route with this:
 app.get('/api/products', async (req, res) => {
   try {
     const { category_id, sub_category_id, type, is_active } = req.query;
@@ -1175,15 +1214,35 @@ app.get('/api/products', async (req, res) => {
 
     // Apply type filter only if explicitly provided
     if (type === 'without-print') {
-      baseQuery += ` AND p.without_print_price IS NOT NULL`;
+      baseQuery += ` AND (
+    p.without_print_price IS NOT NULL
+    OR (
+      p.product_type IS NULL
+      AND p.without_print_price IS NULL
+      AND p.core_price IS NULL
+      AND p.elite_price IS NULL
+      AND p.pro_price IS NULL
+    )
+  )`;
     } else if (type === 'custom') {
-      baseQuery += ` AND (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL)`;
+      baseQuery += ` AND (
+    p.core_price IS NOT NULL
+    OR p.elite_price IS NOT NULL
+    OR p.pro_price IS NOT NULL
+    OR (
+      p.product_type IS NULL
+      AND p.without_print_price IS NULL
+      AND p.core_price IS NULL
+      AND p.elite_price IS NULL
+      AND p.pro_price IS NULL
+    )
+  )`;
     }
 
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
-    
+
     console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
@@ -1603,7 +1662,7 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 // ==================== ORDER ROUTES ====================
 
 // 17. Create Order
-app.post('/api/orders',  async (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const { customerName, customerEmail, phone, address, items, amount } = req.body;
 
