@@ -136,7 +136,7 @@ const initDatabase = async () => {
 
 
     await pool.query(`ALTER TABLE products 
-      ADD COLUMN menu_item_id INTEGER 
+      ADD COLUMN IF NOT EXISTS menu_item_id INTEGER 
       REFERENCES menu_items(id) ON DELETE SET NULL;`);
 
     // Add this inside initDatabase() function
@@ -222,6 +222,18 @@ const initDatabase = async () => {
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`);
+
+
+    await pool.query(`
+  DO $$
+  BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_slug_key'
+    ) THEN
+      ALTER TABLE menu_items ADD CONSTRAINT menu_items_slug_key UNIQUE (slug);
+    END IF;
+  END $$;
+`);
 
     // ✅ MOVED THIS HERE - Admin user creation after table is created
     const defaultUsername = 'DemoTents';
@@ -2102,8 +2114,15 @@ app.use((err, req, res, next) => {
 });
 
 
-initDatabase().then(async () => {   // add 'async'
-  await seedMenuFromCategories();   // now allowed
+initDatabase().then(async () => {
+  // Seed only if menu_items is empty
+  const { rows } = await pool.query('SELECT COUNT(*) FROM menu_items');
+  if (parseInt(rows[0].count) === 0) {
+    await seedMenuFromCategories();
+  } else {
+    console.log('✅ Menu already seeded, skipping');
+  }
+  
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
