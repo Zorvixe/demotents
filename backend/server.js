@@ -2086,6 +2086,23 @@ app.delete('/api/videos/:id', verifyToken, async (req, res) => {
   }
 });
 
+
+// ==================== ADMIN VIDEO ROUTES ====================
+
+// GET all videos (including inactive) – admin only
+app.get('/api/admin/videos', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM videos
+      ORDER BY display_order ASC, id DESC
+    `);
+    res.json({ success: true, videos: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to fetch videos' });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

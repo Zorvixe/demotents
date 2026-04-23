@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Link } from 'react-router-dom';
 import './AddVideo.css';
 
 const AddVideo = () => {
@@ -18,6 +19,10 @@ const AddVideo = () => {
     if (file) {
       setVideoFile(file);
       setPreview(URL.createObjectURL(file));
+      // Auto-fill title with filename if empty
+      if (!title) {
+        setTitle(file.name.split('.').slice(0, -1).join('.'));
+      }
     }
   };
 
@@ -64,39 +69,98 @@ const AddVideo = () => {
   };
 
   return (
-    <div className="add-video-container">
-      <ToastContainer />
-      <h2>Upload New Video / Reel</h2>
-      <form onSubmit={handleSubmit} className="add-video-form">
-        <div className="form-group">
-          <label>Title *</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+    <div className="yt-upload-page">
+      <ToastContainer position="bottom-left" />
+      
+      <div className="yt-upload-container">
+        <div className="yt-upload-header">
+          <h2>Video Upload</h2>
         </div>
-        <div className="form-group">
-          <label>Description</label>
-          <textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
-        </div>
-        <div className="form-group">
-          <label>Display Order (lower = earlier)</label>
-          <input type="number" value={displayOrder} onChange={(e) => setDisplayOrder(parseInt(e.target.value))} />
-        </div>
-        <div className="form-group">
-          <label>Thumbnail URL (optional) – external image URL</label>
-          <input type="text" value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://example.com/thumb.jpg" />
-        </div>
-        <div className="form-group">
-          <label>Video File * (MP4, WebM, MOV)</label>
-          <input type="file" accept="video/*" onChange={handleVideoChange} required />
-        </div>
-        {preview && (
-          <div className="video-preview">
-            <video src={preview} controls width="300" />
+
+        <form onSubmit={handleSubmit} className="yt-upload-body">
+          <div className="yt-upload-left">
+            <div className="yt-input-group">
+              <div className="yt-input-wrapper">
+                <label>Title (required)</label>
+                <input 
+                  type="text" 
+                  value={title} 
+                  onChange={(e) => setTitle(e.target.value)} 
+                  placeholder="Add a title that describes your video"
+                  required 
+                />
+              </div>
+              <span className="char-count">{title.length}/100</span>
+            </div>
+
+            <div className="yt-input-group">
+              <div className="yt-input-wrapper">
+                <label>Description</label>
+                <textarea 
+                  rows="5" 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Tell viewers about your video"
+                ></textarea>
+              </div>
+              <span className="char-count">{description.length}/5000</span>
+            </div>
+
+            <div className="yt-input-row">
+              <div className="yt-input-group half">
+                <div className="yt-input-wrapper">
+                  <label>Display Order</label>
+                  <input 
+                    type="number" 
+                    value={displayOrder} 
+                    onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)} 
+                  />
+                </div>
+              </div>
+
+              <div className="yt-input-group half">
+                <div className="yt-input-wrapper">
+                  <label>Thumbnail URL</label>
+                  <input 
+                    type="text" 
+                    value={thumbnailUrl} 
+                    onChange={(e) => setThumbnailUrl(e.target.value)} 
+                    placeholder="https://example.com/image.jpg" 
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Uploading...' : 'Upload Video'}
-        </button>
-      </form>
+
+          <div className="yt-upload-right">
+            <div className="video-preview-box">
+              {preview ? (
+                <video src={preview} controls className="preview-player" />
+              ) : (
+                <div className="empty-preview">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="#909090"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                  <p>No video selected</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="file-upload-wrapper">
+              <label className="yt-file-upload-btn">
+                SELECT FILE
+                <input type="file" accept="video/*" onChange={handleVideoChange} hidden required={!preview} />
+              </label>
+              <p className="file-name">{videoFile ? videoFile.name : 'MP4, WebM, or MOV'}</p>
+            </div>
+          </div>
+        </form>
+
+        <div className="yt-upload-footer">
+          <Link to="/" className="yt-btn-cancel">Cancel</Link>
+          <button onClick={handleSubmit} disabled={loading} className="yt-btn-save">
+            {loading ? 'UPLOADING...' : 'SAVE'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

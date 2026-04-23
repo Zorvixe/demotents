@@ -1,33 +1,211 @@
-.add-video-container {
-  max-width: 700px;
-  margin: 40px auto;
-  padding: 20px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+/* YouTube Studio Upload Modal Theme */
+.yt-upload-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 20px;
+  padding-left: 20px;
+  padding-right: 20px;
 }
-.add-video-form .form-group {
-  margin-bottom: 20px;
-}
-.add-video-form label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.add-video-form input, .add-video-form textarea {
+
+.yt-upload-container {
+  background: #ffffff;
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
   border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
 }
-.submit-btn {
-  background: #2c7da0;
-  color: white;
-  padding: 12px 24px;
+
+.yt-upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.yt-upload-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #030303;
+}
+
+.close-btn {
+  text-decoration: none;
+  color: #606060;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.yt-upload-body {
+  display: flex;
+  padding: 24px;
+  gap: 32px;
+}
+
+.yt-upload-left {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.yt-upload-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Material Design style inputs */
+.yt-input-group {
+  position: relative;
+}
+
+.yt-input-wrapper {
+  border: 1px solid #cccccc;
+  border-radius: 4px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+}
+
+.yt-input-wrapper:focus-within {
+  border-color: #065fd4;
+}
+
+.yt-input-wrapper label {
+  display: block;
+  font-size: 12px;
+  color: #606060;
+  margin-bottom: 4px;
+}
+
+.yt-input-wrapper input,
+.yt-input-wrapper textarea {
+  width: 100%;
   border: none;
-  border-radius: 40px;
+  outline: none;
+  font-size: 15px;
+  font-family: inherit;
+  color: #030303;
+  background: transparent;
+  resize: none;
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  font-size: 12px;
+  color: #606060;
+  margin-top: 4px;
+}
+
+.yt-input-row {
+  display: flex;
+  gap: 16px;
+}
+
+.yt-input-group.half {
+  flex: 1;
+}
+
+/* Right Panel Video Preview */
+.video-preview-box {
+  background: #f9f9f9;
+  border-radius: 4px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0e0e0;
+}
+
+.empty-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #909090;
+  font-size: 13px;
+}
+
+.preview-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: black;
+}
+
+.file-upload-wrapper {
+  text-align: center;
+  padding: 16px;
+  background: #f9f9f9;
+  border: 1px dashed #cccccc;
+  border-radius: 4px;
+}
+
+.yt-file-upload-btn {
+  display: inline-block;
+  background: #065fd4;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.yt-file-upload-btn:hover {
+  background: #0056b3;
+}
+
+.file-name {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #606060;
+  word-break: break-all;
+}
+
+.yt-upload-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.yt-btn-cancel {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #606060;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+.yt-btn-cancel:hover {
+  background: #f2f2f2;
+}
+
+.yt-btn-save {
+  background: #065fd4;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
-.video-preview {
-  margin-top: 15px;
+
+.yt-btn-save:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.yt-btn-save:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
 }
