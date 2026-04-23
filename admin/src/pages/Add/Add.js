@@ -1,11 +1,10 @@
+// src/pages/Add/Add.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import "./Add.css";
 import uploadImg from "../../assets/upload_img.png";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-const API_URL = "https://api.demotents.com";
-const MAX_TOTAL_SIZE_BYTES = 800 * 1024 * 1024;
 
 const Add = () => {
     const [mainImage, setMainImage] = useState(null);
@@ -24,15 +23,13 @@ const Add = () => {
         stock_quantity: 0,
         is_featured: false,
         size: "",
-        product_type: "",        // "without_print", "customization", or ""
+        product_type: "",
         without_print_price: "",
         core_price: "",
         elite_price: "",
         pro_price: "",
         cloth_colors: ""
     });
-
-    const getAuthToken = () => localStorage.getItem('adminToken');
 
     useEffect(() => {
         fetchCategories();
@@ -53,8 +50,8 @@ const Add = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/categories`);
-            const result = await response.json();
+            const response = await axios.get('/api/categories');
+            const result = response.data;
             if (result.success) setCategories(result.categories);
         } catch (error) {
             console.error('Error fetching categories:', error);
@@ -64,8 +61,8 @@ const Add = () => {
 
     const fetchSubCategories = async (categoryId) => {
         try {
-            const response = await fetch(`${API_URL}/api/categories/${categoryId}/sub-categories`);
-            const result = await response.json();
+            const response = await axios.get(`/api/categories/${categoryId}/sub-categories`);
+            const result = response.data;
             if (result.success) setSubCategories(result.sub_categories);
         } catch (error) {
             console.error('Error fetching sub-categories:', error);
@@ -83,7 +80,6 @@ const Add = () => {
         }
     };
 
-    // Toggle handlers for product type
     const handleWithoutPrintToggle = (checked) => {
         if (checked) {
             setData(prev => ({
@@ -168,7 +164,6 @@ const Add = () => {
         if (data.sku) formData.append("sku", data.sku);
         formData.append("is_featured", data.is_featured);
 
-        // Product type and prices
         if (data.product_type === "without_print") {
             const price = Number(data.without_print_price);
             if (isNaN(price)) {
@@ -192,7 +187,7 @@ const Add = () => {
             formData.append("pro_price", pro);
             formData.append("product_type", "customization");
         } else {
-            formData.append("product_type", ""); // will be converted to NULL on backend
+            formData.append("product_type", "");
         }
 
         if (data.cloth_colors) {
@@ -202,14 +197,11 @@ const Add = () => {
         subImages.forEach((image) => formData.append("subImages", image));
 
         try {
-            const token = getAuthToken();
-            const response = await fetch(`${API_URL}/api/products`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData,
+            const response = await axios.post('/api/products', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-            const result = await response.json();
-            if (response.ok) {
+            const result = response.data;
+            if (response.status === 201) {
                 toast.success('Product added successfully!');
                 setData({
                     name: "", description: "", category_id: "", sub_category_id: "",
@@ -225,7 +217,9 @@ const Add = () => {
             }
         } catch (error) {
             console.error('Error:', error);
-            toast.error('Network error. Please try again.');
+            if (error.response?.status !== 401) {
+                toast.error('Network error. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -291,7 +285,6 @@ const Add = () => {
                                     <button type="button" className="ui-btn-secondary" onClick={generateSku}>Generate</button>
                                 </div>
                             </div>
-                            {/* Product Type Toggles */}
                             <div className="form-group">
                                 <label>Product Type</label>
                                 <div className="toggle-group">

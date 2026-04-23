@@ -1,10 +1,10 @@
+// src/pages/Category/Categories.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Categories.css';
-
-const API_URL = "https://api.demotents.com";
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -17,15 +17,13 @@ const Categories = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  const getAuthToken = () => localStorage.getItem('adminToken');
-
   useEffect(() => { fetchCategories(); }, []);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/categories?includeSubCategories=true`);
-      const result = await response.json();
+      const response = await axios.get('/api/categories?includeSubCategories=true');
+      const result = response.data;
       if (result.success) setCategories(result.categories);
       else toast.error(result.message);
     } catch (error) {
@@ -43,13 +41,8 @@ const Categories = () => {
     e.preventDefault();
     if (!formData.name.trim()) { toast.error('Category name is required'); return; }
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      const response = await axios.post('/api/categories', formData);
+      const result = response.data;
       if (result.success) {
         toast.success('Category created successfully');
         setShowAddModal(false);
@@ -66,13 +59,8 @@ const Categories = () => {
     e.preventDefault();
     if (!formData.name.trim()) { toast.error('Category name is required'); return; }
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories/${currentCategory.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      const response = await axios.put(`/api/categories/${currentCategory.id}`, formData);
+      const result = response.data;
       if (result.success) {
         toast.success('Category updated successfully');
         setShowEditModal(false);
@@ -100,12 +88,8 @@ const Categories = () => {
   const executeDeleteCategory = async (categoryId) => {
     closeConfirmDialog();
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const response = await axios.delete(`/api/categories/${categoryId}`);
+      const result = response.data;
       if (result.success) {
         toast.success('Category deleted successfully');
         fetchCategories();
@@ -117,7 +101,6 @@ const Categories = () => {
   };
 
   const closeConfirmDialog = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-
   const openEditModal = (category) => {
     setCurrentCategory(category);
     setFormData({ name: category.name, description: category.description || '' });

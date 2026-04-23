@@ -1,5 +1,7 @@
+// src/pages/List/List.js
 'use client';
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import './List.css';
 
@@ -36,8 +38,6 @@ const List = () => {
   const BASE_URL = "https://api.demotents.com";
   const API_URL = `${BASE_URL}/api`;
 
-  const getAuthToken = () => localStorage.getItem('adminToken');
-
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
@@ -55,8 +55,8 @@ const List = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${API_URL}/products`);
-      const data = await response.json();
+      const response = await axios.get(`${API_URL}/products`);
+      const data = response.data;
       if (data.success) setProducts(data.products);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -66,8 +66,8 @@ const List = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_URL}/categories`);
-      const data = await response.json();
+      const response = await axios.get(`${API_URL}/categories`);
+      const data = response.data;
       if (data.success) setCategories(data.categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -76,8 +76,8 @@ const List = () => {
 
   const fetchSubCategories = async (categoryId) => {
     try {
-      const response = await fetch(`${API_URL}/categories/${categoryId}/sub-categories`);
-      const data = await response.json();
+      const response = await axios.get(`${API_URL}/categories/${categoryId}/sub-categories`);
+      const data = response.data;
       if (data.success) setSubCategories(data.sub_categories);
     } catch (error) {
       console.error('Error fetching subcategories:', error);
@@ -87,8 +87,8 @@ const List = () => {
 
   const fetchProductDetails = async (productId) => {
     try {
-      const response = await fetch(`${API_URL}/products/${productId}`);
-      const data = await response.json();
+      const response = await axios.get(`${API_URL}/products/${productId}`);
+      const data = response.data;
       if (data.success) return data.product;
     } catch (error) {
       console.error('Error fetching product details:', error);
@@ -117,12 +117,8 @@ const List = () => {
   const executeDeleteProduct = async (id) => {
     closeConfirmDialog();
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/products/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
+      const response = await axios.delete(`${API_URL}/products/${id}`);
+      const data = response.data;
       if (data.success) {
         showNotification('Product deleted successfully', 'success');
         fetchProducts();
@@ -266,12 +262,8 @@ const List = () => {
   const executeDeleteExistingSubImage = async (imageId) => {
     closeConfirmDialog();
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/products/${editingId}/images/${imageId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
+      const response = await axios.delete(`${API_URL}/products/${editingId}/images/${imageId}`);
+      const data = response.data;
       if (data.success) {
         showNotification('Image deleted successfully', 'success');
         setExistingSubImages(prev => prev.filter(img => img.id !== imageId));
@@ -317,13 +309,10 @@ const List = () => {
       if (mainImageFile) formData.append('mainImage', mainImageFile);
       subImageFiles.forEach(file => formData.append('subImages', file));
 
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/products/${editingId}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+      const response = await axios.put(`${API_URL}/products/${editingId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
         showNotification('Product updated successfully', 'success');
         handleCancelEdit();
@@ -339,18 +328,14 @@ const List = () => {
 
   const toggleProductStatus = async (product) => {
     try {
-      const token = getAuthToken();
       const updatedStatus = !product.is_active;
-      
       const formData = new FormData();
       formData.append('is_active', updatedStatus);
 
-      const response = await fetch(`${API_URL}/products/${product.id}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData,
+      const response = await axios.put(`${API_URL}/products/${product.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
         showNotification(`Product ${updatedStatus ? 'activated' : 'deactivated'} successfully`, 'success');
         fetchProducts();

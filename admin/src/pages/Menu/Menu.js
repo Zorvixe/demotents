@@ -1,10 +1,10 @@
+// src/pages/Menu/Menu.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import "./Menu.css";
-
-const API_URL = "https://api.demotents.com";
 
 const Menu = () => {
   const [categories, setCategories] = useState([]);
@@ -17,15 +17,13 @@ const Menu = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  const getAuthToken = () => localStorage.getItem('adminToken');
-
   useEffect(() => { fetchCategories(); }, []);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/categories`);
-      const result = await response.json();
+      const response = await axios.get('/api/categories');
+      const result = response.data;
       if (result.success) setCategories(result.categories || []);
       else toast.error(result.message || 'Failed to fetch categories');
     } catch (error) {
@@ -43,13 +41,8 @@ const Menu = () => {
     e.preventDefault();
     if (!formData.name.trim()) { toast.error('Category name is required'); return; }
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      const response = await axios.post('/api/categories', formData);
+      const result = response.data;
       if (result.success) {
         toast.success('Category created successfully');
         setShowAddModal(false);
@@ -63,13 +56,8 @@ const Menu = () => {
     e.preventDefault();
     if (!formData.name.trim()) { toast.error('Category name is required'); return; }
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories/${currentCategory.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      const response = await axios.put(`/api/categories/${currentCategory.id}`, formData);
+      const result = response.data;
       if (result.success) {
         toast.success('Category updated successfully');
         setShowEditModal(false);
@@ -94,12 +82,8 @@ const Menu = () => {
   const executeDeleteCategory = async (categoryId) => {
     closeConfirmDialog();
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const response = await axios.delete(`/api/categories/${categoryId}`);
+      const result = response.data;
       if (result.success) {
         toast.success('Category deleted successfully');
         fetchCategories();
@@ -120,13 +104,8 @@ const Menu = () => {
     const navbarItems = items.filter(item => item.is_visible).map((item, index) => ({ id: item.menu_id, display_order: index }));
     if (navbarItems.length === 0) return;
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/navbar-menu/reorder`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ items: navbarItems }),
-      });
-      const result = await response.json();
+      const response = await axios.put('/api/navbar-menu/reorder', { items: navbarItems });
+      const result = response.data;
       if (result.success) toast.success("Navbar order saved successfully!");
       else toast.error(result.message || "Failed to save order");
     } catch (error) { console.error(error); toast.error("Failed to save navbar order"); }
@@ -140,22 +119,14 @@ const Menu = () => {
 
   const toggleNavbar = async (category) => {
     try {
-      const token = getAuthToken();
-      let res;
+      let response;
       if (category.is_visible) {
-        res = await fetch(`${API_URL}/api/navbar-menu/${category.menu_id}`, {
-          method: "DELETE",
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        response = await axios.delete(`/api/navbar-menu/${category.menu_id}`);
       } else {
-        res = await fetch(`${API_URL}/api/navbar-menu`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ category_id: category.id, display_order: 999 }),
-        });
+        response = await axios.post('/api/navbar-menu', { category_id: category.id, display_order: 999 });
       }
-      const result = await res.json();
-      if (res.ok && result.success) {
+      const result = response.data;
+      if (response.status === 200 || response.status === 201) {
         toast.success(category.is_visible ? "Removed from Navbar" : "Added to Navbar");
         fetchCategories();
       } else toast.error(result.message || "Failed to update navbar");

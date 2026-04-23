@@ -1,25 +1,20 @@
+// src/pages/Dashboard/Dashboard.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './Dashboard.css';
-
-const API_URL = "https://api.demotents.com";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ totalProducts: 0, totalOrders: 0, totalRevenue: 0, totalCustomers: 0, recentOrders: [] });
   const [loading, setLoading] = useState(true);
 
-  const getAuthToken = () => localStorage.getItem('adminToken');
-
   useEffect(() => { fetchStats(); }, []);
 
   const fetchStats = async () => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const response = await axios.get('/api/stats');
+      const result = response.data;
       if (result.success) setStats(result.stats);
       else toast.error(result.message || 'Failed to load statistics');
     } catch (error) {

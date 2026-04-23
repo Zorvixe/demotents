@@ -1,10 +1,10 @@
+// src/pages/Category/SubCategories.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './SubCategories.css';
-
-const API_URL = "https://api.demotents.com";
 
 const SubCategories = () => {
   const [subCategories, setSubCategories] = useState([]);
@@ -18,14 +18,12 @@ const SubCategories = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
-  const getAuthToken = () => localStorage.getItem('adminToken');
-
   useEffect(() => { fetchCategories(); fetchSubCategories(); }, []);
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/categories`);
-      const result = await response.json();
+      const response = await axios.get('/api/categories');
+      const result = response.data;
       if (result.success) setCategories(result.categories);
     } catch (error) { console.error('Error fetching categories:', error); }
   };
@@ -33,8 +31,8 @@ const SubCategories = () => {
   const fetchSubCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/sub-categories`);
-      const result = await response.json();
+      const response = await axios.get('/api/sub-categories');
+      const result = response.data;
       if (result.success) setSubCategories(result.sub_categories);
       else toast.error(result.message);
     } catch (error) {
@@ -55,13 +53,8 @@ const SubCategories = () => {
       return;
     }
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/sub-categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      const response = await axios.post('/api/sub-categories', formData);
+      const result = response.data;
       if (result.success) {
         toast.success('Sub-category created successfully');
         setShowAddModal(false);
@@ -81,13 +74,8 @@ const SubCategories = () => {
       return;
     }
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/sub-categories/${currentSubCategory.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
+      const response = await axios.put(`/api/sub-categories/${currentSubCategory.id}`, formData);
+      const result = response.data;
       if (result.success) {
         toast.success('Sub-category updated successfully');
         setShowEditModal(false);
@@ -115,12 +103,8 @@ const SubCategories = () => {
   const executeDeleteSubCategory = async (subCategoryId) => {
     closeConfirmDialog();
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/sub-categories/${subCategoryId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
+      const response = await axios.delete(`/api/sub-categories/${subCategoryId}`);
+      const result = response.data;
       if (result.success) {
         toast.success('Sub-category deleted successfully');
         fetchSubCategories();
