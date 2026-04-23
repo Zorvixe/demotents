@@ -1,229 +1,334 @@
 import React, { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import "./Menu.css";
+import './Menu.css';
 
 const API_URL = "https://api.demotents.com";
 
 const Menu = () => {
-  const [categories, setCategories] = useState([]);
+  const [flatData, setFlatData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
-  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: 'Confirm', confirmType: 'danger' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 50;
+  const [expanded, setExpanded] = useState(new Set());
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  const [formData, setFormData] = useState({ id: null, name: '', url: '', parent_id: '' });
 
+  // Authentication helper
   const getAuthToken = () => localStorage.getItem('adminToken');
 
-  useEffect(() => { fetchCategories(); }, []);
+  useEffect(() => {
+    fetchMenu();
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchMenu = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/categories`);
-      const result = await response.json();
-      if (result.success) setCategories(result.categories || []);
-      else toast.error(result.message || 'Failed to fetch categories');
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      toast.error('Failed to fetch categories');
-    } finally { setLoading(false); }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddCategory = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim()) { toast.error('Category name is required'); return; }
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
+      // Replace with your actual endpoint. If seeding from categories initially:
+      const res = await fetch(`${API_URL}/api/menu`, {
+        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
       });
-      const result = await response.json();
-      if (result.success) {
-        toast.success('Category created successfully');
-        setShowAddModal(false);
-        setFormData({ name: '', description: '' });
-        fetchCategories();
-      } else toast.error(result.message);
-    } catch (error) { toast.error('Failed to create category'); }
+      const data = await res.json();
+      
+      // Ensure data has required fields, default to empty array if undefined
+      const sanitizedData = (Array.isArray(data) ? data : data.items || []).map(item => ({
+        ...item,
+        parent_id: item.parent_id || null,
+        display_order: item.display_order || 0
+      }));
+      
+      setFlatData(sanitizedData);
+    } catch (err) {
+      toast.error('Failed to load menu items');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditCategory = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim()) { toast.error('Category name is required'); return; }
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories/${currentCategory.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
-      if (result.success) {
-        toast.success('Category updated successfully');
-        setShowEditModal(false);
-        setCurrentCategory(null);
-        setFormData({ name: '', description: '' });
-        fetchCategories();
-      } else toast.error(result.message);
-    } catch (error) { toast.error('Failed to update category'); }
-  };
-
-  const confirmDeleteCategory = (categoryId, categoryName) => {
-    setConfirmDialog({
-      isOpen: true,
-      title: 'Delete Category',
-      message: `Are you sure you want to delete "${categoryName}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      confirmType: 'danger',
-      onConfirm: () => executeDeleteCategory(categoryId)
-    });
-  };
-
-  const executeDeleteCategory = async (categoryId) => {
-    closeConfirmDialog();
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/categories/${categoryId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.success) {
-        toast.success('Category deleted successfully');
-        fetchCategories();
-      } else toast.error(result.message);
-    } catch (error) { toast.error('Failed to delete category'); }
-  };
-
-  const closeConfirmDialog = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-
-  const handleDragEnd = async (result) => {
-    if (!result.destination) return;
-    const visibleCategories = categories.filter(cat => cat.is_visible);
-    if (visibleCategories.length === 0) { toast.info("No items in navbar to reorder"); return; }
-    const items = Array.from(categories);
-    const [movedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, movedItem);
-    setCategories(items);
-    const navbarItems = items.filter(item => item.is_visible).map((item, index) => ({ id: item.menu_id, display_order: index }));
-    if (navbarItems.length === 0) return;
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_URL}/api/navbar-menu/reorder`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ items: navbarItems }),
-      });
-      const result = await response.json();
-      if (result.success) toast.success("Navbar order saved successfully!");
-      else toast.error(result.message || "Failed to save order");
-    } catch (error) { console.error(error); toast.error("Failed to save navbar order"); }
-  };
-
-  const openEditModal = (category) => {
-    setCurrentCategory(category);
-    setFormData({ name: category.name, description: category.description || '' });
-    setShowEditModal(true);
-  };
-
-  const toggleNavbar = async (category) => {
-    try {
-      const token = getAuthToken();
-      let res;
-      if (category.is_visible) {
-        res = await fetch(`${API_URL}/api/navbar-menu/${category.menu_id}`, {
-          method: "DELETE",
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+  // Convert flat array into nested tree for rendering
+  const buildTree = (items) => {
+    const itemMap = {};
+    const tree = [];
+    
+    // Deep copy and map map
+    items.forEach(item => { itemMap[item.id] = { ...item, children: [] }; });
+    
+    items.forEach(item => {
+      if (item.parent_id && itemMap[item.parent_id]) {
+        itemMap[item.parent_id].children.push(itemMap[item.id]);
       } else {
-        res = await fetch(`${API_URL}/api/navbar-menu`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-          body: JSON.stringify({ category_id: category.id, display_order: 999 }),
-        });
+        tree.push(itemMap[item.id]);
       }
-      const result = await res.json();
-      if (res.ok && result.success) {
-        toast.success(category.is_visible ? "Removed from Navbar" : "Added to Navbar");
-        fetchCategories();
-      } else toast.error(result.message || "Failed to update navbar");
-    } catch (error) { console.error(error); toast.error("Failed to update navbar"); }
+    });
+
+    // Sort children recursively
+    const sortItems = (nodes) => {
+      nodes.sort((a, b) => a.display_order - b.display_order);
+      nodes.forEach(node => sortItems(node.children));
+    };
+    
+    sortItems(tree);
+    return tree;
   };
 
-  const totalPages = Math.ceil(categories.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedCategories = categories.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  const goToPage = (page) => setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  const toggleExpand = (id) => {
+    const newExpanded = new Set(expanded);
+    if (newExpanded.has(id)) newExpanded.delete(id);
+    else newExpanded.add(id);
+    setExpanded(newExpanded);
+  };
 
-  if (loading) return <div className="loader-container"><div className="spinner"></div></div>;
+  // Drag and Drop Logic (Reorder within same parent)
+  const onDragEnd = async (result) => {
+    if (!result.destination) return;
+    const { source, destination, type } = result;
+    if (source.index === destination.index) return;
+
+    const parentIdStr = type.replace('DROP_', '');
+    const parentId = parentIdStr === 'root' ? null : isNaN(parentIdStr) ? parentIdStr : Number(parentIdStr);
+
+    // Get siblings in current order
+    let siblings = flatData
+      .filter(item => item.parent_id === parentId)
+      .sort((a, b) => a.display_order - b.display_order);
+
+    // Reorder array
+    const [moved] = siblings.splice(source.index, 1);
+    siblings.splice(destination.index, 0, moved);
+
+    // Create updates
+    const updates = siblings.map((item, idx) => ({ ...item, display_order: idx }));
+
+    // Optimistically update UI state
+    const newFlatData = flatData.map(item => {
+      const update = updates.find(u => u.id === item.id);
+      return update ? update : item;
+    });
+    setFlatData(newFlatData);
+
+    try {
+      await fetch(`${API_URL}/menu/reorder`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}` 
+        },
+        body: JSON.stringify({ items: updates.map(u => ({ id: u.id, parent_id: u.parent_id, display_order: u.display_order })) })
+      });
+    } catch (err) {
+      toast.error('Failed to save new order');
+      fetchMenu(); // Revert on failure
+    }
+  };
+
+  // Modal actions
+  const openAddModal = (parentId = null) => {
+    setModalMode('add');
+    setFormData({ id: null, name: '', url: '', parent_id: parentId || '' });
+    setIsModalOpen(true);
+    if (parentId && !expanded.has(parentId)) {
+      toggleExpand(parentId); // auto-expand parent when adding child
+    }
+  };
+
+  const openEditModal = (item) => {
+    setModalMode('edit');
+    setFormData({ id: item.id, name: item.name, url: item.url || '', parent_id: item.parent_id || '' });
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return toast.error('Name is required');
+
+    const isEditing = modalMode === 'edit';
+    const endpoint = isEditing ? `${API_URL}/api/menu/${formData.id}` : `${API_URL}/api/menu`;
+    const method = isEditing ? 'PUT' : 'POST';
+
+    const payload = {
+      name: formData.name,
+      url: formData.url,
+      parent_id: formData.parent_id || null,
+      display_order: isEditing ? undefined : 999 // Put new items at bottom
+    };
+
+    try {
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getAuthToken()}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        toast.success(`Menu item ${isEditing ? 'updated' : 'added'}`);
+        setIsModalOpen(false);
+        fetchMenu();
+      } else {
+        toast.error('Operation failed');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    }
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"? All nested child items will also be removed.`)) return;
+    try {
+      const res = await fetch(`${API_URL}/api/menu/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+      });
+      if (res.ok) {
+        toast.success('Deleted successfully');
+        fetchMenu();
+      } else {
+        toast.error('Failed to delete');
+      }
+    } catch (err) {
+      toast.error('Network error');
+    }
+  };
+
+  // Recursive Tree Renderer
+  const renderTree = (items, parentId = 'root') => (
+    <Droppable droppableId={String(parentId)} type={`DROP_${parentId}`}>
+      {(provided) => (
+        <div ref={provided.innerRef} {...provided.droppableProps} className={`menu-droppable ${parentId !== 'root' ? 'nested-droppable' : ''}`}>
+          {items.map((item, index) => {
+            const hasChildren = item.children && item.children.length > 0;
+            const isExpanded = expanded.has(item.id);
+
+            return (
+              <Draggable key={String(item.id)} draggableId={String(item.id)} index={index}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    className={`menu-item-wrapper ${snapshot.isDragging ? 'is-dragging' : ''}`}
+                  >
+                    <div className="menu-item-row">
+                      <div className="menu-item-left">
+                        <div {...provided.dragHandleProps} className="drag-handle" title="Drag to reorder">
+                          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M7 2a2 2 0 10-4 0 2 2 0 004 0zm3 2a2 2 0 100-4 2 2 0 000 4zm7-2a2 2 0 10-4 0 2 2 0 004 0zm-10 7a2 2 0 10-4 0 2 2 0 004 0zm3 2a2 2 0 100-4 2 2 0 000 4zm7-2a2 2 0 10-4 0 2 2 0 004 0zm-10 7a2 2 0 10-4 0 2 2 0 004 0zm3 2a2 2 0 100-4 2 2 0 000 4zm7-2a2 2 0 10-4 0 2 2 0 004 0z" /></svg>
+                        </div>
+                        {hasChildren ? (
+                          <button onClick={() => toggleExpand(item.id)} className="expand-btn">
+                            <svg className={`chevron ${isExpanded ? 'open' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                          </button>
+                        ) : (
+                          <div className="expand-placeholder" />
+                        )}
+                        <span className="menu-item-title">{item.name}</span>
+                        {item.url && <span className="menu-item-link">{item.url}</span>}
+                      </div>
+                      
+                      <div className="menu-item-actions">
+                        <button onClick={() => openAddModal(item.id)} className="action-link text-primary">Add child</button>
+                        <button onClick={() => openEditModal(item)} className="action-link">Edit</button>
+                        <button onClick={() => handleDelete(item.id, item.name)} className="action-link text-danger">Delete</button>
+                      </div>
+                    </div>
+
+                    {/* Render Children Recursively if Expanded */}
+                    {hasChildren && isExpanded && (
+                      <div className="menu-children-container">
+                        {renderTree(item.children, item.id)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Draggable>
+            );
+          })}
+          {provided.placeholder}
+        </div>
+      )}
+    </Droppable>
+  );
+
+  const menuTree = buildTree(flatData);
 
   return (
-    <div className="menu-container">
-      <ToastContainer />
-      {confirmDialog.isOpen && (
-        <div className="menu-modal-backdrop" onClick={closeConfirmDialog}>
-          <div className="menu-confirm-box" onClick={e => e.stopPropagation()}>
-            <div className="menu-confirm-header"><h3>{confirmDialog.title}</h3></div>
-            <div className="menu-confirm-body"><p>{confirmDialog.message}</p></div>
-            <div className="menu-confirm-footer"><button onClick={closeConfirmDialog} className="menu-btn menu-btn-light">Cancel</button><button onClick={confirmDialog.onConfirm} className="menu-btn menu-btn-danger">{confirmDialog.confirmText}</button></div>
+    <div className="shopify-menu-builder">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar theme="colored" />
+      
+      <div className="smb-header">
+        <div>
+          <h1 className="smb-title">Navigation Menu</h1>
+          <p className="smb-subtitle">Build your store's categories, sub-categories, and nested menus.</p>
+        </div>
+        <button onClick={() => openAddModal()} className="smb-btn-primary">Add Menu Item</button>
+      </div>
+
+      <div className="smb-card">
+        {loading ? (
+          <div className="smb-loading">Loading menu...</div>
+        ) : menuTree.length === 0 ? (
+          <div className="smb-empty">
+            <p>No menu items found.</p>
+            <button onClick={() => openAddModal()} className="smb-btn-outline">Create First Item</button>
+          </div>
+        ) : (
+          <DragDropContext onDragEnd={onDragEnd}>
+            {renderTree(menuTree)}
+          </DragDropContext>
+        )}
+      </div>
+
+      {/* Add / Edit Modal */}
+      {isModalOpen && (
+        <div className="smb-modal-backdrop" onClick={() => setIsModalOpen(false)}>
+          <div className="smb-modal" onClick={e => e.stopPropagation()}>
+            <div className="smb-modal-header">
+              <h2>{modalMode === 'edit' ? 'Edit menu item' : 'Add menu item'}</h2>
+              <button className="smb-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSave} className="smb-modal-body">
+              <div className="smb-input-group">
+                <label>Name</label>
+                <input 
+                  type="text" 
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})} 
+                  placeholder="e.g. Luxury Tents" 
+                  autoFocus
+                  required 
+                />
+              </div>
+              <div className="smb-input-group">
+                <label>Link / URL (Optional)</label>
+                <input 
+                  type="text" 
+                  value={formData.url} 
+                  onChange={e => setFormData({...formData, url: e.target.value})} 
+                  placeholder="e.g. /collections/luxury-tents" 
+                />
+              </div>
+              <div className="smb-input-group">
+                <label>Parent Item (Nesting)</label>
+                <select 
+                  value={formData.parent_id || ''} 
+                  onChange={e => setFormData({...formData, parent_id: e.target.value})}
+                >
+                  <option value="">None (Top Level)</option>
+                  {/* Flat list for dropdown to prevent circular dependencies easily */}
+                  {flatData
+                    .filter(item => item.id !== formData.id) // Cannot be child of itself
+                    .map(item => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+                <small className="smb-help-text">Select an item to nest this under as a sub-category.</small>
+              </div>
+              <div className="smb-modal-footer">
+                <button type="button" className="smb-btn-ghost" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                <button type="submit" className="smb-btn-primary">Save Item</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-      <div className="menu-header"><div><h1>Navbar</h1><p>Control which categories appear in the main navigation bar.</p></div></div>
-      {paginatedCategories.length === 0 ? (
-        <div className="menu-empty"><h3>No categories found</h3><button className="menu-btn menu-btn-outline" onClick={() => setShowAddModal(true)}>Create First Category</button></div>
-      ) : (
-        <>
-          <div className="menu-table-wrapper">
-            <table className="menu-table"><thead><tr><th>Category Name</th><th>Description</th><th>Products</th><th>Sub-categories</th><th>Status</th><th>Actions</th></tr></thead>
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="categories">
-                  {(provided) => (
-                    <tbody ref={provided.innerRef} {...provided.droppableProps}>
-                      {paginatedCategories.map((category, index) => (
-                        <Draggable key={category.id} draggableId={category.id.toString()} index={index}>
-                          {(provided) => (
-                            <tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                              <td><strong>{category.name}</strong></td>
-                              <td>{category.description || '—'}</td>
-                              <td>{category.product_count || 0}</td>
-                              <td>{category.sub_categories?.length || 'None'}</td>
-                              <td><span className={`menu-status ${category.is_visible ? 'menu-active' : 'menu-inactive'}`}>{category.is_visible ? '✓ In Navbar' : 'Not in Navbar'}</span></td>
-                              <td className="menu-actions"><button onClick={() => toggleNavbar(category)} className={`menu-action-btn ${category.is_visible ? "menu-remove-btn" : "menu-add-btn"}`}>{category.is_visible ? "Remove" : "Add to Navbar"}</button></td>
-                            </tr>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </tbody>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </table>
-          </div>
-          {totalPages > 1 && (
-            <div className="menu-pagination">
-              <button onClick={() => goToPage(currentPage - 1)}>Prev</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (<button key={page} className={currentPage === page ? 'active' : ''} onClick={() => goToPage(page)}>{page}</button>))}
-              <button onClick={() => goToPage(currentPage + 1)}>Next</button>
-            </div>
-          )}
-        </>
-      )}
-      {showAddModal && (<div className="menu-modal-backdrop" onClick={() => setShowAddModal(false)}><div className="menu-modal" onClick={e => e.stopPropagation()}><h3>Add Category</h3><form onSubmit={handleAddCategory}><input type="text" name="name" placeholder="Category Name" value={formData.name} onChange={handleInputChange} required /><textarea name="description" placeholder="Description" value={formData.description} onChange={handleInputChange}></textarea><div className="menu-modal-actions"><button type="button" onClick={() => setShowAddModal(false)}>Cancel</button><button type="submit">Save</button></div></form></div></div>)}
-      {showEditModal && (<div className="menu-modal-backdrop" onClick={() => setShowEditModal(false)}><div className="menu-modal" onClick={e => e.stopPropagation()}><h3>Edit Category</h3><form onSubmit={handleEditCategory}><input type="text" name="name" placeholder="Category Name" value={formData.name} onChange={handleInputChange} required /><textarea name="description" placeholder="Description" value={formData.description} onChange={handleInputChange}></textarea><div className="menu-modal-actions"><button type="button" onClick={() => setShowEditModal(false)}>Cancel</button><button type="submit">Update</button></div></form></div></div>)}
     </div>
   );
 };
