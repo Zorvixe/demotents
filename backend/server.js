@@ -370,13 +370,16 @@ async function seedMenuFromCategories() {
   );
   for (const cat of categories.rows) {
     // Insert category as top‑level menu item
-    const menuResult = await pool.query(
-      `INSERT INTO menu_items (name, slug, link_to, link_id, display_order, is_visible)
-       VALUES ($1, $2, 'category', $3, $4, true)
-       ON CONFLICT (slug) DO NOTHING
-       RETURNING id`,
-      [cat.name, slugify(cat.name), cat.id, 0]
-    );
+    const menuResult = await pool.query(`
+      INSERT INTO menu_items (parent_id, name, slug, link_to, link_id, display_order, is_visible)
+      VALUES ($1, $2, $3, 'sub_category', $4, $5, true)
+      ON CONFLICT (slug) DO UPDATE SET
+        name = EXCLUDED.name,
+        parent_id = EXCLUDED.parent_id,
+        link_id = EXCLUDED.link_id,
+        display_order = EXCLUDED.display_order,
+        updated_at = CURRENT_TIMESTAMP
+    `, [parentId, sub.name, slugify(sub.name), sub.id, i]);
     const parentId = menuResult.rows[0]?.id;
     if (!parentId) continue;
 
