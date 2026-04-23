@@ -110,14 +110,6 @@ const initDatabase = async () => {
         ADD COLUMN IF NOT EXISTS uuid UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL
       `);
 
-
-    // Inside initDatabase(), after the CREATE TABLE IF NOT EXISTS products block
-    await pool.query(`
-        ALTER TABLE products 
-        ADD COLUMN IF NOT EXISTS sub_category_id INTEGER 
-        REFERENCES sub_categories(id) ON DELETE SET NULL
-      `);
-
     await pool.query(`
       ALTER TABLE products 
       ADD COLUMN IF NOT EXISTS product_detail VARCHAR(50),
@@ -129,16 +121,10 @@ const initDatabase = async () => {
     `);
 
     await pool.query(`
-        ALTER TABLE products 
-        ADD COLUMN IF NOT EXISTS size VARCHAR(50),
-        ADD COLUMN IF NOT EXISTS product_type VARCHAR(50)
-      `);
-
-
-    await pool.query(`ALTER TABLE products 
-      ADD COLUMN IF NOT EXISTS menu_item_id INTEGER 
-      REFERENCES menu_items(id) ON DELETE SET NULL;`);
-
+  ALTER TABLE products 
+  ADD COLUMN IF NOT EXISTS size VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS product_type VARCHAR(50)
+`);
     // Add this inside initDatabase() function
     await pool.query(`
       CREATE TABLE IF NOT EXISTS navbar_menu (
@@ -206,56 +192,11 @@ const initDatabase = async () => {
   )
 `);
     console.log("✅ Admin users table initialized");
-
-
-   // ========== Create menu_items table safely ==========
-await pool.query(`
-  DO $$
-  BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'menu_items') THEN
-      CREATE TABLE menu_items (
-        id SERIAL PRIMARY KEY,
-        parent_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
-        name VARCHAR(255) NOT NULL,
-        slug VARCHAR(255) UNIQUE,
-        url VARCHAR(500),
-        link_to VARCHAR(50),
-        link_id INTEGER,
-        type VARCHAR(50) DEFAULT 'link',
-        display_order INTEGER NOT NULL DEFAULT 0,
-        is_visible BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    END IF;
-  END $$;
-`);
-
-// Ensure unique constraint on slug (critical for ON CONFLICT)
-// Drop the problematic composite constraint if it exists
-await pool.query(`
-  DO $$
-  BEGIN
-    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_slug_per_parent') THEN
-      ALTER TABLE menu_items DROP CONSTRAINT unique_slug_per_parent;
-    END IF;
-  END $$;
-`);
-
-// Ensure we have a unique constraint on slug alone (global uniqueness)
-await pool.query(`
-  DO $$
-  BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_slug_key') THEN
-      ALTER TABLE menu_items ADD CONSTRAINT menu_items_slug_key UNIQUE (slug);
-    END IF;
-  END $$;
-`);
-
+    
     // ✅ MOVED THIS HERE - Admin user creation after table is created
     const defaultUsername = 'DemoTents';
     const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
-
+    
     const existingAdmin = await pool.query(
       'SELECT id FROM admin_users WHERE username = $1',
       [defaultUsername]
@@ -360,7 +301,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: {
+  limits: { 
     fileSize: Infinity,  // No size limit
     files: 100          // Allow up to 100 files (or adjust as needed)
   }
@@ -381,51 +322,7 @@ function slugify(text) {
     .replace(/-+$/, '');            // trim - from end
 }
 
-async function seedMenuFromCategories() {
-  const categories = await pool.query(
-    `SELECT id, name FROM categories WHERE is_active = true ORDER BY display_order`
-  );
-
-  for (const cat of categories.rows) {
-    // Insert category as top‑level menu item (parent_id = NULL)
-    const menuResult = await pool.query(`
-      INSERT INTO menu_items (name, slug, link_to, link_id, display_order, is_visible)
-      VALUES ($1, $2, 'category', $3, $4, true)
-      ON CONFLICT (slug) DO UPDATE SET
-        name = EXCLUDED.name,
-        link_id = EXCLUDED.link_id,
-        display_order = EXCLUDED.display_order,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING id
-    `, [cat.name, slugify(cat.name), cat.id, 0]);
-
-    const parentId = menuResult.rows[0]?.id;
-    if (!parentId) continue;
-
-    // Insert sub‑categories as children
-    const subCats = await pool.query(
-      `SELECT id, name FROM sub_categories 
-       WHERE category_id = $1 AND is_active = true
-       ORDER BY name`,
-      [cat.id]
-    );
-
-    for (let i = 0; i < subCats.rows.length; i++) {
-      const sub = subCats.rows[i];
-      await pool.query(`
-        INSERT INTO menu_items (parent_id, name, slug, link_to, link_id, display_order, is_visible)
-        VALUES ($1, $2, $3, 'sub_category', $4, $5, true)
-        ON CONFLICT (slug) DO UPDATE SET
-          name = EXCLUDED.name,
-          parent_id = EXCLUDED.parent_id,
-          link_id = EXCLUDED.link_id,
-          display_order = EXCLUDED.display_order,
-          updated_at = CURRENT_TIMESTAMP
-      `, [parentId, sub.name, slugify(sub.name), sub.id, i]);
-    }
-  }
-  console.log('✅ Menu seeded from categories & sub‑categories');
-}
+// ... (your existing code continues)
 
 // Helper function to delete files
 const deleteFiles = (filePaths) => {
@@ -1286,7 +1183,7 @@ app.get('/api/products', async (req, res) => {
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
-
+    
     console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
@@ -1706,7 +1603,7 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 // ==================== ORDER ROUTES ====================
 
 // 17. Create Order
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders',  async (req, res) => {
   try {
     const { customerName, customerEmail, phone, address, items, amount } = req.body;
 
@@ -2003,116 +1900,6 @@ app.get('/api/categories-with-images', async (req, res) => {
   }
 });
 
-// ==================== MENU ITEMS API (tree structure) ====================
-
-// GET full menu tree (public)
-app.get('/api/menu', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      WITH RECURSIVE menu_tree AS (
-        SELECT id, parent_id, name, slug, url, link_to, link_id, display_order, is_visible,
-               ARRAY[display_order] AS sort_path
-        FROM menu_items
-        WHERE parent_id IS NULL AND is_visible = true
-        UNION ALL
-        SELECT mi.id, mi.parent_id, mi.name, mi.slug, mi.url, mi.link_to, mi.link_id,
-               mi.display_order, mi.is_visible, mt.sort_path || mi.display_order
-        FROM menu_items mi
-        JOIN menu_tree mt ON mi.parent_id = mt.id
-        WHERE mi.is_visible = true
-      )
-      SELECT * FROM menu_tree ORDER BY sort_path;
-    `);
-    // Build nested JSON
-    const buildTree = (items, parentId = null) => {
-      return items.filter(item => item.parent_id === parentId)
-        .map(item => ({ ...item, children: buildTree(items, item.id) }));
-    };
-    res.json({ success: true, menu: buildTree(result.rows) });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to fetch menu' });
-  }
-});
-
-// CREATE menu item (admin only)
-app.post('/api/menu', verifyToken, async (req, res) => {
-  const { parent_id, name, url, link_to, link_id, display_order, is_visible } = req.body;
-  if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
-  try {
-    const slug = slugify(name);
-    const result = await pool.query(`
-      INSERT INTO menu_items (parent_id, name, slug, url, link_to, link_id, display_order, is_visible)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
-    `, [parent_id || null, name, slug, url, link_to, link_id, display_order || 0, is_visible !== false]);
-    res.status(201).json({ success: true, item: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Failed to create menu item' });
-  }
-});
-
-// UPDATE menu item
-app.put('/api/menu/:id', verifyToken, async (req, res) => {
-  const { id } = req.params;
-  const { name, parent_id, url, link_to, link_id, display_order, is_visible } = req.body;
-  try {
-    const slug = name ? slugify(name) : undefined;
-    const result = await pool.query(`
-      UPDATE menu_items SET
-        name = COALESCE($1, name),
-        parent_id = $2,
-        slug = COALESCE($3, slug),
-        url = $4,
-        link_to = $5,
-        link_id = $6,
-        display_order = COALESCE($7, display_order),
-        is_visible = COALESCE($8, is_visible),
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $9 RETURNING *
-    `, [name, parent_id, slug, url, link_to, link_id, display_order, is_visible, id]);
-    if (result.rows.length === 0) return res.status(404).json({ success: false });
-    res.json({ success: true, item: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
-
-// DELETE menu item (cascade deletes children)
-app.delete('/api/menu/:id', verifyToken, async (req, res) => {
-  const { id } = req.params;
-  try {
-    await pool.query('DELETE FROM menu_items WHERE id = $1', [id]);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
-
-// REORDER (drag & drop)
-app.put('/api/menu/reorder', verifyToken, async (req, res) => {
-  const { items } = req.body; // [{ id, parent_id, display_order }]
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    for (const item of items) {
-      await client.query(
-        `UPDATE menu_items SET parent_id = $1, display_order = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [item.parent_id, item.display_order, item.id]
-      );
-    }
-    await client.query('COMMIT');
-    res.json({ success: true });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ success: false });
-  } finally {
-    client.release();
-  }
-});
 
 
 // Error handling middleware
@@ -2140,29 +1927,11 @@ app.use((err, req, res, next) => {
 });
 
 
-initDatabase().then(async () => {
-  // Ensure unique constraint exists (already done in initDatabase, but safe to repeat)
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_slug_key') THEN
-        ALTER TABLE menu_items ADD CONSTRAINT menu_items_slug_key UNIQUE (slug);
-      END IF;
-    END $$;
-  `);
-
-  // Force reseed only if menu_items is empty (or temporarily truncate for first fix)
-  const { rows } = await pool.query('SELECT COUNT(*) FROM menu_items');
-  if (parseInt(rows[0].count) === 0) {
-    await seedMenuFromCategories();
-  } else {
-    console.log('✅ Menu already seeded, skipping');
-    // If you still don't see sub-categories, uncomment the next line ONCE:
-    // await pool.query('TRUNCATE TABLE menu_items RESTART IDENTITY CASCADE');
-    // await seedMenuFromCategories();
-  }
-
+// Initialize database and start server
+initDatabase().then(() => {
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
+    console.log(`Uploads directory: ${uploadsDir}`);
   });
+
 });
