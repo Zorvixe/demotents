@@ -1952,11 +1952,10 @@ app.get('/api/categories-with-images', async (req, res) => {
 // Serve static frontend files (assuming your build output is in 'dist' or 'build')
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Catch-all route to serve React's index.html for unknown routes
-app.get('*', (req, res) => {
+// Replace app.get('*', ...) with:
+app.get(/^\/(?!api|uploads|static).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
-
 
 
 // Error handling middleware
