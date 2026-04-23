@@ -1,0 +1,33 @@
+.add-video-container {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.add-video-form .form-group {
+  margin-bottom: 20px;
+}
+.add-video-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.add-video-form input, .add-video-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+.submit-btn {
+  background: #2c7da0;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 40px;
+  cursor: pointer;
+}
+.video-preview {
+  margin-top: 15px;
+}

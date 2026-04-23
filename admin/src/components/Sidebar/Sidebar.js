@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiPlusCircle, FiClipboard, FiBox, FiFolder, FiGrid, FiChevronLeft, FiChevronRight, FiBarChart2, FiMenu  } from 'react-icons/fi';
+import { FiPlusCircle, FiClipboard, FiBox, FiFolder, FiGrid, FiChevronLeft, FiChevronRight, FiBarChart2, FiMenu, FiVideo } from 'react-icons/fi';
 import './Siderbar.css';
 
 const Sidebar = () => {
@@ -26,13 +26,13 @@ const Sidebar = () => {
           <p>List Items</p>
         </NavLink>
         <NavLink to="/menu" className="sidebar-option">
-          <FiMenu  size={22} />
+          <FiMenu size={22} />
           <p>Menu</p>
         </NavLink>
-        {/* <NavLink to="/orders" className="sidebar-option">
-          <FiBox size={22} />
-          <p>Orders Items</p>
-        </NavLink> */}
+        <NavLink to="/videos" className="sidebar-option">
+          <FiVideo size={22} />
+          <p>Videos</p>
+        </NavLink>
         <NavLink to="/new-category" className="sidebar-option">
           <FiFolder size={22} />
           <p>New Category</p>

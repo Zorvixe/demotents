@@ -193,6 +193,23 @@ const initDatabase = async () => {
 `);
     console.log("✅ Admin users table initialized");
 
+
+    // Add videos table
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS videos (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    video_url TEXT NOT NULL,
+    thumbnail_url TEXT,
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
+console.log("✅ Videos table initialized");
+
     // ✅ MOVED THIS HERE - Admin user creation after table is created
     const defaultUsername = 'DemoTents';
     const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
@@ -1949,6 +1966,125 @@ app.get('/api/categories-with-images', async (req, res) => {
   }
 });
 
+
+// ==================== VIDEO ROUTES ====================
+
+// GET all active videos (public)
+app.get('/api/videos', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM videos
+      WHERE is_active = true
+      ORDER BY display_order ASC, id DESC
+    `);
+    res.json({ success: true, videos: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to fetch videos' });
+  }
+});
+
+// POST upload video (admin only)
+app.post('/api/videos', verifyToken, upload.single('video'), async (req, res) => {
+  try {
+    const { title, description, display_order, thumbnail_url } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Video file is required' });
+    }
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'Title is required' });
+    }
+
+    const videoUrl = `/uploads/${req.file.filename}`;
+    const thumb = thumbnail_url || null;
+
+    const result = await pool.query(`
+      INSERT INTO videos (title, description, video_url, thumbnail_url, display_order)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [title, description || null, videoUrl, thumb, display_order || 0]);
+
+    res.status(201).json({ success: true, video: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    // Delete uploaded file if DB fails
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ success: false, message: 'Failed to add video' });
+  }
+});
+
+// PUT update video (admin only)
+app.put('/api/videos/:id', verifyToken, upload.single('video'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, display_order, is_active, thumbnail_url } = req.body;
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }
+    if (description !== undefined) { fields.push(`description = $${idx++}`); values.push(description); }
+    if (display_order !== undefined) { fields.push(`display_order = $${idx++}`); values.push(display_order); }
+    if (is_active !== undefined) { fields.push(`is_active = $${idx++}`); values.push(is_active); }
+    if (thumbnail_url !== undefined) { fields.push(`thumbnail_url = $${idx++}`); values.push(thumbnail_url); }
+
+    let newVideoUrl = null;
+    if (req.file) {
+      newVideoUrl = `/uploads/${req.file.filename}`;
+      fields.push(`video_url = $${idx++}`);
+      values.push(newVideoUrl);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ success: false, message: 'No fields to update' });
+    }
+
+    values.push(id);
+    const query = `
+      UPDATE videos
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${idx}
+      RETURNING *
+    `;
+    const result = await pool.query(query, values);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Video not found' });
+    }
+
+    // If old video file should be deleted, fetch old URL before update (optional)
+    // For simplicity, we skip deletion here (you can add later)
+    res.json({ success: true, video: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ success: false, message: 'Failed to update video' });
+  }
+});
+
+// DELETE video (admin only)
+app.delete('/api/videos/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Get video URL to delete file
+    const videoRes = await pool.query('SELECT video_url FROM videos WHERE id = $1', [id]);
+    if (videoRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Video not found' });
+    }
+    const videoUrl = videoRes.rows[0].video_url;
+    await pool.query('DELETE FROM videos WHERE id = $1', [id]);
+
+    // Delete the actual video file
+    if (videoUrl) {
+      const filePath = path.join(__dirname, videoUrl);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    res.json({ success: true, message: 'Video deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to delete video' });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

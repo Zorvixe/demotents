@@ -1,0 +1,37 @@
+.video-list-container {
+  padding: 20px;
+}
+.video-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 20px;
+}
+.video-card {
+  width: 320px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+.video-info {
+  padding: 12px;
+}
+.video-info h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+.video-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+.video-actions button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+}
+.activate { background: #2e7d32; color: white; }
+.deactivate { background: #ed6c02; color: white; }
+.delete { background: #d32f2f; color: white; }
