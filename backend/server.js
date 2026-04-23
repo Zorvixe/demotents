@@ -208,28 +208,34 @@ const initDatabase = async () => {
     console.log("✅ Admin users table initialized");
 
 
-    await pool.query(`CREATE TABLE menu_items (
-  id SERIAL PRIMARY KEY,
-  parent_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
-  name VARCHAR(255) NOT NULL,
-  slug VARCHAR(255) UNIQUE,
-  url VARCHAR(500),               -- optional custom URL (overrides link_to)
-  link_to VARCHAR(50),            -- 'category', 'collection', 'page', 'custom'
-  link_id INTEGER,                -- ID of the linked object (e.g. category_id)
-  type VARCHAR(50) DEFAULT 'link',-- 'link', 'divider', 'heading'
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_visible BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);`);
-
-
-    await pool.query(`
+   // ========== Create menu_items table safely ==========
+await pool.query(`
   DO $$
   BEGIN
-    IF NOT EXISTS (
-      SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_slug_key'
-    ) THEN
+    IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'menu_items') THEN
+      CREATE TABLE menu_items (
+        id SERIAL PRIMARY KEY,
+        parent_id INTEGER REFERENCES menu_items(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) UNIQUE,
+        url VARCHAR(500),
+        link_to VARCHAR(50),
+        link_id INTEGER,
+        type VARCHAR(50) DEFAULT 'link',
+        display_order INTEGER NOT NULL DEFAULT 0,
+        is_visible BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    END IF;
+  END $$;
+`);
+
+// Ensure unique constraint on slug (critical for ON CONFLICT)
+await pool.query(`
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_slug_key') THEN
       ALTER TABLE menu_items ADD CONSTRAINT menu_items_slug_key UNIQUE (slug);
     END IF;
   END $$;
@@ -2124,14 +2130,27 @@ app.use((err, req, res, next) => {
 
 
 initDatabase().then(async () => {
-  // Seed only if menu_items is empty
+  // Ensure unique constraint exists (already done in initDatabase, but safe to repeat)
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_slug_key') THEN
+        ALTER TABLE menu_items ADD CONSTRAINT menu_items_slug_key UNIQUE (slug);
+      END IF;
+    END $$;
+  `);
+
+  // Force reseed only if menu_items is empty (or temporarily truncate for first fix)
   const { rows } = await pool.query('SELECT COUNT(*) FROM menu_items');
   if (parseInt(rows[0].count) === 0) {
     await seedMenuFromCategories();
   } else {
     console.log('✅ Menu already seeded, skipping');
+    // If you still don't see sub-categories, uncomment the next line ONCE:
+    // await pool.query('TRUNCATE TABLE menu_items RESTART IDENTITY CASCADE');
+    // await seedMenuFromCategories();
   }
-  
+
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
