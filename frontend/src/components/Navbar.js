@@ -105,11 +105,12 @@ const Navbar = () => {
                       </span>
                       <ul className="dropdown-menu">
                         {item.sub_categories.map((sub, index) => {
-                          // Determine which print options to show for this subcategory
                           const showWithoutPrint = sub.without_print_count > 0;
                           const showCustom = sub.custom_count > 0;
-                          // If neither, skip this subcategory entirely? (optional)
-                          if (!showWithoutPrint && !showCustom) return null;
+                          const showStandard = sub.standard_count > 0;
+
+                          if (!showWithoutPrint && !showCustom && !showStandard) return null;
+
                           return (
                             <li key={index} className="dropdown-submenu">
                               <span className="dropdown-item d-flex justify-content-between align-items-center">
@@ -117,6 +118,20 @@ const Navbar = () => {
                                 <RiArrowDropDownLine size={18} />
                               </span>
                               <ul className="dropdown-menu nested-menu">
+                                {showStandard && (
+                                  <li
+                                    onClick={() =>
+                                      handleNavigation(`/subcategory/${sub.id}`, {
+                                        subCategoryId: sub.id,
+                                        subCategoryName: sub.name,
+                                        parentCategoryId: item.id,
+                                        parentCategoryName: item.name,
+                                      })
+                                    }
+                                  >
+                                    <span className="dropdown-item">Standard</span>
+                                  </li>
+                                )}
                                 {showWithoutPrint && (
                                   <li
                                     onClick={() =>
@@ -148,7 +163,7 @@ const Navbar = () => {
                               </ul>
                             </li>
                           );
-                        }).filter(Boolean)}
+                        })}
                       </ul>
                     </li>
                   ) : (

@@ -737,24 +737,34 @@ app.delete('/api/categories/:id', verifyToken, async (req, res) => {
 app.get('/api/navbar-menu', async (req, res) => {
   try {
     const result = await pool.query(`
-   WITH category_type_counts AS (
-  SELECT 
-    c.id as category_id,
-    COUNT(CASE WHEN (p.without_print_price IS NOT NULL OR p.product_type = 'without_print') THEN 1 END) as without_print_count,
-    COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL OR p.product_type = 'customization') THEN 1 END) as custom_count
-  FROM categories c
-  LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
-  GROUP BY c.id
-),
-subcategory_type_counts AS (
-  SELECT 
-    sc.id as subcategory_id,
-    COUNT(CASE WHEN (p.without_print_price IS NOT NULL OR p.product_type = 'without_print') THEN 1 END) as without_print_count,
-    COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL OR p.product_type = 'customization') THEN 1 END) as custom_count
-  FROM sub_categories sc
-  LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
-  GROUP BY sc.id
-)
+      WITH category_type_counts AS (
+        SELECT 
+          c.id as category_id,
+          COUNT(CASE WHEN (p.without_print_price IS NOT NULL OR p.product_type = 'without_print') THEN 1 END) as without_print_count,
+          COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL OR p.product_type = 'customization') THEN 1 END) as custom_count,
+          COUNT(CASE WHEN (p.product_type IS NULL 
+                          AND p.without_print_price IS NULL 
+                          AND p.core_price IS NULL 
+                          AND p.elite_price IS NULL 
+                          AND p.pro_price IS NULL) THEN 1 END) as standard_count
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
+        GROUP BY c.id
+      ),
+      subcategory_type_counts AS (
+        SELECT 
+          sc.id as subcategory_id,
+          COUNT(CASE WHEN (p.without_print_price IS NOT NULL OR p.product_type = 'without_print') THEN 1 END) as without_print_count,
+          COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL OR p.product_type = 'customization') THEN 1 END) as custom_count,
+          COUNT(CASE WHEN (p.product_type IS NULL 
+                          AND p.without_print_price IS NULL 
+                          AND p.core_price IS NULL 
+                          AND p.elite_price IS NULL 
+                          AND p.pro_price IS NULL) THEN 1 END) as standard_count
+        FROM sub_categories sc
+        LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
+        GROUP BY sc.id
+      )
       SELECT 
         c.id, c.name, c.description,
         nm.id as menu_id,
@@ -765,20 +775,22 @@ subcategory_type_counts AS (
               'id', sc.id,
               'name', sc.name,
               'without_print_count', COALESCE(stc.without_print_count, 0),
-              'custom_count', COALESCE(stc.custom_count, 0)
+              'custom_count', COALESCE(stc.custom_count, 0),
+              'standard_count', COALESCE(stc.standard_count, 0)
             ) 
             ORDER BY sc.name
           ) FILTER (WHERE sc.id IS NOT NULL), '[]'
         ) as sub_categories,
         COALESCE(ctc.without_print_count, 0) as category_without_print_count,
-        COALESCE(ctc.custom_count, 0) as category_custom_count
+        COALESCE(ctc.custom_count, 0) as category_custom_count,
+        COALESCE(ctc.standard_count, 0) as category_standard_count
       FROM navbar_menu nm
       JOIN categories c ON c.id = nm.category_id
       LEFT JOIN sub_categories sc ON sc.category_id = c.id AND sc.is_active = true
       LEFT JOIN subcategory_type_counts stc ON stc.subcategory_id = sc.id
       LEFT JOIN category_type_counts ctc ON ctc.category_id = c.id
       WHERE nm.is_visible = true AND c.is_active = true
-      GROUP BY c.id, nm.id, nm.display_order, ctc.without_print_count, ctc.custom_count
+      GROUP BY c.id, nm.id, nm.display_order, ctc.without_print_count, ctc.custom_count, ctc.standard_count
       ORDER BY nm.display_order ASC, c.name ASC
     `);
 
@@ -1157,7 +1169,6 @@ const getProductWithImages = async (productId, client = pool) => {
 
 
 // 12. Get All Products
-
 app.get('/api/products', async (req, res) => {
   try {
     const { category_id, sub_category_id, type, is_active } = req.query;
@@ -1176,8 +1187,6 @@ app.get('/api/products', async (req, res) => {
     const values = [];
     let paramIndex = 1;
 
-    // ✅ If category_id is provided, include products that belong to this category
-    //    either directly (p.category_id) OR through any subcategory under this category
     if (category_id) {
       baseQuery += ` AND (
         p.category_id = $${paramIndex} 
@@ -1195,39 +1204,29 @@ app.get('/api/products', async (req, res) => {
       paramIndex++;
     }
 
-    // Only show active products for public API
     if (is_active === 'true') {
       baseQuery += ` AND p.is_active = true`;
     }
-    // Apply type filter only if explicitly provided
+
+    // Type filtering – only applied if 'type' parameter is explicitly provided
     if (type === 'without-print') {
       baseQuery += ` AND (
-    p.without_print_price IS NOT NULL
-    OR p.product_type = 'without_print'
-  )`;
+        p.without_print_price IS NOT NULL
+        OR p.product_type = 'without_print'
+      )`;
     } else if (type === 'custom') {
       baseQuery += ` AND (
-    p.core_price IS NOT NULL
-    OR p.elite_price IS NOT NULL
-    OR p.pro_price IS NOT NULL
-    OR p.product_type = 'customization'
-  )`;
-    } else {
-      // Default: no type parameter -> only generic products
-      baseQuery += ` AND (
-    p.product_type IS NULL
-    AND p.without_print_price IS NULL
-    AND p.core_price IS NULL
-    AND p.elite_price IS NULL
-    AND p.pro_price IS NULL
-  )`;
+        p.core_price IS NOT NULL
+        OR p.elite_price IS NOT NULL
+        OR p.pro_price IS NOT NULL
+        OR p.product_type = 'customization'
+      )`;
     }
+    // No 'else' block – when type is missing, show ALL products
 
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
-
-    console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
       success: true,
@@ -1392,7 +1391,6 @@ app.post('/api/products', verifyToken, upload.fields([
 });
 
 // 14. Update Product
-// 14. Update Product (with empty string → null conversion)
 app.put('/api/products/:id', verifyToken, upload.fields([
   { name: 'mainImage', maxCount: 1 },
   { name: 'subImages', maxCount: 10 }
@@ -1400,6 +1398,7 @@ app.put('/api/products/:id', verifyToken, upload.fields([
   const client = await pool.connect();
   let newUploadedFiles = [];
   let oldMainUrl = null;
+  let oldSubImageUrls = [];
 
   try {
     await client.query('BEGIN');
@@ -1420,7 +1419,11 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     const finalElite = toNullIfEmpty(elite_price);
     const finalPro = toNullIfEmpty(pro_price);
 
-    // Get existing product
+    // Convert empty product_type string to NULL (fix for admin list)
+    let finalProductType = product_type;
+    if (product_type === '') finalProductType = null;
+
+    // Get existing product (for slug and file cleanup)
     const oldProduct = await client.query(
       'SELECT main_image_url, name FROM products WHERE id = $1 FOR UPDATE',
       [id]
@@ -1486,22 +1489,28 @@ app.put('/api/products/:id', verifyToken, upload.fields([
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $20
     `, [
-      name, description, price ? parseFloat(price) : null,
+      name, description || null, price ? parseFloat(price) : null,
       category_id, sub_category_id || null, mainImageUrl,
       sku, stock_quantity ? parseInt(stock_quantity) : null,
       is_featured === 'true', is_active === 'true',
       product_detail || null, finalWithoutPrint, finalCore, finalElite, finalPro,
-      colorsArray, size || null, product_type || null,
+      colorsArray, size || null, finalProductType,
       finalSlug, id
     ]);
 
     // Handle sub-images: delete existing and insert new ones if provided
     if (req.files?.subImages?.length) {
+      // Get old sub‑image URLs before deleting them from DB
       const oldSubImages = await client.query(
         'SELECT image_url FROM product_images WHERE product_id = $1',
         [id]
       );
+      oldSubImageUrls = oldSubImages.rows.map(row => row.image_url);
+
+      // Delete old records
       await client.query('DELETE FROM product_images WHERE product_id = $1', [id]);
+
+      // Insert new images
       for (let i = 0; i < req.files.subImages.length; i++) {
         const subUrl = `/uploads/${req.files.subImages[i].filename}`;
         newUploadedFiles.push(req.files.subImages[i].path);
@@ -1511,11 +1520,6 @@ app.put('/api/products/:id', verifyToken, upload.fields([
           [id, subUrl, i]
         );
       }
-      // Schedule old sub-image files for deletion after commit
-      oldSubImages.rows.forEach(row => {
-        const oldPath = path.join(__dirname, row.image_url);
-        if (fs.existsSync(oldPath)) newUploadedFiles.push(oldPath);
-      });
     }
 
     await client.query('COMMIT');
@@ -1526,12 +1530,14 @@ app.put('/api/products/:id', verifyToken, upload.fields([
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    // Delete old sub-images
-    for (const filePath of newUploadedFiles) {
-      if (filePath !== req.files?.mainImage?.[0]?.path && fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+    // Delete old sub‑image files
+    for (const oldUrl of oldSubImageUrls) {
+      const oldPath = path.join(__dirname, oldUrl);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
+
+    // Also delete any newly uploaded files that are not needed? (No, they are already in DB)
+    // The newUploadedFiles list is only for rollback cleanup.
 
     const updatedProduct = await getProductWithImages(id, client);
     res.json({
@@ -1541,6 +1547,7 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     });
   } catch (error) {
     await client.query('ROLLBACK');
+    // Clean up any newly uploaded files that were not committed
     newUploadedFiles.forEach(file => {
       if (fs.existsSync(file)) fs.unlinkSync(file);
     });
@@ -1553,7 +1560,6 @@ app.put('/api/products/:id', verifyToken, upload.fields([
     client.release();
   }
 });
-
 // 15. Delete Product Image
 app.delete('/api/products/:productId/images/:imageId', verifyToken, async (req, res) => {
   try {
