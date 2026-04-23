@@ -24,7 +24,7 @@ const Add = () => {
         stock_quantity: 0,
         is_featured: false,
         size: "",
-        product_type: "",
+        product_type: "",        // "without_print", "customization", or ""
         without_print_price: "",
         core_price: "",
         elite_price: "",
@@ -32,7 +32,6 @@ const Add = () => {
         cloth_colors: ""
     });
 
-    // Helper to get auth token
     const getAuthToken = () => localStorage.getItem('adminToken');
 
     useEffect(() => {
@@ -56,9 +55,7 @@ const Add = () => {
         try {
             const response = await fetch(`${API_URL}/api/categories`);
             const result = await response.json();
-            if (result.success) {
-                setCategories(result.categories);
-            }
+            if (result.success) setCategories(result.categories);
         } catch (error) {
             console.error('Error fetching categories:', error);
             toast.error('Failed to load categories');
@@ -69,9 +66,7 @@ const Add = () => {
         try {
             const response = await fetch(`${API_URL}/api/categories/${categoryId}/sub-categories`);
             const result = await response.json();
-            if (result.success) {
-                setSubCategories(result.sub_categories);
-            }
+            if (result.success) setSubCategories(result.sub_categories);
         } catch (error) {
             console.error('Error fetching sub-categories:', error);
             toast.error('Failed to load sub-categories');
@@ -83,10 +78,45 @@ const Add = () => {
         const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
         if (name === "category_id") {
             setData((prev) => ({ ...prev, [name]: value, sub_category_id: "" }));
-        } else if (name === "product_type") {
-            setData((prev) => ({ ...prev, product_type: value }));
         } else {
             setData((prev) => ({ ...prev, [name]: value }));
+        }
+    };
+
+    // Toggle handlers for product type
+    const handleWithoutPrintToggle = (checked) => {
+        if (checked) {
+            setData(prev => ({
+                ...prev,
+                product_type: "without_print",
+                core_price: "",
+                elite_price: "",
+                pro_price: ""
+            }));
+        } else {
+            setData(prev => ({
+                ...prev,
+                product_type: "",
+                without_print_price: ""
+            }));
+        }
+    };
+
+    const handleCustomizationToggle = (checked) => {
+        if (checked) {
+            setData(prev => ({
+                ...prev,
+                product_type: "customization",
+                without_print_price: ""
+            }));
+        } else {
+            setData(prev => ({
+                ...prev,
+                product_type: "",
+                core_price: "",
+                elite_price: "",
+                pro_price: ""
+            }));
         }
     };
 
@@ -99,14 +129,10 @@ const Add = () => {
             const newFiles = Array.from(e.target.files);
             const currentCount = subImages.length;
             const newCount = currentCount + newFiles.length;
-
-            // Keep only the count limit, remove size check
-            if (newCount > 50) {  // You can increase this limit too
+            if (newCount > 50) {
                 toast.error(`Maximum 50 sub‑images allowed. You have ${currentCount} and tried to add ${newFiles.length}.`);
                 return;
             }
-
-            // Remove all size validation code
             setSubImages(prev => [...prev, ...newFiles]);
         }
     };
@@ -138,11 +164,11 @@ const Add = () => {
         formData.append("category_id", data.category_id);
         formData.append("mainImage", mainImage);
         formData.append("size", data.size);
-        formData.append("product_type", data.product_type);
         if (data.sub_category_id) formData.append("sub_category_id", data.sub_category_id);
         if (data.sku) formData.append("sku", data.sku);
         formData.append("is_featured", data.is_featured);
 
+        // Product type and prices
         if (data.product_type === "without_print") {
             const price = Number(data.without_print_price);
             if (isNaN(price)) {
@@ -151,8 +177,8 @@ const Add = () => {
                 return;
             }
             formData.append("without_print_price", price);
-        }
-        if (data.product_type === "customization") {
+            formData.append("product_type", "without_print");
+        } else if (data.product_type === "customization") {
             const core = Number(data.core_price);
             const elite = Number(data.elite_price);
             const pro = Number(data.pro_price);
@@ -164,28 +190,11 @@ const Add = () => {
             formData.append("core_price", core);
             formData.append("elite_price", elite);
             formData.append("pro_price", pro);
+            formData.append("product_type", "customization");
+        } else {
+            formData.append("product_type", ""); // will be converted to NULL on backend
         }
-        // if (data.product_type === "without_print" && !data.without_print_price) {
-        //     toast.error("Please enter Without Print Price");
-        //     setLoading(false);
-        //     return;
-        // }
-        // if (data.product_type === "customization" && (!data.core_price || !data.elite_price || !data.pro_price)) {
-        //     toast.error("Please fill Core, Elite and Pro prices");
-        //     setLoading(false);
-        //     return;
-        // }
 
-        if (data.product_type === "without_print" && data.without_print_price && isNaN(Number(data.without_print_price))) {
-            toast.error("Without Print Price must be a number");
-            setLoading(false);
-            return;
-        }
-        if (data.product_type === "customization") {
-            if (data.core_price && isNaN(Number(data.core_price))) { toast.error("Core price must be a number"); return; }
-            if (data.elite_price && isNaN(Number(data.elite_price))) { toast.error("Elite price must be a number"); return; }
-            if (data.pro_price && isNaN(Number(data.pro_price))) { toast.error("Pro price must be a number"); return; }
-        }
         if (data.cloth_colors) {
             const colorsArray = data.cloth_colors.split(",").map(c => c.trim());
             formData.append("cloth_colors", JSON.stringify(colorsArray));
@@ -196,9 +205,7 @@ const Add = () => {
             const token = getAuthToken();
             const response = await fetch(`${API_URL}/api/products`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData,
             });
             const result = await response.json();
@@ -224,17 +231,11 @@ const Add = () => {
         }
     };
 
-    const formatSize = (bytes) => (bytes / (1024 * 1024)).toFixed(2);
-    const totalMB = formatSize(totalSubImagesSize);
-    const limitMB = formatSize(MAX_TOTAL_SIZE_BYTES);
-    const isOverLimit = totalSubImagesSize > MAX_TOTAL_SIZE_BYTES;
-
     return (
         <div className='add-page-wrapper'>
             <ToastContainer position="top-right" autoClose={3000} />
             <div className="add-header"><h2>Add New Product</h2></div>
             <form onSubmit={onSubmitHandler} className="add-form-grid">
-                {/* Left column - same as original */}
                 <div className="main-column">
                     <div className="ui-card">
                         <div className="card-header">Basic Information</div>
@@ -290,13 +291,29 @@ const Add = () => {
                                     <button type="button" className="ui-btn-secondary" onClick={generateSku}>Generate</button>
                                 </div>
                             </div>
+                            {/* Product Type Toggles */}
                             <div className="form-group">
                                 <label>Product Type</label>
-                                <select name="product_type" value={data.product_type} onChange={onChangeHandler} className="ui-input">
-                                    <option value="">Select Type (optional)</option>
-                                    <option value="without_print">Without Print</option>
-                                    <option value="customization">With Customization</option>
-                                </select>
+                                <div className="toggle-group">
+                                    <label className="toggle-switch-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.product_type === "without_print"}
+                                            onChange={(e) => handleWithoutPrintToggle(e.target.checked)}
+                                        />
+                                        <span className="toggle-slider"></span>
+                                        <span className="toggle-text">Without Print</span>
+                                    </label>
+                                    <label className="toggle-switch-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={data.product_type === "customization"}
+                                            onChange={(e) => handleCustomizationToggle(e.target.checked)}
+                                        />
+                                        <span className="toggle-slider"></span>
+                                        <span className="toggle-text">With Customization</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div className="form-group">
@@ -308,13 +325,13 @@ const Add = () => {
                             <input type="number" name="stock_quantity" value={data.stock_quantity} onChange={onChangeHandler} className="ui-input" required placeholder="0" min="0" />
                         </div>
                         {data.product_type === "without_print" && (
-                            <div className="form-group price-box"><label>Without Print Price</label><div className="input-prefix"><span>₹</span><input type="text" name="without_print_price" value={data.without_print_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
+                            <div className="form-group price-box"><label>Without Print Price</label><div className="input-prefix"><span>₹</span><input type="number" name="without_print_price" value={data.without_print_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" step="0.01" /></div></div>
                         )}
                         {data.product_type === "customization" && (
                             <div className="grid-3-col price-box">
-                                <div className="form-group"><label>Core Price</label><div className="input-prefix"><span>₹</span><input type="text" name="core_price" value={data.core_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
-                                <div className="form-group"><label>Elite Price</label><div className="input-prefix"><span>₹</span><input type="text" name="elite_price" value={data.elite_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
-                                <div className="form-group"><label>Pro Price</label><div className="input-prefix"><span>₹</span><input type="text" name="pro_price" value={data.pro_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" /></div></div>
+                                <div className="form-group"><label>Core Price</label><div className="input-prefix"><span>₹</span><input type="number" name="core_price" value={data.core_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" step="0.01" /></div></div>
+                                <div className="form-group"><label>Elite Price</label><div className="input-prefix"><span>₹</span><input type="number" name="elite_price" value={data.elite_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" step="0.01" /></div></div>
+                                <div className="form-group"><label>Pro Price</label><div className="input-prefix"><span>₹</span><input type="number" name="pro_price" value={data.pro_price} onChange={onChangeHandler} className="ui-input" placeholder="0.00" step="0.01" /></div></div>
                             </div>
                         )}
                     </div>
@@ -349,11 +366,7 @@ const Add = () => {
                         <div className="form-group"><label>Size <span className="required">*</span></label><input type="text" name="size" value={data.size} onChange={onChangeHandler} placeholder="Enter size (e.g. 10x10, 12x12, Custom)" className="ui-input" required /></div>
                         <div className="form-group"><label>Cloth Colors</label><input type="text" name="cloth_colors" value={data.cloth_colors} onChange={onChangeHandler} placeholder="Red, Blue, Green (comma separated)" className="ui-input" /></div>
                     </div>
-                    <button
-                        type='submit'
-                        className='ui-btn-primary'
-                        disabled={loading}  // Remove || isOverLimit
-                    >
+                    <button type='submit' className='ui-btn-primary' disabled={loading}>
                         {loading ? 'Saving...' : 'Save Product'}
                     </button>
                 </div>

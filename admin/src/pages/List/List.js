@@ -185,18 +185,45 @@ const List = () => {
       setEditForm(prev => ({ ...prev, [name]: value, sub_category_id: '' }));
       if (value) fetchSubCategories(value);
       else setSubCategories([]);
-    } else if (name === 'product_type') {
-      // When product type changes, clear the opposite price fields
-      setEditForm(prev => ({
-        ...prev,
-        product_type: value,
-        without_print_price: value === 'customization' ? '' : prev.without_print_price,
-        core_price: value === 'without_print' ? '' : prev.core_price,
-        elite_price: value === 'without_print' ? '' : prev.elite_price,
-        pro_price: value === 'without_print' ? '' : prev.pro_price,
-      }));
     } else {
       setEditForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    }
+  };
+
+  // Toggle handlers for product type
+  const handleWithoutPrintToggle = (checked) => {
+    if (checked) {
+      setEditForm(prev => ({
+        ...prev,
+        product_type: "without_print",
+        core_price: "",
+        elite_price: "",
+        pro_price: ""
+      }));
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        product_type: "",
+        without_print_price: ""
+      }));
+    }
+  };
+
+  const handleCustomizationToggle = (checked) => {
+    if (checked) {
+      setEditForm(prev => ({
+        ...prev,
+        product_type: "customization",
+        without_print_price: ""
+      }));
+    } else {
+      setEditForm(prev => ({
+        ...prev,
+        product_type: "",
+        core_price: "",
+        elite_price: "",
+        pro_price: ""
+      }));
     }
   };
 
@@ -315,7 +342,6 @@ const List = () => {
       const token = getAuthToken();
       const updatedStatus = !product.is_active;
       
-      // We use FormData for consistency with handleUpdate
       const formData = new FormData();
       formData.append('is_active', updatedStatus);
 
@@ -422,9 +448,59 @@ const List = () => {
                       <input type="text" name="size" value={editForm.size} onChange={handleFormChange} className="edit-input" placeholder="Enter size (e.g. 10x10, 12x12, Custom)" required />
                     </div>
                   </div>
-                  <div className="form-group"><label>Product Type</label><select name="product_type" value={editForm.product_type} onChange={handleFormChange} className="edit-input" required><option value="">Select Type</option><option value="without_print">Without Print</option><option value="customization">With Customization</option></select></div>
-                  {editForm.product_type === 'without_print' && <div className="form-group bg-light p-3 rounded mt-2"><label>Without Print Price</label><div className="input-with-prefix"><span className="prefix">₹</span><input type="number" name="without_print_price" value={editForm.without_print_price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" /></div></div>}
-                  {editForm.product_type === 'customization' && <div className="grid-3-col bg-light p-3 rounded mt-2"><div className="form-group m-0"><label>Core Price</label><input type="number" name="core_price" value={editForm.core_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div><div className="form-group m-0"><label>Elite Price</label><input type="number" name="elite_price" value={editForm.elite_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div><div className="form-group m-0"><label>Pro Price</label><input type="number" name="pro_price" value={editForm.pro_price} onChange={handleFormChange} className="edit-input" step="0.01" /></div></div>}
+
+                  {/* Product Type Toggles */}
+                  <div className="form-group">
+                    <label>Product Type</label>
+                    <div className="toggle-group" style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <label className="toggle-switch-label">
+                        <input
+                          type="checkbox"
+                          checked={editForm.product_type === "without_print"}
+                          onChange={(e) => handleWithoutPrintToggle(e.target.checked)}
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-text">Without Print</span>
+                      </label>
+                      <label className="toggle-switch-label">
+                        <input
+                          type="checkbox"
+                          checked={editForm.product_type === "customization"}
+                          onChange={(e) => handleCustomizationToggle(e.target.checked)}
+                        />
+                        <span className="toggle-slider"></span>
+                        <span className="toggle-text">With Customization</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {editForm.product_type === 'without_print' && (
+                    <div className="form-group bg-light p-3 rounded mt-2">
+                      <label>Without Print Price</label>
+                      <div className="input-with-prefix">
+                        <span className="prefix">₹</span>
+                        <input type="number" name="without_print_price" value={editForm.without_print_price} onChange={handleFormChange} className="edit-input pl-8" step="0.01" />
+                      </div>
+                    </div>
+                  )}
+
+                  {editForm.product_type === 'customization' && (
+                    <div className="grid-3-col bg-light p-3 rounded mt-2">
+                      <div className="form-group m-0">
+                        <label>Core Price</label>
+                        <input type="number" name="core_price" value={editForm.core_price} onChange={handleFormChange} className="edit-input" step="0.01" />
+                      </div>
+                      <div className="form-group m-0">
+                        <label>Elite Price</label>
+                        <input type="number" name="elite_price" value={editForm.elite_price} onChange={handleFormChange} className="edit-input" step="0.01" />
+                      </div>
+                      <div className="form-group m-0">
+                        <label>Pro Price</label>
+                        <input type="number" name="pro_price" value={editForm.pro_price} onChange={handleFormChange} className="edit-input" step="0.01" />
+                      </div>
+                    </div>
+                  )}
+
                   <hr className="divider" />
                   <h4 className="section-title">Media</h4>
                   <div className="form-group"><label>Main Image</label><div className="image-edit-wrapper"><div className="current-image">{mainImageFile ? <img src={URL.createObjectURL(mainImageFile)} alt="Preview" /> : <img src={getImageUrl(existingMainImage)} alt="Current Main" />}</div><div className="upload-btn-wrapper"><label className="btn-modern btn-outline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>Change Main Image<input type="file" onChange={handleMainImageChange} accept="image/*" className="hidden-input" /></label></div></div></div>

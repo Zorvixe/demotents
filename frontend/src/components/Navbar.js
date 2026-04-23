@@ -94,115 +94,152 @@ const Navbar = () => {
 
             {filteredMenuItems.map((item) => {
               const categorySlug = toSlug(item.name);
-              return (
-                <React.Fragment key={item.id}>
-                  {item.sub_categories && item.sub_categories.length > 0 ? (
-                    // Category with subcategories – show subcategories with print options
-                    <li className="nav-item dropdown dropdown-hover">
-                      <span className="nav-link d-flex align-items-center gap-1" style={{ cursor: "pointer" }}>
-                        {item.name.toUpperCase()}
-                        <RiArrowDropDownLine size={20} />
-                      </span>
-                      <ul className="dropdown-menu">
-                        {item.sub_categories.map((sub, index) => {
-                          const showWithoutPrint = sub.without_print_count > 0;
-                          const showCustom = sub.custom_count > 0;
-                          const showStandard = sub.standard_count > 0;
+              // Determine if category has any typed options (without‑print or custom)
+              const hasTypedOptions = item.category_without_print_count > 0 || item.category_custom_count > 0;
+              // Determine if category has standard products (generic)
+              const hasStandard = item.category_standard_count > 0;
 
-                          if (!showWithoutPrint && !showCustom && !showStandard) return null;
+              // CASE 1: Category has sub‑categories
+              if (item.sub_categories && item.sub_categories.length > 0) {
+                return (
+                  <li key={item.id} className="nav-item dropdown dropdown-hover">
+                    <span
+                      className="nav-link d-flex align-items-center gap-1"
+                      style={{ cursor: "pointer" }}
+                    >
+                      {item.name.toUpperCase()}
+                      <RiArrowDropDownLine size={20} />
+                    </span>
+                    <ul className="dropdown-menu">
+                      {item.sub_categories.map((sub) => {
+                        const showWithoutPrint = sub.without_print_count > 0;
+                        const showCustom = sub.custom_count > 0;
+                        const showStandard = sub.standard_count > 0;
 
+                        // If this sub‑category has ONLY standard products (no typed options)
+                        // then clicking the sub‑category name itself goes to the standard listing.
+                        if (showStandard && !showWithoutPrint && !showCustom) {
                           return (
-                            <li key={index} className="dropdown-submenu">
-                              <span className="dropdown-item d-flex justify-content-between align-items-center">
-                                {sub.name}
-                                <RiArrowDropDownLine size={18} />
-                              </span>
-                              <ul className="dropdown-menu nested-menu">
-                                {showStandard && (
-                                  <li
-                                    onClick={() =>
-                                      handleNavigation(`/subcategory/${sub.id}`, {
-                                        subCategoryId: sub.id,
-                                        subCategoryName: sub.name,
-                                        parentCategoryId: item.id,
-                                        parentCategoryName: item.name,
-                                      })
-                                    }
-                                  >
-                                    <span className="dropdown-item">Standard</span>
-                                  </li>
-                                )}
-                                {showWithoutPrint && (
-                                  <li
-                                    onClick={() =>
-                                      handleNavigation(`/subcategory/${sub.id}?type=without-print`, {
-                                        subCategoryId: sub.id,
-                                        subCategoryName: sub.name,
-                                        parentCategoryId: item.id,
-                                        parentCategoryName: item.name,
-                                      })
-                                    }
-                                  >
-                                    <span className="dropdown-item">Without Print</span>
-                                  </li>
-                                )}
-                                {showCustom && (
-                                  <li
-                                    onClick={() =>
-                                      handleNavigation(`/subcategory/${sub.id}?type=custom`, {
-                                        subCategoryId: sub.id,
-                                        subCategoryName: sub.name,
-                                        parentCategoryId: item.id,
-                                        parentCategoryName: item.name,
-                                      })
-                                    }
-                                  >
-                                    <span className="dropdown-item">With Customization</span>
-                                  </li>
-                                )}
-                              </ul>
+                            <li
+                              key={sub.id}
+                              onClick={() =>
+                                handleNavigation(`/subcategory/${sub.id}`, {
+                                  subCategoryId: sub.id,
+                                  subCategoryName: sub.name,
+                                  parentCategoryId: item.id,
+                                  parentCategoryName: item.name,
+                                })
+                              }
+                              style={{ cursor: "pointer" }}
+                            >
+                              <span className="dropdown-item">{sub.name}</span>
                             </li>
                           );
-                        })}
-                      </ul>
-                    </li>
-                  ) : (
-                    // Simple category (no subcategories) – show dropdown with print options based on category counts
-                    <li className="nav-item dropdown dropdown-hover">
-                      <span className="nav-link d-flex align-items-center gap-1" style={{ cursor: "pointer" }}>
-                        {item.name.toUpperCase()}
-                        <RiArrowDropDownLine size={20} />
-                      </span>
-                      <ul className="dropdown-menu">
-                        {item.category_without_print_count > 0 && (
-                          <li
-                            onClick={() =>
-                              handleNavigation(`/category/${categorySlug}?type=without-print`, {
-                                categoryId: item.id,
-                                categoryName: item.name,
-                              })
-                            }
-                          >
-                            <span className="dropdown-item">Without Print</span>
+                        }
+
+                        // Otherwise, show dropdown with type options
+                        return (
+                          <li key={sub.id} className="dropdown-submenu">
+                            <span className="dropdown-item d-flex justify-content-between align-items-center">
+                              {sub.name}
+                              <RiArrowDropDownLine size={18} />
+                            </span>
+                            <ul className="dropdown-menu nested-menu">
+                              {showWithoutPrint && (
+                                <li
+                                  onClick={() =>
+                                    handleNavigation(`/subcategory/${sub.id}?type=without-print`, {
+                                      subCategoryId: sub.id,
+                                      subCategoryName: sub.name,
+                                      parentCategoryId: item.id,
+                                      parentCategoryName: item.name,
+                                    })
+                                  }
+                                >
+                                  <span className="dropdown-item">Without Print</span>
+                                </li>
+                              )}
+                              {showCustom && (
+                                <li
+                                  onClick={() =>
+                                    handleNavigation(`/subcategory/${sub.id}?type=custom`, {
+                                      subCategoryId: sub.id,
+                                      subCategoryName: sub.name,
+                                      parentCategoryId: item.id,
+                                      parentCategoryName: item.name,
+                                    })
+                                  }
+                                >
+                                  <span className="dropdown-item">With Customization</span>
+                                </li>
+                              )}
+                            </ul>
                           </li>
-                        )}
-                        {item.category_custom_count > 0 && (
-                          <li
-                            onClick={() =>
-                              handleNavigation(`/category/${categorySlug}?type=custom`, {
-                                categoryId: item.id,
-                                categoryName: item.name,
-                              })
-                            }
-                          >
-                            <span className="dropdown-item">With Customization</span>
-                          </li>
-                        )}
-                      </ul>
-                    </li>
-                  )}
-                </React.Fragment>
-              );
+                        );
+                      })}
+                    </ul>
+                  </li>
+                );
+              }
+
+              // CASE 2: Category without sub‑categories
+              // If it has typed options, show dropdown; otherwise, make the category name a direct link.
+              if (hasTypedOptions) {
+                return (
+                  <li key={item.id} className="nav-item dropdown dropdown-hover">
+                    <span className="nav-link d-flex align-items-center gap-1" style={{ cursor: "pointer" }}>
+                      {item.name.toUpperCase()}
+                      <RiArrowDropDownLine size={20} />
+                    </span>
+                    <ul className="dropdown-menu">
+                      {item.category_without_print_count > 0 && (
+                        <li
+                          onClick={() =>
+                            handleNavigation(`/category/${categorySlug}?type=without-print`, {
+                              categoryId: item.id,
+                              categoryName: item.name,
+                            })
+                          }
+                        >
+                          <span className="dropdown-item">Without Print</span>
+                        </li>
+                      )}
+                      {item.category_custom_count > 0 && (
+                        <li
+                          onClick={() =>
+                            handleNavigation(`/category/${categorySlug}?type=custom`, {
+                              categoryId: item.id,
+                              categoryName: item.name,
+                            })
+                          }
+                        >
+                          <span className="dropdown-item">With Customization</span>
+                        </li>
+                      )}
+                    </ul>
+                  </li>
+                );
+              } else if (hasStandard) {
+                // Only standard products – direct link to category page
+                return (
+                  <li
+                    key={item.id}
+                    className="nav-item"
+                    onClick={() =>
+                      handleNavigation(`/category/${categorySlug}`, {
+                        categoryId: item.id,
+                        categoryName: item.name,
+                      })
+                    }
+                    style={{ cursor: "pointer" }}
+                  >
+                    <span className="nav-link">{item.name.toUpperCase()}</span>
+                  </li>
+                );
+              } else {
+                // No products at all – hide or show disabled? We'll hide.
+                return null;
+              }
             })}
           </ul>
         </div>
