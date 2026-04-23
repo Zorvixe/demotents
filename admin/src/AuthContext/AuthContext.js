@@ -9,30 +9,29 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
+
   const [token, setToken] = useState(localStorage.getItem('adminToken'));
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Base URL for all axios requests
-  axios.defaults.baseURL = process.env.NODE_ENV === 'production'
-    ? window.location.origin
-    : '';
-  // Decode JWT and check expiry safely
+  // ✅ FIXED BASE URL (IMPORTANT)
+  axios.defaults.baseURL =
+    process.env.NODE_ENV === 'production'
+      ? window.location.origin
+      : 'https://api.demotents.com';
+
+  // Decode JWT
   const isTokenExpired = (token) => {
     if (!token) return true;
     try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(atob(base64));
-      const exp = payload.exp * 1000;
-      return Date.now() >= exp;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return Date.now() >= payload.exp * 1000;
     } catch (e) {
-      console.error('Invalid token format', e);
-      return true; // treat any decoding error as expired
+      console.error('Invalid token', e);
+      return true;
     }
   };
 
-  // Logout function (clears storage, redirects)
   const logout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
@@ -42,39 +41,29 @@ export const AuthProvider = ({ children }) => {
     navigate('/login');
   };
 
-  // Set up axios interceptors ONCE
+  // ✅ Axios Interceptors
   useEffect(() => {
-    // Request interceptor: attach token to every request
-    const requestInterceptor = axios.interceptors.request.use(
-      (config) => {
-        const currentToken = localStorage.getItem('adminToken');
-        if (currentToken) {
-          config.headers.Authorization = `Bearer ${currentToken}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
+    const reqInterceptor = axios.interceptors.request.use((config) => {
+      const t = localStorage.getItem('adminToken');
+      if (t) config.headers.Authorization = `Bearer ${t}`;
+      return config;
+    });
 
-    // Response interceptor: catch 401 errors and logout
-    const responseInterceptor = axios.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          logout();
-        }
-        return Promise.reject(error);
+    const resInterceptor = axios.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err.response?.status === 401) logout();
+        return Promise.reject(err);
       }
     );
 
-    // Cleanup interceptors on unmount (optional)
     return () => {
-      axios.interceptors.request.eject(requestInterceptor);
-      axios.interceptors.response.eject(responseInterceptor);
+      axios.interceptors.request.eject(reqInterceptor);
+      axios.interceptors.response.eject(resInterceptor);
     };
-  }, []); // empty dependency -> run once
+  }, []);
 
-  // Check token validity on mount
+  // ✅ Token check
   useEffect(() => {
     if (token) {
       if (isTokenExpired(token)) {
@@ -82,47 +71,48 @@ export const AuthProvider = ({ children }) => {
       } else {
         const storedAdmin = localStorage.getItem('adminUser');
         if (storedAdmin) setAdmin(JSON.parse(storedAdmin));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-        // Auto logout when token expires (timer)
-        try {
-          const base64Url = token.split('.')[1];
-          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const payload = JSON.parse(atob(base64));
-          const timeToExpiry = payload.exp * 1000 - Date.now();
-          if (timeToExpiry > 0) {
-            const timer = setTimeout(() => logout(), timeToExpiry);
-            return () => clearTimeout(timer);
-          }
-        } catch (e) {
-          logout();
-        }
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
     }
-    setLoading(false);
+    setLoading(false); // ✅ IMPORTANT FIX
   }, [token]);
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post('/api/admin/login', { username, password });
-      const { token, admin } = response.data;
+      const res = await axios.post('/api/admin/login', { username, password });
+
+      const { token, admin } = res.data;
+
       localStorage.setItem('adminToken', token);
       localStorage.setItem('adminUser', JSON.stringify(admin));
+
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
       setToken(token);
       setAdmin(admin);
+
       return { success: true };
-    } catch (error) {
+    } catch (err) {
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        message: err.response?.data?.message || 'Login failed',
       };
     }
   };
 
   return (
-    <AuthContext.Provider value={{ token, admin, login, logout, isAuthenticated: !!token && !isTokenExpired(token) }}>
-      {!loading && children}
+    <AuthContext.Provider
+      value={{
+        token,
+        admin,
+        login,
+        logout,
+        loading,
+        isAuthenticated: !!token && !isTokenExpired(token),
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 };

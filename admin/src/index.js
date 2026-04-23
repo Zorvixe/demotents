@@ -6,8 +6,9 @@ import App from './App.js';
 import ErrorBoundary from './ErrorBoundary.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
 root.render(
-  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+  <BrowserRouter>
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
