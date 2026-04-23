@@ -33,7 +33,7 @@ const Menu = () => {
       const data = await res.json();
       
       // Ensure data has required fields, default to empty array if undefined
-      const sanitizedData = (Array.isArray(data) ? data : data.items || []).map(item => ({
+      const sanitizedData = (Array.isArray(data) ? data : data.menu || data.items || []).map(item => ({
         ...item,
         parent_id: item.parent_id || null,
         display_order: item.display_order || 0

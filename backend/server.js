@@ -111,8 +111,8 @@ const initDatabase = async () => {
       `);
 
 
-      // Inside initDatabase(), after the CREATE TABLE IF NOT EXISTS products block
-      await pool.query(`
+    // Inside initDatabase(), after the CREATE TABLE IF NOT EXISTS products block
+    await pool.query(`
         ALTER TABLE products 
         ADD COLUMN IF NOT EXISTS sub_category_id INTEGER 
         REFERENCES sub_categories(id) ON DELETE SET NULL
@@ -128,14 +128,14 @@ const initDatabase = async () => {
       ADD COLUMN IF NOT EXISTS cloth_colors TEXT[];
     `);
 
-      await pool.query(`
+    await pool.query(`
         ALTER TABLE products 
         ADD COLUMN IF NOT EXISTS size VARCHAR(50),
         ADD COLUMN IF NOT EXISTS product_type VARCHAR(50)
       `);
 
 
-      await pool.query(`ALTER TABLE products 
+    await pool.query(`ALTER TABLE products 
       ADD COLUMN menu_item_id INTEGER 
       REFERENCES menu_items(id) ON DELETE SET NULL;`);
 
@@ -222,11 +222,11 @@ const initDatabase = async () => {
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`);
-    
+
     // ✅ MOVED THIS HERE - Admin user creation after table is created
     const defaultUsername = 'DemoTents';
     const defaultPassword = process.env.DEFAULT_ADMIN_PHONE;
-    
+
     const existingAdmin = await pool.query(
       'SELECT id FROM admin_users WHERE username = $1',
       [defaultUsername]
@@ -265,41 +265,6 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-async function seedMenuFromCategories() {
-  const categories = await pool.query(
-    `SELECT id, name FROM categories WHERE is_active = true ORDER BY display_order`
-  );
-  for (const cat of categories.rows) {
-    // Insert category as top‑level menu item
-    const menuResult = await pool.query(
-      `INSERT INTO menu_items (name, slug, link_to, link_id, display_order, is_visible)
-       VALUES ($1, $2, 'category', $3, $4, true)
-       ON CONFLICT (slug) DO NOTHING
-       RETURNING id`,
-      [cat.name, slugify(cat.name), cat.id, 0]
-    );
-    const parentId = menuResult.rows[0]?.id;
-    if (!parentId) continue;
-
-    // Insert sub‑categories as children
-    const subCats = await pool.query(
-      `SELECT id, name FROM sub_categories 
-       WHERE category_id = $1 AND is_active = true
-       ORDER BY name`,
-      [cat.id]
-    );
-    for (let i = 0; i < subCats.rows.length; i++) {
-      const sub = subCats.rows[i];
-      await pool.query(
-        `INSERT INTO menu_items (parent_id, name, slug, link_to, link_id, display_order, is_visible)
-         VALUES ($1, $2, $3, 'sub_category', $4, $5, true)
-         ON CONFLICT (slug) DO NOTHING`,
-        [parentId, sub.name, slugify(sub.name), sub.id, i]
-      );
-    }
-  }
-  console.log('✅ Menu seeded from categories & sub‑categories');
-}
 
 // ==================== ADMIN LOGIN ====================
 app.post('/api/admin/login', async (req, res) => {
@@ -366,7 +331,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { 
+  limits: {
     fileSize: Infinity,  // No size limit
     files: 100          // Allow up to 100 files (or adjust as needed)
   }
@@ -387,7 +352,42 @@ function slugify(text) {
     .replace(/-+$/, '');            // trim - from end
 }
 
-// ... (your existing code continues)
+async function seedMenuFromCategories() {
+  const categories = await pool.query(
+    `SELECT id, name FROM categories WHERE is_active = true ORDER BY display_order`
+  );
+  for (const cat of categories.rows) {
+    // Insert category as top‑level menu item
+    const menuResult = await pool.query(
+      `INSERT INTO menu_items (name, slug, link_to, link_id, display_order, is_visible)
+       VALUES ($1, $2, 'category', $3, $4, true)
+       ON CONFLICT (slug) DO NOTHING
+       RETURNING id`,
+      [cat.name, slugify(cat.name), cat.id, 0]
+    );
+    const parentId = menuResult.rows[0]?.id;
+    if (!parentId) continue;
+
+    // Insert sub‑categories as children
+    const subCats = await pool.query(
+      `SELECT id, name FROM sub_categories 
+       WHERE category_id = $1 AND is_active = true
+       ORDER BY name`,
+      [cat.id]
+    );
+    for (let i = 0; i < subCats.rows.length; i++) {
+      const sub = subCats.rows[i];
+      await pool.query(
+        `INSERT INTO menu_items (parent_id, name, slug, link_to, link_id, display_order, is_visible)
+         VALUES ($1, $2, $3, 'sub_category', $4, $5, true)
+         ON CONFLICT (slug) DO NOTHING`,
+        [parentId, sub.name, slugify(sub.name), sub.id, i]
+      );
+    }
+  }
+  console.log('✅ Menu seeded from categories & sub‑categories');
+}
+
 
 // Helper function to delete files
 const deleteFiles = (filePaths) => {
@@ -1248,7 +1248,7 @@ app.get('/api/products', async (req, res) => {
     baseQuery += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(baseQuery, values);
-    
+
     console.log(`📦 Products returned: ${result.rows.length} for category_id=${category_id}, subcat=${sub_category_id}, type=${type}`);
 
     res.json({
@@ -1668,7 +1668,7 @@ app.delete('/api/products/:id', verifyToken, async (req, res) => {
 // ==================== ORDER ROUTES ====================
 
 // 17. Create Order
-app.post('/api/orders',  async (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const { customerName, customerEmail, phone, address, items, amount } = req.body;
 
@@ -1988,7 +1988,7 @@ app.get('/api/menu', async (req, res) => {
     // Build nested JSON
     const buildTree = (items, parentId = null) => {
       return items.filter(item => item.parent_id === parentId)
-                  .map(item => ({ ...item, children: buildTree(items, item.id) }));
+        .map(item => ({ ...item, children: buildTree(items, item.id) }));
     };
     res.json({ success: true, menu: buildTree(result.rows) });
   } catch (err) {
@@ -2102,11 +2102,9 @@ app.use((err, req, res, next) => {
 });
 
 
-// Initialize database and start server
-initDatabase().then(() => {
+initDatabase().then(async () => {   // add 'async'
+  await seedMenuFromCategories();   // now allowed
   app.listen(port, () => {
     console.log(`Server running on port ${port}`);
-    console.log(`Uploads directory: ${uploadsDir}`);
   });
-
 });
