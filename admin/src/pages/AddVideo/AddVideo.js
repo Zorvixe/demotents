@@ -70,8 +70,8 @@ const AddVideo = () => {
 
   return (
     <div className="yt-upload-page">
-      <ToastContainer position="bottom-left" />
-      
+      <ToastContainer position="top-right" autoClose={3000} />
+
       <div className="yt-upload-container">
         <div className="yt-upload-header">
           <h2>Video Upload</h2>
@@ -82,12 +82,12 @@ const AddVideo = () => {
             <div className="yt-input-group">
               <div className="yt-input-wrapper">
                 <label>Title (required)</label>
-                <input 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)} 
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder="Add a title that describes your video"
-                  required 
+                  required
                 />
               </div>
               <span className="char-count">{title.length}/100</span>
@@ -96,9 +96,9 @@ const AddVideo = () => {
             <div className="yt-input-group">
               <div className="yt-input-wrapper">
                 <label>Description</label>
-                <textarea 
-                  rows="5" 
-                  value={description} 
+                <textarea
+                  rows="5"
+                  value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Tell viewers about your video"
                 ></textarea>
@@ -110,10 +110,10 @@ const AddVideo = () => {
               <div className="yt-input-group half">
                 <div className="yt-input-wrapper">
                   <label>Display Order</label>
-                  <input 
-                    type="number" 
-                    value={displayOrder} 
-                    onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)} 
+                  <input
+                    type="number"
+                    value={displayOrder}
+                    onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)}
                   />
                 </div>
               </div>
@@ -121,11 +121,11 @@ const AddVideo = () => {
               <div className="yt-input-group half">
                 <div className="yt-input-wrapper">
                   <label>Thumbnail URL</label>
-                  <input 
-                    type="text" 
-                    value={thumbnailUrl} 
-                    onChange={(e) => setThumbnailUrl(e.target.value)} 
-                    placeholder="https://example.com/image.jpg" 
+                  <input
+                    type="text"
+                    value={thumbnailUrl}
+                    onChange={(e) => setThumbnailUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
               </div>
@@ -138,12 +138,12 @@ const AddVideo = () => {
                 <video src={preview} controls className="preview-player" />
               ) : (
                 <div className="empty-preview">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="#909090"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="#909090"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
                   <p>No video selected</p>
                 </div>
               )}
             </div>
-            
+
             <div className="file-upload-wrapper">
               <label className="yt-file-upload-btn">
                 SELECT FILE
@@ -157,7 +157,7 @@ const AddVideo = () => {
         <div className="yt-upload-footer">
           <Link to="/" className="yt-btn-cancel">Cancel</Link>
           <button onClick={handleSubmit} disabled={loading} className="yt-btn-save">
-            {loading ? 'UPLOADING...' : 'SAVE'}
+            {loading ? <div className="loader-container"><div className="spinner"></div></div> : 'SAVE'}
           </button>
         </div>
       </div>

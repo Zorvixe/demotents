@@ -32,12 +32,7 @@
   color: #030303;
 }
 
-.close-btn {
-  text-decoration: none;
-  color: #606060;
-  font-size: 18px;
-  font-weight: bold;
-}
+
 
 .yt-upload-body {
   display: flex;

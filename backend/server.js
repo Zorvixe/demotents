@@ -195,7 +195,7 @@ const initDatabase = async () => {
 
 
     // Add videos table
-await pool.query(`
+    await pool.query(`
   CREATE TABLE IF NOT EXISTS videos (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -208,7 +208,7 @@ await pool.query(`
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
 `);
-console.log("✅ Videos table initialized");
+    console.log("✅ Videos table initialized");
 
     // ✅ MOVED THIS HERE - Admin user creation after table is created
     const defaultUsername = 'DemoTents';
@@ -1996,7 +1996,8 @@ app.post('/api/videos', verifyToken, upload.single('video'), async (req, res) =>
       return res.status(400).json({ success: false, message: 'Title is required' });
     }
 
-    const videoUrl = `/uploads/${req.file.filename}`;
+    // ✅ FIXED: include 'videos/' subfolder
+    const videoUrl = `/uploads/videos/${req.file.filename}`;
     const thumb = thumbnail_url || null;
 
     const result = await pool.query(`
@@ -2008,7 +2009,6 @@ app.post('/api/videos', verifyToken, upload.single('video'), async (req, res) =>
     res.status(201).json({ success: true, video: result.rows[0] });
   } catch (err) {
     console.error(err);
-    // Delete uploaded file if DB fails
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ success: false, message: 'Failed to add video' });
   }
@@ -2031,7 +2031,8 @@ app.put('/api/videos/:id', verifyToken, upload.single('video'), async (req, res)
 
     let newVideoUrl = null;
     if (req.file) {
-      newVideoUrl = `/uploads/${req.file.filename}`;
+      // ✅ FIXED: include 'videos/' subfolder
+      newVideoUrl = `/uploads/videos/${req.file.filename}`;
       fields.push(`video_url = $${idx++}`);
       values.push(newVideoUrl);
     }
@@ -2052,8 +2053,6 @@ app.put('/api/videos/:id', verifyToken, upload.single('video'), async (req, res)
       return res.status(404).json({ success: false, message: 'Video not found' });
     }
 
-    // If old video file should be deleted, fetch old URL before update (optional)
-    // For simplicity, we skip deletion here (you can add later)
     res.json({ success: true, video: result.rows[0] });
   } catch (err) {
     console.error(err);
