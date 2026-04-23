@@ -232,6 +232,17 @@ await pool.query(`
 `);
 
 // Ensure unique constraint on slug (critical for ON CONFLICT)
+// Drop the problematic composite constraint if it exists
+await pool.query(`
+  DO $$
+  BEGIN
+    IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_slug_per_parent') THEN
+      ALTER TABLE menu_items DROP CONSTRAINT unique_slug_per_parent;
+    END IF;
+  END $$;
+`);
+
+// Ensure we have a unique constraint on slug alone (global uniqueness)
 await pool.query(`
   DO $$
   BEGIN
