@@ -1949,14 +1949,26 @@ app.get('/api/categories-with-images', async (req, res) => {
   }
 });
 
-// Serve static frontend files (assuming your build output is in 'dist' or 'build')
-app.use(express.static(path.join(__dirname, 'build')));
+// In server.js, organize your routes like this:
 
-// Replace app.get('*', ...) with:
-app.get(/^\/(?!api|uploads|static).*/, (req, res) => {
+// 1. First, serve static files (these should be handled before any wildcard routes)
+app.use('/uploads', express.static(uploadsDir));
+app.use('/static', express.static(path.join(__dirname, 'build', 'static')));
+
+// 2. Then your API routes
+// ... all your API routes (app.get('/api/...'), app.post('/api/...'), etc.)
+
+// 3. Then serve the main index.html for client-side routing
+// This should be the LAST route
+app.get('*', (req, res) => {
+  // Check if the request is for an API or static asset
+  if (req.path.startsWith('/api') || 
+      req.path.startsWith('/uploads') ||
+      path.extname(req.path) !== '') {
+    return res.status(404).json({ error: 'Not found' });
+  }
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {

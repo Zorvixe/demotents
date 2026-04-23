@@ -14,8 +14,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Base URL for all axios requests
-  axios.defaults.baseURL = "https://api.demotents.com";
-
+  axios.defaults.baseURL = process.env.NODE_ENV === 'production'
+    ? window.location.origin
+    : '';
   // Decode JWT and check expiry safely
   const isTokenExpired = (token) => {
     if (!token) return true;
