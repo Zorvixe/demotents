@@ -5,17 +5,20 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const API_URL = "https://api.demotents.com";
+const MAX_TOTAL_SIZE_BYTES = 800 * 1024 * 1024;
 
 const Add = () => {
     const [mainImage, setMainImage] = useState(null);
     const [subImages, setSubImages] = useState([]);
+    const [totalSubImagesSize, setTotalSubImagesSize] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [categoriesTree, setCategoriesTree] = useState([]);
-
+    const [categories, setCategories] = useState([]);
+    const [subCategories, setSubCategories] = useState([]);
     const [data, setData] = useState({
         name: "",
         description: "",
         category_id: "",
+        sub_category_id: "",
         sku: "",
         price: "",
         stock_quantity: 0,
@@ -29,32 +32,61 @@ const Add = () => {
         cloth_colors: ""
     });
 
+    // Helper to get auth token
     const getAuthToken = () => localStorage.getItem('adminToken');
 
-    // Fetch category tree
     useEffect(() => {
-        fetch(`${API_URL}/api/categories`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) setCategoriesTree(data.categories);
-            })
-            .catch(err => console.error("Failed to load categories", err));
+        fetchCategories();
     }, []);
+
+    useEffect(() => {
+        if (data.category_id) {
+            fetchSubCategories(data.category_id);
+        } else {
+            setSubCategories([]);
+        }
+    }, [data.category_id]);
+
+    useEffect(() => {
+        const total = subImages.reduce((sum, file) => sum + file.size, 0);
+        setTotalSubImagesSize(total);
+    }, [subImages]);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/categories`);
+            const result = await response.json();
+            if (result.success) {
+                setCategories(result.categories);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            toast.error('Failed to load categories');
+        }
+    };
+
+    const fetchSubCategories = async (categoryId) => {
+        try {
+            const response = await fetch(`${API_URL}/api/categories/${categoryId}/sub-categories`);
+            const result = await response.json();
+            if (result.success) {
+                setSubCategories(result.sub_categories);
+            }
+        } catch (error) {
+            console.error('Error fetching sub-categories:', error);
+            toast.error('Failed to load sub-categories');
+        }
+    };
 
     const onChangeHandler = (event) => {
         const name = event.target.name;
         const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
-        if (name === "product_type") {
-            setData(prev => ({
-                ...prev,
-                product_type: value,
-                without_print_price: "",
-                core_price: "",
-                elite_price: "",
-                pro_price: ""
-            }));
+        if (name === "category_id") {
+            setData((prev) => ({ ...prev, [name]: value, sub_category_id: "" }));
+        } else if (name === "product_type") {
+            setData((prev) => ({ ...prev, product_type: value, without_print_price: "", core_price: "", elite_price: "", pro_price: "" }));
         } else {
-            setData(prev => ({ ...prev, [name]: value }));
+            setData((prev) => ({ ...prev, [name]: value }));
         }
     };
 
@@ -67,10 +99,14 @@ const Add = () => {
             const newFiles = Array.from(e.target.files);
             const currentCount = subImages.length;
             const newCount = currentCount + newFiles.length;
-            if (newCount > 50) {
+
+            // Keep only the count limit, remove size check
+            if (newCount > 50) {  // You can increase this limit too
                 toast.error(`Maximum 50 sub‑images allowed. You have ${currentCount} and tried to add ${newFiles.length}.`);
                 return;
             }
+
+            // Remove all size validation code
             setSubImages(prev => [...prev, ...newFiles]);
         }
     };
@@ -82,20 +118,6 @@ const Add = () => {
     const generateSku = () => {
         const skuPrefix = 'PROD-' + Date.now().toString().slice(-6);
         setData(prev => ({ ...prev, sku: skuPrefix }));
-    };
-
-    // Helper to render category options with indentation
-    const renderCategoryOptions = (categories, level = 0) => {
-        let opts = [];
-        for (let cat of categories) {
-            opts.push(
-                <option key={cat.id} value={cat.id}>
-                    {'—'.repeat(level)} {cat.name}
-                </option>
-            );
-            if (cat.children) opts.push(...renderCategoryOptions(cat.children, level + 1));
-        }
-        return opts;
     };
 
     const onSubmitHandler = async (event) => {
@@ -117,6 +139,7 @@ const Add = () => {
         formData.append("mainImage", mainImage);
         formData.append("size", data.size);
         formData.append("product_type", data.product_type);
+        if (data.sub_category_id) formData.append("sub_category_id", data.sub_category_id);
         if (data.sku) formData.append("sku", data.sku);
         formData.append("is_featured", data.is_featured);
 
@@ -162,20 +185,23 @@ const Add = () => {
             const token = getAuthToken();
             const response = await fetch(`${API_URL}/api/products`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
             });
             const result = await response.json();
             if (response.ok) {
                 toast.success('Product added successfully!');
                 setData({
-                    name: "", description: "", category_id: "",
+                    name: "", description: "", category_id: "", sub_category_id: "",
                     sku: "", price: "", stock_quantity: 0, is_featured: false, size: "",
                     product_type: "", without_print_price: "", core_price: "",
                     elite_price: "", pro_price: "", cloth_colors: ""
                 });
                 setMainImage(null);
                 setSubImages([]);
+                setSubCategories([]);
             } else {
                 toast.error(result.message || 'Error adding product');
             }
@@ -187,11 +213,17 @@ const Add = () => {
         }
     };
 
+    const formatSize = (bytes) => (bytes / (1024 * 1024)).toFixed(2);
+    const totalMB = formatSize(totalSubImagesSize);
+    const limitMB = formatSize(MAX_TOTAL_SIZE_BYTES);
+    const isOverLimit = totalSubImagesSize > MAX_TOTAL_SIZE_BYTES;
+
     return (
         <div className='add-page-wrapper'>
             <ToastContainer position="top-right" autoClose={3000} />
             <div className="add-header"><h2>Add New Product</h2></div>
             <form onSubmit={onSubmitHandler} className="add-form-grid">
+                {/* Left column - same as original */}
                 <div className="main-column">
                     <div className="ui-card">
                         <div className="card-header">Basic Information</div>
@@ -232,7 +264,9 @@ const Add = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className="helper-text"><span>{subImages.length} images selected</span></div>
+                            <div className="helper-text" style={{ marginTop: '8px' }}>
+                                <span>{subImages.length} images selected</span>
+                            </div>
                         </div>
                     </div>
                     <div className="ui-card">
@@ -287,8 +321,15 @@ const Add = () => {
                         <div className="form-group">
                             <label>Category <span className="required">*</span></label>
                             <select name="category_id" value={data.category_id} onChange={onChangeHandler} className="ui-input" required>
-                                <option value="">Select a category</option>
-                                {renderCategoryOptions(categoriesTree)}
+                                <option value="">Select Category</option>
+                                {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>Sub-Category</label>
+                            <select name="sub_category_id" value={data.sub_category_id} onChange={onChangeHandler} disabled={!data.category_id} className="ui-input">
+                                <option value="">Select Sub-Category</option>
+                                {subCategories.map(subCategory => <option key={subCategory.id} value={subCategory.id}>{subCategory.name}</option>)}
                             </select>
                         </div>
                     </div>
@@ -297,7 +338,11 @@ const Add = () => {
                         <div className="form-group"><label>Size <span className="required">*</span></label><input type="text" name="size" value={data.size} onChange={onChangeHandler} placeholder="Enter size (e.g. 10x10, 12x12, Custom)" className="ui-input" required /></div>
                         <div className="form-group"><label>Cloth Colors</label><input type="text" name="cloth_colors" value={data.cloth_colors} onChange={onChangeHandler} placeholder="Red, Blue, Green (comma separated)" className="ui-input" /></div>
                     </div>
-                    <button type='submit' className='ui-btn-primary' disabled={loading}>
+                    <button
+                        type='submit'
+                        className='ui-btn-primary'
+                        disabled={loading}  // Remove || isOverLimit
+                    >
                         {loading ? 'Saving...' : 'Save Product'}
                     </button>
                 </div>

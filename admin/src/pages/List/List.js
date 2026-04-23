@@ -7,7 +7,8 @@ const List = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
-  const [categoriesTree, setCategoriesTree] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -21,7 +22,7 @@ const List = () => {
   });
 
   const [editForm, setEditForm] = useState({
-    name: '', description: '', price: '', category_id: '',
+    name: '', description: '', price: '', category_id: '', sub_category_id: '',
     stock_quantity: '', is_featured: false, is_active: true, sku: '', size: '', product_type: '',
     without_print_price: '', core_price: '', elite_price: '', pro_price: '', cloth_colors: '',
   });
@@ -67,9 +68,20 @@ const List = () => {
     try {
       const response = await fetch(`${API_URL}/categories`);
       const data = await response.json();
-      if (data.success) setCategoriesTree(data.categories);
+      if (data.success) setCategories(data.categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchSubCategories = async (categoryId) => {
+    try {
+      const response = await fetch(`${API_URL}/categories/${categoryId}/sub-categories`);
+      const data = await response.json();
+      if (data.success) setSubCategories(data.sub_categories);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      setSubCategories([]);
     }
   };
 
@@ -130,6 +142,7 @@ const List = () => {
       description: product.description || '',
       price: product.price,
       category_id: product.category_id || '',
+      sub_category_id: product.sub_category_id || '',
       stock_quantity: product.stock_quantity || 0,
       is_featured: product.is_featured || false,
       is_active: product.is_active !== undefined ? product.is_active : true,
@@ -147,6 +160,7 @@ const List = () => {
     setSubImageFiles([]);
     setExistingSubImages([]);
 
+    if (product.category_id) await fetchSubCategories(product.category_id);
     const fullProduct = await fetchProductDetails(product.id);
     if (fullProduct && fullProduct.sub_images) setExistingSubImages(fullProduct.sub_images);
   };
@@ -154,19 +168,25 @@ const List = () => {
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditForm({
-      name: '', description: '', price: '', category_id: '',
+      name: '', description: '', price: '', category_id: '', sub_category_id: '',
       stock_quantity: '', is_featured: false, is_active: true, sku: '', size: '', product_type: '',
       without_print_price: '', core_price: '', elite_price: '', pro_price: '', cloth_colors: '',
     });
     setMainImageFile(null);
     setSubImageFiles([]);
     setExistingSubImages([]);
+    setSubCategories([]);
     setExistingMainImage(null);
   };
 
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === 'product_type') {
+    if (name === 'category_id') {
+      setEditForm(prev => ({ ...prev, [name]: value, sub_category_id: '' }));
+      if (value) fetchSubCategories(value);
+      else setSubCategories([]);
+    } else if (name === 'product_type') {
+      // When product type changes, clear the opposite price fields
       setEditForm(prev => ({
         ...prev,
         product_type: value,
@@ -242,6 +262,7 @@ const List = () => {
     try {
       const formData = new FormData();
       
+      // Helper to convert empty string to null for price fields
       const prepareValue = (key, value) => {
         if (key === 'without_print_price' || key === 'core_price' || key === 'elite_price' || key === 'pro_price') {
           return value === '' ? null : value;
@@ -293,6 +314,8 @@ const List = () => {
     try {
       const token = getAuthToken();
       const updatedStatus = !product.is_active;
+      
+      // We use FormData for consistency with handleUpdate
       const formData = new FormData();
       formData.append('is_active', updatedStatus);
 
@@ -316,35 +339,22 @@ const List = () => {
 
   const getCategoryName = (product) => {
     if (product.category_name) return product.category_name;
-    // Find category name from the tree (simple linear search for now)
-    const findCat = (cats, id) => {
-      for (let cat of cats) {
-        if (cat.id === id) return cat.name;
-        if (cat.children) {
-          const found = findCat(cat.children, id);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    return findCat(categoriesTree, product.category_id) || 'No Category';
+    const category = categories.find(cat => cat.id === product.category_id);
+    return category ? category.name : 'No Category';
   };
-
+  const getSubCategoryName = (product) => {
+    if (product.sub_category_name) return product.sub_category_name;
+    if (product.sub_category_id) {
+      const subCategory = subCategories.find(sub => sub.id === product.sub_category_id);
+      return subCategory ? subCategory.name : '';
+    }
+    return '';
+  };
   const handleImageLoad = (productId) => setImageLoaded(prev => ({ ...prev, [productId]: true }));
   const handleImageError = (productId) => {
     setImageError(prev => ({ ...prev, [productId]: true }));
     setImageLoaded(prev => ({ ...prev, [productId]: true }));
   };
-
-  // Helper to render category options for filter dropdown (flat list)
-  const flattenCategories = (cats, level = 0, arr = []) => {
-    for (let cat of cats) {
-      arr.push({ id: cat.id, name: '—'.repeat(level) + ' ' + cat.name });
-      if (cat.children) flattenCategories(cat.children, level + 1, arr);
-    }
-    return arr;
-  };
-  const flatCategories = flattenCategories(categoriesTree);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -392,15 +402,7 @@ const List = () => {
                   <div className="form-group"><label>Product Name <span className="required">*</span></label><input type="text" name="name" value={editForm.name} onChange={handleFormChange} className="edit-input" placeholder="Enter product name" /></div>
                   <div className="form-group"><label>Description</label><textarea name="description" value={editForm.description} onChange={handleFormChange} className="edit-textarea" rows="4" placeholder="Enter product description..."></textarea></div>
                   <div className="grid-2-col-inner mt-4"><div className="form-group"><label>SKU</label><input type="text" name="sku" value={editForm.sku} onChange={handleFormChange} className="edit-input" placeholder="e.g. PROD-01" /></div><div className="form-group"><label>Stock Quantity <span className="required">*</span></label><input type="number" name="stock_quantity" value={editForm.stock_quantity} onChange={handleFormChange} className="edit-input" min="0" /></div></div>
-                  <div className="form-group">
-                    <label>Category <span className="required">*</span></label>
-                    <select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required>
-                      <option value="">Select Category</option>
-                      {flatCategories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <div className="grid-2-col-inner"><div className="form-group"><label>Category <span className="required">*</span></label><select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required><option value="">Select Category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div><div className="form-group"><label>Sub-Category</label><select name="sub_category_id" value={editForm.sub_category_id} onChange={handleFormChange} className="edit-input" disabled={!editForm.category_id}><option value="">Select Sub-Category</option>{subCategories.map(subCat => <option key={subCat.id} value={subCat.id}>{subCat.name}</option>)}</select></div></div>
                   <div className="form-group"><label>Cloth Colors (comma separated)</label><input type="text" name="cloth_colors" value={editForm.cloth_colors} onChange={handleFormChange} placeholder="e.g. Red, Blue, Green" className="edit-input" /></div>
                   <div className="form-group">
                     <div className="featured-toggle" style={{ justifyContent: 'space-between' }}>
@@ -441,14 +443,14 @@ const List = () => {
         </div>
       )}
       <div className="header-section"><div className="header-content"><div className="header-text"><h3 className="header-title">Product Inventory</h3><p className="header-subtitle">Manage and organize your products efficiently</p></div><div className="header-stats"><div className="stat-card"><span className="stat-number">{totalFiltered}</span><span className="stat-label">Products</span></div><div className="stat-card featured"><span className="stat-number">{products.filter(p => p.is_featured).length}</span><span className="stat-label">Featured</span></div></div></div></div>
-      <div className="filters-section"><div className="filter-group"><input type="text" placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="filter-input search-input" /></div><div className="filter-group"><select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="filter-input"><option value="">All Categories</option>{flatCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div><div className="filter-group"><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="filter-input"><option value="name">Sort by Name</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option><option value="stock">Stock Quantity</option><option value="featured">Featured First</option></select></div></div>
+      <div className="filters-section"><div className="filter-group"><input type="text" placeholder="Search products..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="filter-input search-input" /></div><div className="filter-group"><select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="filter-input"><option value="">All Categories</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div><div className="filter-group"><select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="filter-input"><option value="name">Sort by Name</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option><option value="stock">Stock Quantity</option><option value="featured">Featured First</option></select></div></div>
       {paginatedProducts.length === 0 ? <div className="empty-state"><div className="empty-icon">📦</div><h3>No Products Found</h3><p>Try adjusting your filters or add a new product</p></div> : <>
         <div className="inventory-table-container"><table className="inventory-table"><thead><tr><th width="5%"></th><th width="30%">Product</th><th width="15%">SKU</th><th width="15%">Category</th><th width="10%">Price</th><th width="12%">Inventory</th><th width="13%">Actions</th></tr></thead><tbody>
           {paginatedProducts.map((product) => {
             const imgUrl = getImageUrl(product.main_image_url);
             const isLoaded = imageLoaded[product.id];
             const hasError = imageError[product.id];
-            return (<tr key={product.id} className="inventory-row"><td className="cell-image"><div className="table-thumbnail-wrapper">{!isLoaded && imgUrl && !hasError && <div className="img-placeholder" />}{imgUrl && !hasError ? <img src={imgUrl} alt={product.name} className="table-thumbnail" style={{ display: isLoaded ? 'block' : 'none' }} onLoad={() => handleImageLoad(product.id)} onError={() => handleImageError(product.id)} /> : <div className="table-thumbnail placeholder-empty"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>}</div></td><td className="cell-product"><div className="product-name-cell"><span className="product-title">{product.name}</span>{product.is_featured && <span className="badge-featured">Featured</span>}</div></td><td className="cell-sku">{product.sku ? <span className="sku-badge">{product.sku}</span> : <span className="text-muted">N/A</span>}</td><td className="cell-category"><div className="category-text">{getCategoryName(product)}</div></td><td className="cell-price">₹{parseFloat(product.price).toFixed(2)}</td><td className="cell-stock">{product.stock_quantity > 0 ? <span className="stock-in">{product.stock_quantity} in stock</span> : <span className="stock-out">Out of stock</span>}</td><td className="cell-actions"><div className="status-toggle-cell" title={product.is_active ? "Active" : "Inactive"}><div className="toggle-switch small-toggle"><input type="checkbox" id={`active-${product.id}`} checked={product.is_active} onChange={() => toggleProductStatus(product)} /><label htmlFor={`active-${product.id}`} className="toggle-label"></label></div></div><button onClick={() => handleEdit(product)} className="action-btn edit-btn" title="Edit Product"><FaEdit /></button><button onClick={() => confirmDeleteProduct(product.id)} className="action-btn delete-btn" title="Delete Product"><FaTrash /></button></td></tr>);
+            return (<tr key={product.id} className="inventory-row"><td className="cell-image"><div className="table-thumbnail-wrapper">{!isLoaded && imgUrl && !hasError && <div className="img-placeholder" />}{imgUrl && !hasError ? <img src={imgUrl} alt={product.name} className="table-thumbnail" style={{ display: isLoaded ? 'block' : 'none' }} onLoad={() => handleImageLoad(product.id)} onError={() => handleImageError(product.id)} /> : <div className="table-thumbnail placeholder-empty"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>}</div></td><td className="cell-product"><div className="product-name-cell"><span className="product-title">{product.name}</span>{product.is_featured && <span className="badge-featured">Featured</span>}</div></td><td className="cell-sku">{product.sku ? <span className="sku-badge">{product.sku}</span> : <span className="text-muted">N/A</span>}</td><td className="cell-category"><div className="category-text">{getCategoryName(product)}</div>{getSubCategoryName(product) && <div className="sub-category-text">{getSubCategoryName(product)}</div>}</td><td className="cell-price">₹{parseFloat(product.price).toFixed(2)}</td><td className="cell-stock">{product.stock_quantity > 0 ? <span className="stock-in">{product.stock_quantity} in stock</span> : <span className="stock-out">Out of stock</span>}</td><td className="cell-actions"><div className="status-toggle-cell" title={product.is_active ? "Active" : "Inactive"}><div className="toggle-switch small-toggle"><input type="checkbox" id={`active-${product.id}`} checked={product.is_active} onChange={() => toggleProductStatus(product)} /><label htmlFor={`active-${product.id}`} className="toggle-label"></label></div></div><button onClick={() => handleEdit(product)} className="action-btn edit-btn" title="Edit Product"><FaEdit /></button><button onClick={() => confirmDeleteProduct(product.id)} className="action-btn delete-btn" title="Delete Product"><FaTrash /></button></td></tr>);
           })}
         </tbody></table></div>
         {totalPages > 1 && (<div className="pagination-container"><button className="pagination-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>Previous</button><div className="pagination-pages">{Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (<button key={page} className={`pagination-page ${currentPage === page ? 'active' : ''}`} onClick={() => goToPage(page)}>{page}</button>))}</div><button className="pagination-btn" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>Next</button></div>)}
