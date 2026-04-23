@@ -737,36 +737,24 @@ app.delete('/api/categories/:id', verifyToken, async (req, res) => {
 app.get('/api/navbar-menu', async (req, res) => {
   try {
     const result = await pool.query(`
-      WITH category_type_counts AS (
-        SELECT 
-          c.id as category_id,
-          COUNT(CASE WHEN (p.without_print_price IS NOT NULL 
-                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
-                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
-                     THEN 1 END) as without_print_count,
-          COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL
-                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
-                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
-                     THEN 1 END) as custom_count
-        FROM categories c
-        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
-        GROUP BY c.id
-      ),
-      subcategory_type_counts AS (
-        SELECT 
-          sc.id as subcategory_id,
-          COUNT(CASE WHEN (p.without_print_price IS NOT NULL 
-                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
-                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
-                     THEN 1 END) as without_print_count,
-          COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL
-                          OR (p.product_type IS NULL AND p.without_print_price IS NULL 
-                              AND p.core_price IS NULL AND p.elite_price IS NULL AND p.pro_price IS NULL))
-                     THEN 1 END) as custom_count
-        FROM sub_categories sc
-        LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
-        GROUP BY sc.id
-      )
+   WITH category_type_counts AS (
+  SELECT 
+    c.id as category_id,
+    COUNT(CASE WHEN (p.without_print_price IS NOT NULL OR p.product_type = 'without_print') THEN 1 END) as without_print_count,
+    COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL OR p.product_type = 'customization') THEN 1 END) as custom_count
+  FROM categories c
+  LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
+  GROUP BY c.id
+),
+subcategory_type_counts AS (
+  SELECT 
+    sc.id as subcategory_id,
+    COUNT(CASE WHEN (p.without_print_price IS NOT NULL OR p.product_type = 'without_print') THEN 1 END) as without_print_count,
+    COUNT(CASE WHEN (p.core_price IS NOT NULL OR p.elite_price IS NOT NULL OR p.pro_price IS NOT NULL OR p.product_type = 'customization') THEN 1 END) as custom_count
+  FROM sub_categories sc
+  LEFT JOIN products p ON p.sub_category_id = sc.id AND p.is_active = true
+  GROUP BY sc.id
+)
       SELECT 
         c.id, c.name, c.description,
         nm.id as menu_id,
@@ -1211,31 +1199,27 @@ app.get('/api/products', async (req, res) => {
     if (is_active === 'true') {
       baseQuery += ` AND p.is_active = true`;
     }
-
     // Apply type filter only if explicitly provided
     if (type === 'without-print') {
       baseQuery += ` AND (
     p.without_print_price IS NOT NULL
-    OR (
-      p.product_type IS NULL
-      AND p.without_print_price IS NULL
-      AND p.core_price IS NULL
-      AND p.elite_price IS NULL
-      AND p.pro_price IS NULL
-    )
+    OR p.product_type = 'without_print'
   )`;
     } else if (type === 'custom') {
       baseQuery += ` AND (
     p.core_price IS NOT NULL
     OR p.elite_price IS NOT NULL
     OR p.pro_price IS NOT NULL
-    OR (
-      p.product_type IS NULL
-      AND p.without_print_price IS NULL
-      AND p.core_price IS NULL
-      AND p.elite_price IS NULL
-      AND p.pro_price IS NULL
-    )
+    OR p.product_type = 'customization'
+  )`;
+    } else {
+      // Default: no type parameter -> only generic products
+      baseQuery += ` AND (
+    p.product_type IS NULL
+    AND p.without_print_price IS NULL
+    AND p.core_price IS NULL
+    AND p.elite_price IS NULL
+    AND p.pro_price IS NULL
   )`;
     }
 
