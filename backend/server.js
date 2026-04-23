@@ -1961,13 +1961,8 @@ app.use('/static', express.static(path.join(__dirname, 'build', 'static')));
 app.use(express.static(path.join(__dirname, 'build')));
 
 // 4. Then serve the main index.html for client-side routing
-// Use '/*' instead of '*' for the catch-all route
-app.get('/*', (req, res) => {
-  // Check if the request is for an API or static asset
-  if (req.path.startsWith('/api') || 
-      req.path.startsWith('/uploads')) {
-    return res.status(404).json({ error: 'Not found' });
-  }
+// Alternative catch-all route using regex
+app.get(/^\/(?!api|uploads).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
