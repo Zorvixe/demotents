@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ FIXED BASE URL (IMPORTANT)
   axios.defaults.baseURL =
     process.env.NODE_ENV === 'production'
-      ? window.location.origin
+      ? 'https://api.demotents.com'
       : 'https://api.demotents.com';
 
   // Decode JWT
