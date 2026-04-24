@@ -15,6 +15,7 @@ const Navbar = () => {
 
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const API_URL = "https://api.demotents.com";
 
@@ -145,6 +146,7 @@ const Navbar = () => {
             <div className="search-input-wrapper">
               <RiSearchLine className="search-icon" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search products, colors, categories..."
                 value={searchTerm}
@@ -159,6 +161,7 @@ const Navbar = () => {
                   onClick={() => {
                     setSearchTerm('');
                     setShowSearchDropdown(false);
+                    searchInputRef.current?.focus();
                   }} 
                 />
               )}
@@ -174,12 +177,25 @@ const Navbar = () => {
                     <h6 className="dropdown-heading">SUGGESTIONS</h6>
                     <ul className="suggestion-list">
                       {searchSuggestions.map((sug, idx) => (
-                        <li key={idx} onClick={() => setSearchTerm(sug)}>
+                        <li 
+                          key={idx} 
+                          onClick={() => {
+                            setSearchTerm(sug);
+                            setShowSearchDropdown(true);
+                            searchInputRef.current?.focus();
+                          }}
+                        >
                           {highlightMatch(sug, searchTerm)}
                         </li>
                       ))}
-                      <li className="search-for-text" onClick={() => setShowSearchDropdown(false)}>
-                        Search for "{searchTerm}" &rarr;
+                      <li 
+                        className="search-for-text" 
+                        onClick={() => {
+                          setShowSearchDropdown(false);
+                          // Optionally trigger full search page navigation
+                        }}
+                      >
+                        Search for "{searchTerm}" →
                       </li>
                     </ul>
                   </div>
@@ -199,7 +215,13 @@ const Navbar = () => {
                               {product.main_image_url ? (
                                 <img src={getImageUrl(product.main_image_url)} alt={product.name} />
                               ) : (
-                                <div className="no-img">📷</div>
+                                <div className="no-img-placeholder">
+                                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <circle cx="8.5" cy="8.5" r="2.5" />
+                                    <path d="M21 15l-5-4-3 3-4-4-6 6" />
+                                  </svg>
+                                </div>
                               )}
                             </div>
                             <div className="search-product-details">
@@ -210,21 +232,30 @@ const Navbar = () => {
                                 {highlightMatch(product.name, searchTerm)}
                               </span>
                               <div className="search-price-container">
+                                <span className="search-price">{product.displayPrice || "Price on request"}</span>
                                 {product.originalPrice && product.discount && (
-                                  <span className="search-original-price">{product.originalPrice}</span>
-                                )}
-                                {product.displayPrice && (
-                                  <span className="search-price">{product.displayPrice}</span>
-                                )}
-                                {product.discount && (
-                                  <span className="search-discount">({product.discount}% OFF)</span>
+                                  <>
+                                    <span className="search-original-price">{product.originalPrice}</span>
+                                    <span className="search-discount">({product.discount}% OFF)</span>
+                                  </>
                                 )}
                               </div>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <p className="no-results-text">No exact products found.</p>
+                        <div className="no-results-shop-now">
+                          <p className="no-results-text">No products found for "{searchTerm}".</p>
+                          <button 
+                            className="shop-now-btn"
+                            onClick={() => {
+                              setShowSearchDropdown(false);
+                              navigate(`/categories?search=${encodeURIComponent(searchTerm)}`);
+                            }}
+                          >
+                            Shop now →
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
