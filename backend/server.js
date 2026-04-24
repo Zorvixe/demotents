@@ -2102,6 +2102,61 @@ app.get('/api/admin/videos', verifyToken, async (req, res) => {
   }
 });
 
+
+// ==================== PRODUCT SEARCH (full‑text) ====================
+app.get('/api/products/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim() === '') {
+      return res.json({ success: true, products: [] });
+    }
+
+    const searchTerm = `%${q.trim()}%`;
+    const result = await pool.query(`
+      SELECT 
+        id, uuid, slug, name,
+        main_image_url,
+        price,
+        core_price, elite_price, pro_price,
+        without_print_price
+      FROM products
+      WHERE 
+        (name ILIKE $1 OR description ILIKE $1 OR sku ILIKE $1)
+        AND is_active = true
+      ORDER BY 
+        CASE WHEN name ILIKE $1 THEN 1 ELSE 2 END,
+        name
+      LIMIT 10
+    `, [searchTerm]);
+
+    // Format price for display
+    const products = result.rows.map(p => {
+      let displayPrice = null;
+      if (p.core_price || p.elite_price || p.pro_price) {
+        const prices = [p.core_price, p.elite_price, p.pro_price].filter(v => v);
+        if (prices.length) displayPrice = `₹${Math.min(...prices).toLocaleString()}`;
+      } else if (p.price) {
+        displayPrice = `₹${p.price.toLocaleString()}`;
+      } else if (p.without_print_price) {
+        displayPrice = `₹${p.without_print_price.toLocaleString()}`;
+      }
+      return {
+        id: p.id,
+        uuid: p.uuid,
+        slug: p.slug,
+        name: p.name,
+        main_image_url: p.main_image_url,
+        displayPrice
+      };
+    });
+
+    res.json({ success: true, products });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ success: false, message: 'Search failed' });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

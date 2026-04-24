@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Navbar.css";
-import { RiCloseLine, RiArrowDropDownLine } from "react-icons/ri";
+import { RiCloseLine, RiArrowDropDownLine, RiSearchLine } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [menuItems, setMenuItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
 
   const API_URL = "https://api.demotents.com";
 
@@ -30,6 +35,48 @@ const Navbar = () => {
     fetchNavbarMenu();
   }, []);
 
+  // Search with debounce
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (searchTerm.trim().length < 2) {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/products/search?q=${encodeURIComponent(searchTerm)}`);
+        const data = await res.json();
+        if (data.success) {
+          setSearchResults(data.products);
+          setShowSearchDropdown(true);
+        } else {
+          setSearchResults([]);
+          setShowSearchDropdown(false);
+        }
+      } catch (err) {
+        console.error("Search error:", err);
+        setSearchResults([]);
+        setShowSearchDropdown(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [searchTerm]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const filteredMenuItems = menuItems.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -40,6 +87,19 @@ const Navbar = () => {
 
   const handleNavigation = (path, state = {}) => {
     navigate(path, { state });
+  };
+
+  const handleProductClick = (product) => {
+    setShowSearchDropdown(false);
+    setSearchTerm("");
+    navigate(`/product/${product.uuid}/${product.slug || ""}`);
+  };
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+    return `${API_URL}/${cleanPath}`;
   };
 
   if (loading) {
@@ -68,13 +128,49 @@ const Navbar = () => {
             <h1 className="Logo-Text">Demotents.com</h1>
           </div>
 
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="Search category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          {/* Search Box with full-width dropdown */}
+          <div className="search-box" ref={searchRef}>
+            <div className="search-input-wrapper">
+              <RiSearchLine className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => {
+                  if (searchResults.length > 0) setShowSearchDropdown(true);
+                }}
+              />
+            </div>
+
+            {/* Dropdown - full width of viewport */}
+            {showSearchDropdown && searchResults.length > 0 && (
+              <div className="search-dropdown-fullwidth">
+                <div className="search-dropdown-container">
+                  {searchResults.map((product) => (
+                    <div
+                      key={product.id}
+                      className="search-result-item"
+                      onClick={() => handleProductClick(product)}
+                    >
+                      <div className="search-result-img">
+                        {product.main_image_url ? (
+                          <img src={getImageUrl(product.main_image_url)} alt={product.name} />
+                        ) : (
+                          <div className="no-img">📷</div>
+                        )}
+                      </div>
+                      <div className="search-result-info">
+                        <div className="search-result-name">{product.name}</div>
+                        {product.displayPrice && (
+                          <div className="search-result-price">{product.displayPrice}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="menu" onClick={toggleMenu}>
@@ -87,6 +183,7 @@ const Navbar = () => {
         </div>
 
         <div className={`w-100 mt-2 nav-links ${menuOpen ? "active" : ""}`}>
+          {/* ... rest of your existing nav links (unchanged) ... */}
           <ul className="navbar-nav d-flex flex-row">
             <li className="nav-item" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               <span className="nav-link">HOME</span>
@@ -94,19 +191,13 @@ const Navbar = () => {
 
             {filteredMenuItems.map((item) => {
               const categorySlug = toSlug(item.name);
-              // Determine if category has any typed options (without‑print or custom)
               const hasTypedOptions = item.category_without_print_count > 0 || item.category_custom_count > 0;
-              // Determine if category has standard products (generic)
               const hasStandard = item.category_standard_count > 0;
 
-              // CASE 1: Category has sub‑categories
               if (item.sub_categories && item.sub_categories.length > 0) {
                 return (
                   <li key={item.id} className="nav-item dropdown dropdown-hover">
-                    <span
-                      className="nav-link d-flex align-items-center gap-1"
-                      style={{ cursor: "pointer" }}
-                    >
+                    <span className="nav-link d-flex align-items-center gap-1" style={{ cursor: "pointer" }}>
                       {item.name.toUpperCase()}
                       <RiArrowDropDownLine size={20} />
                     </span>
@@ -116,8 +207,6 @@ const Navbar = () => {
                         const showCustom = sub.custom_count > 0;
                         const showStandard = sub.standard_count > 0;
 
-                        // If this sub‑category has ONLY standard products (no typed options)
-                        // then clicking the sub‑category name itself goes to the standard listing.
                         if (showStandard && !showWithoutPrint && !showCustom) {
                           return (
                             <li
@@ -137,7 +226,6 @@ const Navbar = () => {
                           );
                         }
 
-                        // Otherwise, show dropdown with type options
                         return (
                           <li key={sub.id} className="dropdown-submenu">
                             <span className="dropdown-item d-flex justify-content-between align-items-center">
@@ -182,8 +270,6 @@ const Navbar = () => {
                 );
               }
 
-              // CASE 2: Category without sub‑categories
-              // If it has typed options, show dropdown; otherwise, make the category name a direct link.
               if (hasTypedOptions) {
                 return (
                   <li key={item.id} className="nav-item dropdown dropdown-hover">
@@ -220,7 +306,6 @@ const Navbar = () => {
                   </li>
                 );
               } else if (hasStandard) {
-                // Only standard products – direct link to category page
                 return (
                   <li
                     key={item.id}
@@ -237,7 +322,6 @@ const Navbar = () => {
                   </li>
                 );
               } else {
-                // No products at all – hide or show disabled? We'll hide.
                 return null;
               }
             })}

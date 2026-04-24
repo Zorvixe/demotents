@@ -98,7 +98,7 @@ const VideoGallery = () => {
     <div className="video-gallery-wrapper">
       <div className="gallery-header">
         <h2 className="video-gallery-title">
-          Handpicked for You <span className="tooltip-icon">?</span>
+          Handpicked for You
         </h2>
       </div>
 
