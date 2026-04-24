@@ -8,6 +8,7 @@ const Navbar = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -41,6 +42,7 @@ const Navbar = () => {
 
     if (searchTerm.trim().length < 2) {
       setSearchResults([]);
+      setSearchSuggestions([]);
       setShowSearchDropdown(false);
       return;
     }
@@ -49,16 +51,19 @@ const Navbar = () => {
       try {
         const res = await fetch(`${API_URL}/api/products/search?q=${encodeURIComponent(searchTerm)}`);
         const data = await res.json();
-        if (data.success) {
+        if (data.success && (data.products.length > 0 || data.suggestions.length > 0)) {
           setSearchResults(data.products);
+          setSearchSuggestions(data.suggestions);
           setShowSearchDropdown(true);
         } else {
           setSearchResults([]);
+          setSearchSuggestions([]);
           setShowSearchDropdown(false);
         }
       } catch (err) {
         console.error("Search error:", err);
         setSearchResults([]);
+        setSearchSuggestions([]);
         setShowSearchDropdown(false);
       }
     }, 300);
@@ -78,9 +83,6 @@ const Navbar = () => {
   }, []);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
-  const filteredMenuItems = menuItems.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const toSlug = (str) =>
     str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -100,6 +102,16 @@ const Navbar = () => {
     if (path.startsWith("http")) return path;
     const cleanPath = path.startsWith("/") ? path.slice(1) : path;
     return `${API_URL}/${cleanPath}`;
+  };
+
+  // Helper to highlight matching text
+  const highlightMatch = (text, match) => {
+    if (!match || !text) return text;
+    const parts = text.split(new RegExp(`(${match})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === match.toLowerCase() ? 
+        <span key={index} className="search-highlight">{part}</span> : part
+    );
   };
 
   if (loading) {
@@ -128,46 +140,95 @@ const Navbar = () => {
             <h1 className="Logo-Text">Demotents.com</h1>
           </div>
 
-          {/* Search Box with full-width dropdown */}
+          {/* Search Box */}
           <div className="search-box" ref={searchRef}>
             <div className="search-input-wrapper">
               <RiSearchLine className="search-icon" />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search products, colors, categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onFocus={() => {
-                  if (searchResults.length > 0) setShowSearchDropdown(true);
+                  if (searchResults.length > 0 || searchSuggestions.length > 0) setShowSearchDropdown(true);
                 }}
               />
+              {searchTerm && (
+                <RiCloseLine 
+                  className="clear-icon" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setShowSearchDropdown(false);
+                  }} 
+                />
+              )}
             </div>
 
-            {/* Dropdown - full width of viewport */}
-            {showSearchDropdown && searchResults.length > 0 && (
+            {/* Mega Search Dropdown like Reference Image */}
+            {showSearchDropdown && (
               <div className="search-dropdown-fullwidth">
                 <div className="search-dropdown-container">
-                  {searchResults.map((product) => (
-                    <div
-                      key={product.id}
-                      className="search-result-item"
-                      onClick={() => handleProductClick(product)}
-                    >
-                      <div className="search-result-img">
-                        {product.main_image_url ? (
-                          <img src={getImageUrl(product.main_image_url)} alt={product.name} />
-                        ) : (
-                          <div className="no-img">📷</div>
-                        )}
-                      </div>
-                      <div className="search-result-info">
-                        <div className="search-result-name">{product.name}</div>
-                        {product.displayPrice && (
-                          <div className="search-result-price">{product.displayPrice}</div>
-                        )}
-                      </div>
+                  
+                  {/* Left Column: Suggestions */}
+                  <div className="search-suggestions-col">
+                    <h6 className="dropdown-heading">SUGGESTIONS</h6>
+                    <ul className="suggestion-list">
+                      {searchSuggestions.map((sug, idx) => (
+                        <li key={idx} onClick={() => setSearchTerm(sug)}>
+                          {highlightMatch(sug, searchTerm)}
+                        </li>
+                      ))}
+                      <li className="search-for-text" onClick={() => setShowSearchDropdown(false)}>
+                        Search for "{searchTerm}" &rarr;
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Right Column: Products */}
+                  <div className="search-products-col">
+                    <h6 className="dropdown-heading">PRODUCTS</h6>
+                    <div className="search-products-grid">
+                      {searchResults.length > 0 ? (
+                        searchResults.map((product) => (
+                          <div
+                            key={product.id}
+                            className="search-product-card"
+                            onClick={() => handleProductClick(product)}
+                          >
+                            <div className="search-product-img">
+                              {product.main_image_url ? (
+                                <img src={getImageUrl(product.main_image_url)} alt={product.name} />
+                              ) : (
+                                <div className="no-img">📷</div>
+                              )}
+                            </div>
+                            <div className="search-product-details">
+                              <span className="search-product-category">
+                                {product.category_name || "Demotents"}
+                              </span>
+                              <span className="search-product-title">
+                                {highlightMatch(product.name, searchTerm)}
+                              </span>
+                              <div className="search-price-container">
+                                {product.originalPrice && product.discount && (
+                                  <span className="search-original-price">{product.originalPrice}</span>
+                                )}
+                                {product.displayPrice && (
+                                  <span className="search-price">{product.displayPrice}</span>
+                                )}
+                                {product.discount && (
+                                  <span className="search-discount">({product.discount}% OFF)</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="no-results-text">No exact products found.</p>
+                      )}
                     </div>
-                  ))}
+                  </div>
+
                 </div>
               </div>
             )}
@@ -182,14 +243,13 @@ const Navbar = () => {
           </div>
         </div>
 
+        {/* Existing Navbar Links Block */}
         <div className={`w-100 mt-2 nav-links ${menuOpen ? "active" : ""}`}>
-          {/* ... rest of your existing nav links (unchanged) ... */}
           <ul className="navbar-nav d-flex flex-row">
             <li className="nav-item" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
               <span className="nav-link">HOME</span>
             </li>
-
-            {filteredMenuItems.map((item) => {
+            {menuItems.map((item) => {
               const categorySlug = toSlug(item.name);
               const hasTypedOptions = item.category_without_print_count > 0 || item.category_custom_count > 0;
               const hasStandard = item.category_standard_count > 0;
@@ -211,14 +271,7 @@ const Navbar = () => {
                           return (
                             <li
                               key={sub.id}
-                              onClick={() =>
-                                handleNavigation(`/subcategory/${sub.id}`, {
-                                  subCategoryId: sub.id,
-                                  subCategoryName: sub.name,
-                                  parentCategoryId: item.id,
-                                  parentCategoryName: item.name,
-                                })
-                              }
+                              onClick={() => handleNavigation(`/subcategory/${sub.id}`, { subCategoryId: sub.id, subCategoryName: sub.name, parentCategoryId: item.id, parentCategoryName: item.name })}
                               style={{ cursor: "pointer" }}
                             >
                               <span className="dropdown-item">{sub.name}</span>
@@ -234,30 +287,12 @@ const Navbar = () => {
                             </span>
                             <ul className="dropdown-menu nested-menu">
                               {showWithoutPrint && (
-                                <li
-                                  onClick={() =>
-                                    handleNavigation(`/subcategory/${sub.id}?type=without-print`, {
-                                      subCategoryId: sub.id,
-                                      subCategoryName: sub.name,
-                                      parentCategoryId: item.id,
-                                      parentCategoryName: item.name,
-                                    })
-                                  }
-                                >
+                                <li onClick={() => handleNavigation(`/subcategory/${sub.id}?type=without-print`, { subCategoryId: sub.id, subCategoryName: sub.name, parentCategoryId: item.id, parentCategoryName: item.name })}>
                                   <span className="dropdown-item">Without Print</span>
                                 </li>
                               )}
                               {showCustom && (
-                                <li
-                                  onClick={() =>
-                                    handleNavigation(`/subcategory/${sub.id}?type=custom`, {
-                                      subCategoryId: sub.id,
-                                      subCategoryName: sub.name,
-                                      parentCategoryId: item.id,
-                                      parentCategoryName: item.name,
-                                    })
-                                  }
-                                >
+                                <li onClick={() => handleNavigation(`/subcategory/${sub.id}?type=custom`, { subCategoryId: sub.id, subCategoryName: sub.name, parentCategoryId: item.id, parentCategoryName: item.name })}>
                                   <span className="dropdown-item">With Customization</span>
                                 </li>
                               )}
@@ -279,26 +314,12 @@ const Navbar = () => {
                     </span>
                     <ul className="dropdown-menu">
                       {item.category_without_print_count > 0 && (
-                        <li
-                          onClick={() =>
-                            handleNavigation(`/category/${categorySlug}?type=without-print`, {
-                              categoryId: item.id,
-                              categoryName: item.name,
-                            })
-                          }
-                        >
+                        <li onClick={() => handleNavigation(`/category/${categorySlug}?type=without-print`, { categoryId: item.id, categoryName: item.name })}>
                           <span className="dropdown-item">Without Print</span>
                         </li>
                       )}
                       {item.category_custom_count > 0 && (
-                        <li
-                          onClick={() =>
-                            handleNavigation(`/category/${categorySlug}?type=custom`, {
-                              categoryId: item.id,
-                              categoryName: item.name,
-                            })
-                          }
-                        >
+                        <li onClick={() => handleNavigation(`/category/${categorySlug}?type=custom`, { categoryId: item.id, categoryName: item.name })}>
                           <span className="dropdown-item">With Customization</span>
                         </li>
                       )}
@@ -307,17 +328,7 @@ const Navbar = () => {
                 );
               } else if (hasStandard) {
                 return (
-                  <li
-                    key={item.id}
-                    className="nav-item"
-                    onClick={() =>
-                      handleNavigation(`/category/${categorySlug}`, {
-                        categoryId: item.id,
-                        categoryName: item.name,
-                      })
-                    }
-                    style={{ cursor: "pointer" }}
-                  >
+                  <li key={item.id} className="nav-item" onClick={() => handleNavigation(`/category/${categorySlug}`, { categoryId: item.id, categoryName: item.name })} style={{ cursor: "pointer" }}>
                     <span className="nav-link">{item.name.toUpperCase()}</span>
                   </li>
                 );

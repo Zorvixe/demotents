@@ -2104,53 +2104,102 @@ app.get('/api/admin/videos', verifyToken, async (req, res) => {
 
 
 // ==================== PRODUCT SEARCH (full‑text) ====================
+// ==================== PRODUCT SEARCH (full‑text) ====================
 app.get('/api/products/search', async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim() === '') {
-      return res.json({ success: true, products: [] });
+      return res.json({ success: true, products: [], suggestions: [] });
     }
 
     const searchTerm = `%${q.trim()}%`;
     const result = await pool.query(`
       SELECT 
-        id, uuid, slug, name,
-        main_image_url,
-        price,
-        core_price, elite_price, pro_price,
-        without_print_price
-      FROM products
+        p.id, p.uuid, p.slug, p.name,
+        p.main_image_url,
+        p.price,
+        p.core_price, p.elite_price, p.pro_price,
+        p.without_print_price,
+        c.name as category_name,
+        sc.name as sub_category_name
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN sub_categories sc ON p.sub_category_id = sc.id
       WHERE 
-        (name ILIKE $1 OR description ILIKE $1 OR sku ILIKE $1)
-        AND is_active = true
+        (p.name ILIKE $1 
+         OR p.description ILIKE $1 
+         OR p.sku ILIKE $1
+         OR p.product_type ILIKE $1
+         OR p.product_detail ILIKE $1
+         OR c.name ILIKE $1
+         OR sc.name ILIKE $1
+         OR array_to_string(p.cloth_colors, ', ') ILIKE $1)
+        AND p.is_active = true
       ORDER BY 
-        CASE WHEN name ILIKE $1 THEN 1 ELSE 2 END,
-        name
-      LIMIT 10
+        CASE WHEN p.name ILIKE $1 THEN 1 
+             WHEN c.name ILIKE $1 THEN 2
+             WHEN sc.name ILIKE $1 THEN 3
+             ELSE 4 END,
+        p.name
+      LIMIT 8
     `, [searchTerm]);
 
-    // Format price for display
+    // Format prices & calculate discounts
     const products = result.rows.map(p => {
       let displayPrice = null;
+      let originalPriceStr = p.price ? `₹${Number(p.price).toLocaleString()}` : null;
+      let currentPriceVal = null;
+      
       if (p.core_price || p.elite_price || p.pro_price) {
-        const prices = [p.core_price, p.elite_price, p.pro_price].filter(v => v);
-        if (prices.length) displayPrice = `₹${Math.min(...prices).toLocaleString()}`;
-      } else if (p.price) {
-        displayPrice = `₹${p.price.toLocaleString()}`;
+        const prices = [p.core_price, p.elite_price, p.pro_price].filter(v => v !== null && v !== undefined).map(Number);
+        if (prices.length) currentPriceVal = Math.min(...prices);
       } else if (p.without_print_price) {
-        displayPrice = `₹${p.without_print_price.toLocaleString()}`;
+        currentPriceVal = Number(p.without_print_price);
+      } else if (p.price) {
+        currentPriceVal = Number(p.price);
       }
+
+      if (currentPriceVal) {
+        displayPrice = `₹${currentPriceVal.toLocaleString()}`;
+      }
+
+      let discount = null;
+      if (p.price && currentPriceVal && Number(p.price) > currentPriceVal) {
+        discount = Math.round(((Number(p.price) - currentPriceVal) / Number(p.price)) * 100);
+      }
+
       return {
         id: p.id,
         uuid: p.uuid,
         slug: p.slug,
         name: p.name,
         main_image_url: p.main_image_url,
-        displayPrice
+        category_name: p.category_name,
+        displayPrice,
+        originalPrice: originalPriceStr,
+        discount
       };
     });
 
-    res.json({ success: true, products });
+    // Extract dynamic search suggestions based on hits
+    const rawSuggestions = new Set();
+    const queryLower = q.toLowerCase();
+    
+    result.rows.forEach(p => {
+      if (p.category_name && p.category_name.toLowerCase().includes(queryLower)) {
+        rawSuggestions.add(p.category_name);
+      }
+      if (p.sub_category_name && p.sub_category_name.toLowerCase().includes(queryLower)) {
+        rawSuggestions.add(p.sub_category_name);
+      }
+    });
+
+    let suggestions = Array.from(rawSuggestions).slice(0, 5);
+    if (suggestions.length === 0 && products.length > 0) {
+      suggestions = [`${queryLower} collection`, `${queryLower} latest`, `view all ${queryLower}`];
+    }
+
+    res.json({ success: true, products, suggestions });
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ success: false, message: 'Search failed' });
