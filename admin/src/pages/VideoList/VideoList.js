@@ -5,16 +5,46 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './VideoList.css';
 
+const API_BASE_URL = 'https://api.demotents.com';
+
 const VideoList = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [selectedVideo, setSelectedVideo] = useState(null);
+
+  // Add video modal states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [displayOrder, setDisplayOrder] = useState(0);
+  const [videoFile, setVideoFile] = useState(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [preview, setPreview] = useState(null);
+
+  // Edit video modal states
+  const [editingVideo, setEditingVideo] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDisplayOrder, setEditDisplayOrder] = useState(0);
+  const [editVideoFile, setEditVideoFile] = useState(null);
+  const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
+  const [editPreview, setEditPreview] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Action Menu state
+  const [activeDropdown, setActiveDropdown] = useState(null);
+
+  const getVideoUrl = (relativeUrl) => {
+    if (!relativeUrl) return '';
+    if (relativeUrl.startsWith('http')) return relativeUrl;
+    const cleanPath = relativeUrl.startsWith('/') ? relativeUrl.slice(1) : relativeUrl;
+    return `${API_BASE_URL}/${cleanPath}`;
+  };
 
   const fetchVideos = async () => {
     try {
-      // ✅ FIXED: Use admin endpoint to show all videos (active + inactive)
-      const res = await axios.get('/api/admin/videos');
+      const res = await axios.get(`${API_BASE_URL}/api/admin/videos`);
       if (res.data.success) setVideos(res.data.videos);
       else toast.error('Failed to load videos');
     } catch (err) {
@@ -29,10 +59,139 @@ const VideoList = () => {
     fetchVideos();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+      if (editPreview) URL.revokeObjectURL(editPreview);
+    };
+  }, [preview, editPreview]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveDropdown(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const resetAddForm = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setTitle('');
+    setDescription('');
+    setDisplayOrder(0);
+    setVideoFile(null);
+    setThumbnailUrl('');
+    setPreview(null);
+  };
+
+  const resetEditForm = () => {
+    if (editPreview) URL.revokeObjectURL(editPreview);
+    setEditingVideo(null);
+    setEditTitle('');
+    setEditDescription('');
+    setEditDisplayOrder(0);
+    setEditVideoFile(null);
+    setEditThumbnailUrl('');
+    setEditPreview(null);
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (preview) URL.revokeObjectURL(preview);
+      setVideoFile(file);
+      setPreview(URL.createObjectURL(file));
+      if (!title) {
+        setTitle(file.name.split('.').slice(0, -1).join('.'));
+      }
+    }
+  };
+
+  const handleEditVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (editPreview) URL.revokeObjectURL(editPreview);
+      setEditVideoFile(file);
+      setEditPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleAddVideoSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    if (!videoFile) {
+      toast.error('Please select a video file');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('display_order', displayOrder);
+    if (thumbnailUrl) formData.append('thumbnail_url', thumbnailUrl);
+    formData.append('video', videoFile);
+
+    setUploadLoading(true);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/videos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data.success) {
+        toast.success('Video uploaded successfully!');
+        resetAddForm();
+        setShowAddModal(false);
+        fetchVideos();
+      } else {
+        toast.error(res.data.message || 'Upload failed');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Server error');
+    } finally {
+      setUploadLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editTitle.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', editTitle);
+    formData.append('description', editDescription);
+    formData.append('display_order', editDisplayOrder);
+    if (editThumbnailUrl) formData.append('thumbnail_url', editThumbnailUrl);
+    if (editVideoFile) formData.append('video', editVideoFile);
+
+    setEditLoading(true);
+    try {
+      const res = await axios.put(`${API_BASE_URL}/api/videos/${editingVideo.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data.success) {
+        toast.success('Video updated successfully!');
+        resetEditForm();
+        fetchVideos();
+      } else {
+        toast.error(res.data.message || 'Update failed');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Server error');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this video permanently? This action cannot be undone.')) return;
     try {
-      const res = await axios.delete(`/api/videos/${id}`);
+      const res = await axios.delete(`${API_BASE_URL}/api/videos/${id}`);
       if (res.data.success) {
         toast.success('Video deleted');
         fetchVideos();
@@ -46,7 +205,7 @@ const VideoList = () => {
 
   const toggleActive = async (id, currentActive) => {
     try {
-      const res = await axios.put(`/api/videos/${id}`, { is_active: !currentActive });
+      const res = await axios.put(`${API_BASE_URL}/api/videos/${id}`, { is_active: !currentActive });
       if (res.data.success) {
         toast.success(`Video ${!currentActive ? 'published' : 'made private'}`);
         fetchVideos();
@@ -58,6 +217,34 @@ const VideoList = () => {
     }
   };
 
+  const openAddModal = () => {
+    setEditingVideo(null);
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    resetAddForm();
+    setShowAddModal(false);
+  };
+
+  const openEditModal = (video) => {
+    setEditingVideo(video);
+    setEditTitle(video.title);
+    setEditDescription(video.description || '');
+    setEditDisplayOrder(video.display_order);
+    setEditThumbnailUrl(video.thumbnail_url || '');
+    setEditVideoFile(null);
+    setEditPreview(null);
+  };
+
+  const closeEditModal = () => {
+    resetEditForm();
+  };
+
+  const handleDropdownToggle = (videoId) => {
+    setActiveDropdown(activeDropdown === videoId ? null : videoId);
+  };
+
   if (loading) return <div className="loader-container"><div className="spinner"></div></div>;
 
   return (
@@ -66,10 +253,10 @@ const VideoList = () => {
 
       <div className="yt-header">
         <h2>Channel content</h2>
-        <Link to="/add-video" className="yt-create-btn">
+        <button onClick={openAddModal} className="yt-create-btn">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M14 13h-3v3H9v-3H6v-2h3V8h2v3h3v2zm3-7H3v12h14v-6.39l4 1.83V8.56l-4 1.83V6m2-2v16H1V4h18z"></path></svg>
           CREATE
-        </Link>
+        </button>
       </div>
 
       <div className="yt-tabs">
@@ -83,7 +270,7 @@ const VideoList = () => {
               <th className="col-video">Video</th>
               <th className="col-visibility">Visibility</th>
               <th className="col-order">Display Order</th>
-              <th className="col-actions">Actions</th>
+              <th className="col-actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -96,12 +283,18 @@ const VideoList = () => {
               <tr key={video.id} className="yt-row">
                 <td className="col-video">
                   <div className="video-cell-content">
-                    <div className="video-thumbnail">
+                    <div className="video-thumbnail" onClick={() => setSelectedVideo(video)} style={{ cursor: 'pointer' }}>
                       <video
-                        src={video.video_url}
+                        src={getVideoUrl(video.video_url)}
                         className="mini-player"
-                        onClick={() => setSelectedVideo(video)}
-                      />                      <span className="duration-badge">HD</span>
+                        muted
+                        preload="metadata"
+                        onError={(e) => {
+                          console.error(`Failed to load video preview: ${video.video_url}`);
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <span className="duration-badge">HD</span>
                     </div>
                     <div className="video-details">
                       <h4 className="video-title" title={video.title}>{video.title}</h4>
@@ -127,21 +320,39 @@ const VideoList = () => {
                 </td>
 
                 <td className="col-actions">
-                  <div className="action-buttons">
-                    <button
-                      onClick={() => toggleActive(video.id, video.is_active)}
-                      className={`btn-icon ${video.is_active ? 'btn-deactivate' : 'btn-activate'}`}
-                      title={video.is_active ? "Make Private" : "Make Public"}
+                  <div className="action-menu-container" onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      className={`kebab-btn ${activeDropdown === video.id ? 'active' : ''}`}
+                      onClick={() => handleDropdownToggle(video.id)}
+                      title="Options"
                     >
-                      {video.is_active ? 'Hide' : 'Publish'}
+                      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                      </svg>
                     </button>
-                    <button
-                      onClick={() => handleDelete(video.id)}
-                      className="btn-icon btn-delete"
-                      title="Delete permanently"
-                    >
-                      Delete
-                    </button>
+
+                    {activeDropdown === video.id && (
+                      <div className="action-dropdown">
+                        <button
+                          onClick={() => { openEditModal(video); setActiveDropdown(null); }}
+                          className="dropdown-item dropdown-edit"
+                        >
+                          Edit video details
+                        </button>
+                        <button
+                          onClick={() => { toggleActive(video.id, video.is_active); setActiveDropdown(null); }}
+                          className={`dropdown-item ${video.is_active ? 'dropdown-hide' : 'dropdown-publish'}`}
+                        >
+                          {video.is_active ? 'Make Private' : 'Publish Video'}
+                        </button>
+                        <button
+                          onClick={() => { handleDelete(video.id); setActiveDropdown(null); }}
+                          className="dropdown-item dropdown-delete"
+                        >
+                          Delete permanently
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -149,27 +360,213 @@ const VideoList = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Selected Video Modal */}
       {selectedVideo && (
         <div className="video-modal-overlay" onClick={() => setSelectedVideo(null)}>
-          <div
-            className="video-modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="modal-close-btn"
-              onClick={() => setSelectedVideo(null)}
-            >
+          <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setSelectedVideo(null)}>
               ✕
             </button>
-
             <video
-              src={selectedVideo.video_url}
+              src={getVideoUrl(selectedVideo.video_url)}
               controls
               autoPlay
               className="modal-video-player"
+              onError={(e) => {
+                toast.error('Video failed to load. Please check the file.');
+                console.error(`Modal video error: ${selectedVideo.video_url}`);
+              }}
             />
-
             <h3 className="modal-title">{selectedVideo.title}</h3>
+          </div>
+        </div>
+      )}
+
+      {/* Add Video Modal */}
+      {showAddModal && (
+        <div className="add-modal-overlay" onClick={closeAddModal}>
+          <div className="add-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="yt-upload-container">
+              <div className="yt-upload-header">
+                <h2>Video Upload</h2>
+                <button className="modal-close-btn add-modal-close" onClick={closeAddModal}>✕</button>
+              </div>
+              <form onSubmit={handleAddVideoSubmit}>
+                <div className="yt-upload-body">
+                  <div className="yt-upload-left">
+                    <div className="yt-input-group">
+                      <div className="yt-input-wrapper">
+                        <label>Title (required)</label>
+                        <input
+                          type="text"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          placeholder="Add a title that describes your video"
+                          required
+                        />
+                      </div>
+                      <span className="char-count">{title.length}/100</span>
+                    </div>
+                    <div className="yt-input-group">
+                      <div className="yt-input-wrapper">
+                        <label>Description</label>
+                        <textarea
+                          rows="5"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="Tell viewers about your video"
+                        ></textarea>
+                      </div>
+                      <span className="char-count">{description.length}/5000</span>
+                    </div>
+                    <div className="yt-input-row">
+                      <div className="yt-input-group half">
+                        <div className="yt-input-wrapper">
+                          <label>Display Order</label>
+                          <input
+                            type="number"
+                            value={displayOrder}
+                            onChange={(e) => setDisplayOrder(parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                      <div className="yt-input-group half">
+                        <div className="yt-input-wrapper">
+                          <label>Thumbnail URL</label>
+                          <input
+                            type="text"
+                            value={thumbnailUrl}
+                            onChange={(e) => setThumbnailUrl(e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="yt-upload-right">
+                    <div className="video-preview-box">
+                      {preview ? (
+                        <video src={preview} controls className="preview-player" />
+                      ) : (
+                        <div className="empty-preview">
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="#909090"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                          <p>No video selected</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="file-upload-wrapper">
+                      <label className="yt-file-upload-btn">
+                        SELECT FILE
+                        <input type="file" accept="video/*" onChange={handleVideoChange} hidden required={!videoFile} />
+                      </label>
+                      <p className="file-name">{videoFile ? videoFile.name : 'MP4, WebM, or MOV'}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="yt-upload-footer">
+                  <button type="button" onClick={closeAddModal} className="yt-btn-cancel">Cancel</button>
+                  <button type="submit" disabled={uploadLoading} className="yt-btn-save">
+                    {uploadLoading ? "Loading..." : 'SAVE'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Video Modal */}
+      {editingVideo && (
+        <div className="add-modal-overlay" onClick={closeEditModal}>
+          <div className="add-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="yt-upload-container">
+              <div className="yt-upload-header">
+                <h2>Edit Video</h2>
+                <button className="modal-close-btn add-modal-close" onClick={closeEditModal}>✕</button>
+              </div>
+              <form onSubmit={handleEditSubmit}>
+                <div className="yt-upload-body">
+                  <div className="yt-upload-left">
+                    <div className="yt-input-group">
+                      <div className="yt-input-wrapper">
+                        <label>Title (required)</label>
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          placeholder="Add a title that describes your video"
+                          required
+                        />
+                      </div>
+                      <span className="char-count">{editTitle.length}/100</span>
+                    </div>
+                    <div className="yt-input-group">
+                      <div className="yt-input-wrapper">
+                        <label>Description</label>
+                        <textarea
+                          rows="5"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          placeholder="Tell viewers about your video"
+                        ></textarea>
+                      </div>
+                      <span className="char-count">{editDescription.length}/5000</span>
+                    </div>
+                    <div className="yt-input-row">
+                      <div className="yt-input-group half">
+                        <div className="yt-input-wrapper">
+                          <label>Display Order</label>
+                          <input
+                            type="number"
+                            value={editDisplayOrder}
+                            onChange={(e) => setEditDisplayOrder(parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                      <div className="yt-input-group half">
+                        <div className="yt-input-wrapper">
+                          <label>Thumbnail URL</label>
+                          <input
+                            type="text"
+                            value={editThumbnailUrl}
+                            onChange={(e) => setEditThumbnailUrl(e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="yt-upload-right">
+                    <div className="video-preview-box">
+                      {editPreview ? (
+                        <video src={editPreview} controls className="preview-player" />
+                      ) : editingVideo.video_url ? (
+                        <video src={getVideoUrl(editingVideo.video_url)} controls className="preview-player" />
+                      ) : (
+                        <div className="empty-preview">
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="#909090"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                          <p>Current video</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="file-upload-wrapper">
+                      <label className="yt-file-upload-btn">
+                        REPLACE VIDEO (optional)
+                        <input type="file" accept="video/*" onChange={handleEditVideoChange} hidden />
+                      </label>
+                      <p className="file-name">{editVideoFile ? editVideoFile.name : 'Leave empty to keep current video'}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="yt-upload-footer">
+                  <button type="button" onClick={closeEditModal} className="yt-btn-cancel">Cancel</button>
+                  <button type="submit" disabled={editLoading} className="yt-btn-save">
+                    {editLoading ? "Updating..." : 'UPDATE'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

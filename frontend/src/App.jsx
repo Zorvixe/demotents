@@ -18,6 +18,7 @@ import ProductDetails from "./pages/ProductDetails";
 import CategoryProducts from "./pages/CategoryProducts";
 import SubcategoryProducts from "./pages/SubcategoryProducts";
 import ScrollToTop from "./components/ScrollToTop";
+import VideoGallery from "./components/VideoGallery/VideoGallery"; // <-- import
 
 // Create Context for global categories
 export const CategoriesContext = createContext();
@@ -97,6 +98,7 @@ function App() {
                 <Home />
                 <CategoriesScroller />
                 <ConnectSection />
+                <VideoGallery />
               </>
             }
           />
@@ -106,12 +108,12 @@ function App() {
           <Route path="/booking-policy" element={<BookingPolicy />} />
           <Route path="/terms-conditions" element={<TermsConditions />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          
+
           {/* Updated route with UUID and slug */}
           <Route path="/product/:uuid/:productSlug" element={<ProductDetails />} />
           {/* Also support old slug-only URLs for backward compatibility */}
           <Route path="/product/:productSlug" element={<ProductDetails />} />
-          
+
           <Route path="/categories" element={<AllCategories />} />
           <Route path="/category/:categorySlug" element={<CategoryProducts />} />
           <Route path="/subcategory/:subcategoryId" element={<SubcategoryProducts />} />

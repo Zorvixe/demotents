@@ -29,13 +29,9 @@ const Sidebar = () => {
           <FiMenu size={22} />
           <p>Menu</p>
         </NavLink>
-        <NavLink to="/add-video" className="sidebar-option">
-          <FiVideo size={22} />
-          <p>Videos</p>
-        </NavLink>
         <NavLink to="/video-list" className="sidebar-option">
           <FiVideo size={22} />
-          <p>Videos List</p>
+          <p>Videos</p>
         </NavLink>
         <NavLink to="/new-category" className="sidebar-option">
           <FiFolder size={22} />

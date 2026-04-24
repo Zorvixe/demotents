@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import "./Home.css";
 import Navbar from "./Navbar";
-import VideoGallery from "../components/VideoGallery/VideoGallery.js"; // <-- import
 
 const Home = () => {
   useEffect(() => {
@@ -38,8 +37,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* 👇 VIDEO GALLERY SECTION */}
-      <VideoGallery />
+     
     </div>
   );
 };

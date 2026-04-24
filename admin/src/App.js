@@ -17,7 +17,6 @@ import Dashboard from './pages/Dashboard/Dashboard.js';
 import Menu from './pages/Menu/Menu.js';
 
 
-import AddVideo from './pages/AddVideo/AddVideo.js';
 import VideoList from './pages/VideoList/VideoList.js';
 
 import './App.css';
@@ -110,17 +109,6 @@ const App = () => {
             <ProtectedRoute>
               <AppLayout>
                 <SubCategory />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/add-video"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <AddVideo />
               </AppLayout>
             </ProtectedRoute>
           }
