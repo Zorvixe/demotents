@@ -1258,14 +1258,180 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// 13. Get Single Product
-// Updated GET product by UUID or slug
+// ==================== PRODUCT SEARCH (full‑text) ====================
+// ⚠️ IMPORTANT: This route MUST be defined BEFORE /api/products/:identifier
+app.get('/api/products/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim() === '') {
+      return res.json({ success: true, products: [], suggestions: [] });
+    }
+
+    const searchTerm = `%${q.trim().toLowerCase()}%`;
+    
+    // Search across multiple fields with relevance scoring
+    const result = await pool.query(`
+      SELECT 
+        p.id, p.uuid, p.slug, p.name,
+        p.main_image_url,
+        p.price,
+        p.core_price, p.elite_price, p.pro_price,
+        p.without_print_price,
+        p.product_type,
+        c.name as category_name,
+        sc.name as sub_category_name,
+        -- Relevance scoring
+        CASE 
+          WHEN LOWER(p.name) = LOWER($1) THEN 1
+          WHEN LOWER(p.name) LIKE LOWER($1) || '%' THEN 2
+          WHEN LOWER(p.name) LIKE '%' || LOWER($1) || '%' THEN 3
+          WHEN LOWER(c.name) LIKE '%' || LOWER($1) || '%' THEN 4
+          WHEN LOWER(sc.name) LIKE '%' || LOWER($1) || '%' THEN 5
+          WHEN LOWER(p.description) LIKE '%' || LOWER($1) || '%' THEN 6
+          WHEN LOWER(p.sku) LIKE '%' || LOWER($1) || '%' THEN 7
+          WHEN LOWER(p.product_type) LIKE '%' || LOWER($1) || '%' THEN 8
+          WHEN LOWER(p.product_detail) LIKE '%' || LOWER($1) || '%' THEN 9
+          WHEN array_to_string(p.cloth_colors, ', ') ILIKE $2 THEN 10
+          ELSE 11
+        END as relevance
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN sub_categories sc ON p.sub_category_id = sc.id
+      WHERE 
+        p.is_active = true
+        AND (
+          LOWER(p.name) LIKE $2
+          OR LOWER(p.description) LIKE $2
+          OR LOWER(p.sku) LIKE $2
+          OR LOWER(p.product_type) LIKE $2
+          OR LOWER(p.product_detail) LIKE $2
+          OR LOWER(c.name) LIKE $2
+          OR LOWER(sc.name) LIKE $2
+          OR array_to_string(p.cloth_colors, ', ') ILIKE $2
+        )
+      ORDER BY relevance ASC, p.name ASC
+      LIMIT 10
+    `, [q.trim(), searchTerm]);
+
+    // Format products for response
+    const products = result.rows.map(p => {
+      let displayPrice = null;
+      let originalPrice = null;
+      let discount = null;
+      let priceLabel = "View Price";
+
+      // Price calculation logic
+      if (p.core_price || p.elite_price || p.pro_price) {
+        // Customization product - show starting from price
+        const prices = [p.core_price, p.elite_price, p.pro_price]
+          .filter(v => v !== null && v !== undefined)
+          .map(Number);
+        
+        if (prices.length > 0) {
+          const minPrice = Math.min(...prices);
+          displayPrice = `From ₹${minPrice.toLocaleString()}`;
+          priceLabel = "Customization";
+          
+          if (p.price && Number(p.price) > minPrice) {
+            originalPrice = `₹${Number(p.price).toLocaleString()}`;
+            discount = Math.round(((Number(p.price) - minPrice) / Number(p.price)) * 100);
+          }
+        }
+      } else if (p.without_print_price) {
+        displayPrice = `₹${Number(p.without_print_price).toLocaleString()}`;
+        priceLabel = "Without Print";
+        
+        if (p.price && Number(p.price) > Number(p.without_print_price)) {
+          originalPrice = `₹${Number(p.price).toLocaleString()}`;
+          discount = Math.round(((Number(p.price) - Number(p.without_print_price)) / Number(p.price)) * 100);
+        }
+      } else if (p.price) {
+        displayPrice = `₹${Number(p.price).toLocaleString()}`;
+        priceLabel = "Standard";
+      }
+
+      return {
+        id: p.id,
+        uuid: p.uuid,
+        slug: p.slug,
+        name: p.name,
+        main_image_url: p.main_image_url,
+        category_name: p.category_name,
+        sub_category_name: p.sub_category_name,
+        displayPrice,
+        originalPrice,
+        discount,
+        priceLabel,
+        product_type: p.product_type
+      };
+    });
+
+    // Generate smart suggestions based on search
+    const suggestions = new Set();
+    const searchWords = q.trim().toLowerCase().split(/\s+/);
+    
+    result.rows.forEach(p => {
+      // Category suggestions
+      if (p.category_name && searchWords.some(word => 
+        p.category_name.toLowerCase().includes(word)
+      )) {
+        suggestions.add(p.category_name);
+      }
+      
+      // Sub-category suggestions
+      if (p.sub_category_name && searchWords.some(word => 
+        p.sub_category_name.toLowerCase().includes(word)
+      )) {
+        suggestions.add(p.sub_category_name);
+      }
+      
+      // Product type suggestions
+      if (p.product_type) {
+        const typeMap = {
+          'without_print': 'Without Print Products',
+          'customization': 'Custom Products',
+          'standard': 'Standard Products'
+        };
+        if (typeMap[p.product_type] && searchWords.some(word => 
+          typeMap[p.product_type].toLowerCase().includes(word)
+        )) {
+          suggestions.add(typeMap[p.product_type]);
+        }
+      }
+    });
+
+    // If no specific suggestions, generate general ones
+    if (suggestions.size === 0 && result.rows.length > 0) {
+      suggestions.add(`${q.trim()} collection`);
+      suggestions.add(`Shop all ${q.trim()}`);
+      suggestions.add(`${q.trim()} deals`);
+    }
+
+    res.json({ 
+      success: true, 
+      products, 
+      suggestions: Array.from(suggestions).slice(0, 6) 
+    });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ success: false, message: 'Search failed' });
+  }
+});
+
+// ==================== SINGLE PRODUCT ROUTE ====================
+// ⚠️ MUST come AFTER /api/products/search
 app.get('/api/products/:identifier', async (req, res) => {
   try {
     const { identifier } = req.params;
+    
+    // Skip if "search" is the identifier (safety check)
+    if (identifier === 'search') {
+      return res.status(400).json({ success: false, message: 'Use search endpoint' });
+    }
+
     let product;
 
-    // Check if identifier is UUID format (8-4-4-4-12 pattern)
+    // Check if identifier is UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     if (uuidRegex.test(identifier)) {
@@ -2103,108 +2269,7 @@ app.get('/api/admin/videos', verifyToken, async (req, res) => {
 });
 
 
-// ==================== PRODUCT SEARCH (full‑text) ====================
-// ==================== PRODUCT SEARCH (full‑text) ====================
-app.get('/api/products/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-    if (!q || q.trim() === '') {
-      return res.json({ success: true, products: [], suggestions: [] });
-    }
 
-    const searchTerm = `%${q.trim()}%`;
-    const result = await pool.query(`
-      SELECT 
-        p.id, p.uuid, p.slug, p.name,
-        p.main_image_url,
-        p.price,
-        p.core_price, p.elite_price, p.pro_price,
-        p.without_print_price,
-        c.name as category_name,
-        sc.name as sub_category_name
-      FROM products p
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN sub_categories sc ON p.sub_category_id = sc.id
-      WHERE 
-        (p.name ILIKE $1 
-         OR p.description ILIKE $1 
-         OR p.sku ILIKE $1
-         OR p.product_type ILIKE $1
-         OR p.product_detail ILIKE $1
-         OR c.name ILIKE $1
-         OR sc.name ILIKE $1
-         OR array_to_string(p.cloth_colors, ', ') ILIKE $1)
-        AND p.is_active = true
-      ORDER BY 
-        CASE WHEN p.name ILIKE $1 THEN 1 
-             WHEN c.name ILIKE $1 THEN 2
-             WHEN sc.name ILIKE $1 THEN 3
-             ELSE 4 END,
-        p.name
-      LIMIT 8
-    `, [searchTerm]);
-
-    // Format prices & calculate discounts
-    const products = result.rows.map(p => {
-      let displayPrice = null;
-      let originalPriceStr = p.price ? `₹${Number(p.price).toLocaleString()}` : null;
-      let currentPriceVal = null;
-      
-      if (p.core_price || p.elite_price || p.pro_price) {
-        const prices = [p.core_price, p.elite_price, p.pro_price].filter(v => v !== null && v !== undefined).map(Number);
-        if (prices.length) currentPriceVal = Math.min(...prices);
-      } else if (p.without_print_price) {
-        currentPriceVal = Number(p.without_print_price);
-      } else if (p.price) {
-        currentPriceVal = Number(p.price);
-      }
-
-      if (currentPriceVal) {
-        displayPrice = `₹${currentPriceVal.toLocaleString()}`;
-      }
-
-      let discount = null;
-      if (p.price && currentPriceVal && Number(p.price) > currentPriceVal) {
-        discount = Math.round(((Number(p.price) - currentPriceVal) / Number(p.price)) * 100);
-      }
-
-      return {
-        id: p.id,
-        uuid: p.uuid,
-        slug: p.slug,
-        name: p.name,
-        main_image_url: p.main_image_url,
-        category_name: p.category_name,
-        displayPrice,
-        originalPrice: originalPriceStr,
-        discount
-      };
-    });
-
-    // Extract dynamic search suggestions based on hits
-    const rawSuggestions = new Set();
-    const queryLower = q.toLowerCase();
-    
-    result.rows.forEach(p => {
-      if (p.category_name && p.category_name.toLowerCase().includes(queryLower)) {
-        rawSuggestions.add(p.category_name);
-      }
-      if (p.sub_category_name && p.sub_category_name.toLowerCase().includes(queryLower)) {
-        rawSuggestions.add(p.sub_category_name);
-      }
-    });
-
-    let suggestions = Array.from(rawSuggestions).slice(0, 5);
-    if (suggestions.length === 0 && products.length > 0) {
-      suggestions = [`${queryLower} collection`, `${queryLower} latest`, `view all ${queryLower}`];
-    }
-
-    res.json({ success: true, products, suggestions });
-  } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ success: false, message: 'Search failed' });
-  }
-});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
