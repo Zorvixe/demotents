@@ -278,16 +278,16 @@ const Add = () => {
                     <div className="ui-card">
                         <div className="card-header">Pricing & Inventory</div>
                         <div className="grid-2-col">
-                            <div className="form-group">
-                                <label>SKU (Stock Keeping Unit)</label>
-                                <div className="sku-input-group">
-                                    <input onChange={onChangeHandler} value={data.sku} type="text" name='sku' placeholder='Auto-generate or enter custom' className="ui-input" />
-                                    <button type="button" className="ui-btn-secondary" onClick={generateSku}>Generate</button>
-                                </div>
-                            </div>
+                            {/* <div className="form-group">
+                                    <label>SKU (Stock Keeping Unit)</label>
+                                    <div className="sku-input-group">
+                                        <input onChange={onChangeHandler} value={data.sku} type="text" name='sku' placeholder='Auto-generate or enter custom' className="ui-input" />
+                                        <button type="button" className="ui-btn-secondary" onClick={generateSku}>Generate</button>
+                                    </div>
+                                </div> */}
                             <div className="form-group">
                                 <label>Product Type</label>
-                                <div className="toggle-group">
+                                <div className="toggle-group-prodcut-type">
                                     <label className="toggle-switch-label">
                                         <input
                                             type="checkbox"
@@ -297,6 +297,7 @@ const Add = () => {
                                         <span className="toggle-slider"></span>
                                         <span className="toggle-text">Without Print</span>
                                     </label>
+
                                     <label className="toggle-switch-label">
                                         <input
                                             type="checkbox"
