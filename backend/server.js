@@ -95,7 +95,6 @@ const initDatabase = async () => {
         main_image_url VARCHAR(500),
         category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
         sub_category_id INTEGER REFERENCES sub_categories(id) ON DELETE SET NULL,
-        sku VARCHAR(100) UNIQUE,
         stock_quantity INTEGER DEFAULT 0,
         is_featured BOOLEAN DEFAULT false,
         is_active BOOLEAN DEFAULT true,
@@ -103,6 +102,7 @@ const initDatabase = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
 
     // Add to your initDatabase() function
     await pool.query(`

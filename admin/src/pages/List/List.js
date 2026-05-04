@@ -25,7 +25,9 @@ const List = () => {
 
   const [editForm, setEditForm] = useState({
     name: '', description: '', price: '', category_id: '', sub_category_id: '',
-    stock_quantity: '', is_featured: false, is_active: true, sku: '', size: '', product_type: '',
+    stock_quantity: '', is_featured: false, is_active: true, 
+    // sku: '', 
+    size: '', product_type: '',
     without_print_price: '', core_price: '', elite_price: '', pro_price: '', cloth_colors: '',
   });
   const [mainImageFile, setMainImageFile] = useState(null);
@@ -142,7 +144,7 @@ const List = () => {
       stock_quantity: product.stock_quantity || 0,
       is_featured: product.is_featured || false,
       is_active: product.is_active !== undefined ? product.is_active : true,
-      sku: product.sku || '',
+      // sku: product.sku || '',
       size: product.size || '',
       product_type: product.product_type || '',
       without_print_price: product.without_print_price || '',
@@ -412,8 +414,13 @@ const List = () => {
                   <h4 className="section-title">Basic Details</h4>
                   <div className="form-group"><label>Product Name <span className="required">*</span></label><input type="text" name="name" value={editForm.name} onChange={handleFormChange} className="edit-input" placeholder="Enter product name" /></div>
                   <div className="form-group"><label>Description</label><textarea name="description" value={editForm.description} onChange={handleFormChange} className="edit-textarea" rows="4" placeholder="Enter product description..."></textarea></div>
-                  <div className="grid-2-col-inner mt-4"><div className="form-group"><label>SKU</label><input type="text" name="sku" value={editForm.sku} onChange={handleFormChange} className="edit-input" placeholder="e.g. PROD-01" /></div><div className="form-group"><label>Stock Quantity <span className="required">*</span></label><input type="number" name="stock_quantity" value={editForm.stock_quantity} onChange={handleFormChange} className="edit-input" min="0" /></div></div>
-                  <div className="grid-2-col-inner"><div className="form-group"><label>Category <span className="required">*</span></label><select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required><option value="">Select Category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div><div className="form-group"><label>Sub-Category</label><select name="sub_category_id" value={editForm.sub_category_id} onChange={handleFormChange} className="edit-input" disabled={!editForm.category_id}><option value="">Select Sub-Category</option>{subCategories.map(subCat => <option key={subCat.id} value={subCat.id}>{subCat.name}</option>)}</select></div></div>
+                  <div className="grid-2-col-inner mt-4">
+                    {/* <div className="form-group">
+                      <label>SKU</label>
+                      <input type="text" name="sku" value={editForm.sku} onChange={handleFormChange} className="edit-input" placeholder="e.g. PROD-01" />
+                    </div> */}
+                  <div className="form-group"><label>Stock Quantity <span className="required">*</span></label><input type="number" name="stock_quantity" value={editForm.stock_quantity} onChange={handleFormChange} className="edit-input" min="0" /></div></div>
+                  <div className="grid-2-col-inner mt-4"><div className="form-group"><label>Category <span className="required">*</span></label><select name="category_id" value={editForm.category_id} onChange={handleFormChange} className="edit-input" required><option value="">Select Category</option>{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div><div className="form-group"><label>Sub-Category</label><select name="sub_category_id" value={editForm.sub_category_id} onChange={handleFormChange} className="edit-input" disabled={!editForm.category_id}><option value="">Select Sub-Category</option>{subCategories.map(subCat => <option key={subCat.id} value={subCat.id}>{subCat.name}</option>)}</select></div></div>
                   <div className="form-group"><label>Cloth Colors (comma separated)</label><input type="text" name="cloth_colors" value={editForm.cloth_colors} onChange={handleFormChange} placeholder="e.g. Red, Blue, Green" className="edit-input" /></div>
                   <div className="form-group">
                     <div className="featured-toggle" style={{ justifyContent: 'space-between' }}>

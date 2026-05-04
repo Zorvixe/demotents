@@ -18,7 +18,7 @@ const Add = () => {
         description: "",
         category_id: "",
         sub_category_id: "",
-        sku: "",
+        // sku: "",
         price: "",
         stock_quantity: 0,
         is_featured: false,
@@ -137,10 +137,10 @@ const Add = () => {
         setSubImages(prev => prev.filter((_, i) => i !== index));
     };
 
-    const generateSku = () => {
-        const skuPrefix = 'PROD-' + Date.now().toString().slice(-6);
-        setData(prev => ({ ...prev, sku: skuPrefix }));
-    };
+    // const generateSku = () => {
+    //     const skuPrefix = 'PROD-' + Date.now().toString().slice(-6);
+    //     setData(prev => ({ ...prev, sku: skuPrefix }));
+    // };
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
@@ -161,7 +161,7 @@ const Add = () => {
         formData.append("mainImage", mainImage);
         formData.append("size", data.size);
         if (data.sub_category_id) formData.append("sub_category_id", data.sub_category_id);
-        if (data.sku) formData.append("sku", data.sku);
+        // if (data.sku) formData.append("sku", data.sku);
         formData.append("is_featured", data.is_featured);
 
         if (data.product_type === "without_print") {
